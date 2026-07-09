@@ -1,0 +1,1130 @@
+// =============================================================================
+// MUKURTHAM MATRIMONY — ENTERPRISE DATABASE SCHEMA
+// Version: 2.0.0
+// Author: Principal Database Architecture Team
+// Designed for: Sri Lankan Tamil & Global Tamil Diaspora
+// Scale Target: 10,000,000+ users
+// =============================================================================
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["fullTextSearch", "fullTextIndex"]
+  output          = "../../backend/node_modules/.prisma/client"
+}
+
+// =============================================================================
+// SECTION 1: ENUMERATIONS
+// =============================================================================
+
+enum ProfileRegisteredFor {
+  self
+  son
+  daughter
+  brother
+  sister
+  relative
+  friend
+  client
+}
+
+enum Gender {
+  M
+  F
+}
+
+enum MaritalStatus {
+  never_married
+  divorced
+  widowed
+  separated
+  annulled
+}
+
+enum ProfileStatus {
+  draft
+  pending_moderation
+  active
+  suspended
+  deactivated
+  archived
+}
+
+enum PhotoStatus {
+  pending
+  approved
+  rejected
+}
+
+enum FileType {
+  image
+  pdf
+}
+
+enum DocumentType {
+  horoscope
+  birth_certificate
+  id_proof
+}
+
+enum DocumentStatus {
+  pending
+  verified
+  rejected
+}
+
+enum InterestStatus {
+  pending
+  accepted
+  rejected
+  expired
+  withdrawn
+}
+
+enum MembershipStatus {
+  active
+  expired
+  cancelled
+  paused
+}
+
+enum PaymentStatus {
+  pending
+  succeeded
+  failed
+  refunded
+  disputed
+}
+
+enum NotificationType {
+  interest_received
+  interest_accepted
+  interest_rejected
+  new_message
+  profile_viewed
+  payment_success
+  payment_failed
+  membership_expiring
+  photo_approved
+  photo_rejected
+  profile_approved
+  profile_suspended
+  system_announcement
+}
+
+enum ReportStatus {
+  pending
+  investigating
+  actioned
+  dismissed
+}
+
+enum TicketStatus {
+  open
+  in_progress
+  waiting_on_user
+  resolved
+  closed
+}
+
+enum PostStatus {
+  draft
+  published
+  archived
+}
+
+enum DietType {
+  vegetarian
+  non_vegetarian
+  vegan
+  eggetarian
+  jain
+}
+
+enum DrinkingHabit {
+  never
+  occasionally
+  regularly
+}
+
+enum SmokingHabit {
+  never
+  occasionally
+  regularly
+}
+
+enum BodyType {
+  slim
+  athletic
+  average
+  heavy
+}
+
+enum Complexion {
+  very_fair
+  fair
+  wheatish
+  dark
+  very_dark
+}
+
+enum IncomeRange {
+  below_20k
+  range_20k_40k
+  range_40k_60k
+  range_60k_100k
+  range_100k_150k
+  above_150k
+}
+
+enum FamilyStatus {
+  rich
+  upper_middle_class
+  middle_class
+  working_class
+}
+
+enum FamilyValues {
+  traditional
+  moderate
+  liberal
+}
+
+enum AccountType {
+  individual
+  broker
+  admin
+  moderator
+}
+
+// =============================================================================
+// SECTION 2: RBAC — PERMISSIONS, ROLES
+// =============================================================================
+
+model Permission {
+  id          Int              @id @default(autoincrement())
+  name        String           @unique @db.VarChar(100)
+  description String?          @db.VarChar(255)
+  createdAt   DateTime         @default(now()) @map("created_at")
+  roles       RolePermission[]
+
+  @@map("permissions")
+}
+
+model Role {
+  id          Int              @id @default(autoincrement())
+  name        String           @unique @db.VarChar(50)
+  description String?          @db.VarChar(255)
+  isSystem    Boolean          @default(false) @map("is_system")
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+  users       UserRole[]
+  permissions RolePermission[]
+
+  @@map("roles")
+}
+
+model RolePermission {
+  roleId       Int        @map("role_id")
+  permissionId Int        @map("permission_id")
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+// =============================================================================
+// SECTION 3: AUTHENTICATION & ACCOUNT DOMAIN
+// =============================================================================
+
+model User {
+  id                   Int                       @id @default(autoincrement())
+  username             String                    @unique @db.VarChar(255)
+  email                String                    @unique @db.VarChar(255)
+  phoneNumber          String                    @unique @map("phone_number") @db.VarChar(20)
+  password             String                    @db.VarChar(255)
+  accountType          AccountType               @default(individual) @map("account_type")
+  isEmailVerified      Boolean                   @default(true) @map("is_email_verified")
+  isPhoneVerified      Boolean                   @default(true) @map("is_phone_verified")
+  isApproved           Boolean                   @default(true) @map("is_approved")
+  isSuspended          Boolean                   @default(false) @map("is_suspended")
+  uiLanguage           String                    @default("en") @map("ui_language") @db.VarChar(5)
+  lastLoginAt          DateTime?                 @map("last_login_at")
+  createdAt            DateTime                  @default(now()) @map("created_at")
+  updatedAt            DateTime                  @updatedAt @map("updated_at")
+  deletedAt            DateTime?                 @map("deleted_at")
+  roles                UserRole[]
+  sessions             Session[]
+  profiles             Profile[]
+  memberships          UserMembership[]
+  payments             Payment[]
+  favorites            Favorite[]                @relation("UserFavorites")
+  blocksInitiated      Block[]                   @relation("BlockerUser")
+  blocksReceived       Block[]                   @relation("BlockedUser")
+  viewsMade            RecentView[]              @relation("ViewerUser")
+  sentMessages         Message[]                 @relation("MessageSender")
+  notifications        Notification[]
+  reportsSubmitted     Report[]                  @relation("ReportReporter")
+  auditLogs            AuditLog[]
+  conversationParts    ConversationParticipant[]
+  supportTickets       SupportTicket[]           @relation("TicketOwner")
+  ticketMessages       TicketMessage[]
+  brokerProfile        BrokerProfile?
+
+  @@index([email])
+  @@index([phoneNumber])
+  @@index([accountType])
+  @@index([createdAt])
+  @@map("users")
+}
+
+model UserRole {
+  userId    Int      @map("user_id")
+  roleId    Int      @map("role_id")
+  grantedAt DateTime @default(now()) @map("granted_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+  @@map("user_roles")
+}
+
+model Session {
+  id           Int      @id @default(autoincrement())
+  userId       Int      @map("user_id")
+  refreshToken String   @unique @map("refresh_token") @db.VarChar(512)
+  deviceName   String?  @map("device_name") @db.VarChar(100)
+  ipAddress    String?  @map("ip_address") @db.VarChar(45)
+  userAgent    String?  @map("user_agent") @db.VarChar(500)
+  isRevoked    Boolean  @default(false) @map("is_revoked")
+  expiresAt    DateTime @map("expires_at")
+  createdAt    DateTime @default(now()) @map("created_at")
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([refreshToken])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+model OtpCode {
+  id           Int       @id @default(autoincrement())
+  identifier   String    @db.VarChar(255)
+  otpHash      String    @map("otp_hash") @db.VarChar(255)
+  purpose      String    @db.VarChar(50)
+  attemptCount Int       @default(0) @map("attempt_count")
+  expiresAt    DateTime  @map("expires_at")
+  usedAt       DateTime? @map("used_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  @@index([identifier])
+  @@index([expiresAt])
+  @@map("otp_codes")
+}
+
+// =============================================================================
+// SECTION 4: BROKER DOMAIN
+// =============================================================================
+
+model BrokerProfile {
+  id              Int      @id @default(autoincrement())
+  userId          Int      @unique @map("user_id")
+  agencyName      String?  @map("agency_name") @db.VarChar(200)
+  licenseNumber   String?  @map("license_number") @db.VarChar(100)
+  isVerified      Boolean  @default(false) @map("is_verified")
+  maxProfileQuota Int      @default(10) @map("max_profile_quota")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("broker_profiles")
+}
+
+// =============================================================================
+// SECTION 5: LOOKUP / MASTER REFERENCE TABLES
+// =============================================================================
+
+model Religion {
+  id        Int       @id @default(autoincrement())
+  nameEn    String    @unique @map("name_en") @db.VarChar(100)
+  nameTa    String    @map("name_ta") @db.VarChar(100)
+  sortOrder Int       @default(999) @map("sort_order")
+  isActive  Boolean   @default(true) @map("is_active")
+  castes    Caste[]
+  profiles  Profile[]
+
+  @@map("religions")
+}
+
+model Caste {
+  id                       Int                      @id @default(autoincrement())
+  religionId               Int                      @map("religion_id")
+  nameEn                   String                   @map("name_en") @db.VarChar(100)
+  nameTa                   String                   @map("name_ta") @db.VarChar(100)
+  sortOrder                Int                      @default(999) @map("sort_order")
+  isActive                 Boolean                  @default(true) @map("is_active")
+  religion                 Religion                 @relation(fields: [religionId], references: [id])
+  subCastes                SubCaste[]
+  profiles                 Profile[]
+  partnerPreferenceCastes  PartnerPreferenceCaste[]
+
+  @@unique([religionId, nameEn])
+  @@map("castes")
+}
+
+model SubCaste {
+  id       Int       @id @default(autoincrement())
+  casteId  Int       @map("caste_id")
+  nameEn   String    @map("name_en") @db.VarChar(100)
+  nameTa   String    @map("name_ta") @db.VarChar(100)
+  isActive Boolean   @default(true) @map("is_active")
+  caste    Caste     @relation(fields: [casteId], references: [id])
+  profiles Profile[]
+
+  @@unique([casteId, nameEn])
+  @@map("sub_castes")
+}
+
+model Raasi {
+  id          Int       @id @default(autoincrement())
+  nameEn      String    @unique @map("name_en") @db.VarChar(100)
+  nameTa      String    @map("name_ta") @db.VarChar(100)
+  numeralCode Int       @unique @map("numeral_code")
+  profiles    Profile[]
+
+  @@map("raasis")
+}
+
+model Star {
+  id          Int       @id @default(autoincrement())
+  nameEn      String    @unique @map("name_en") @db.VarChar(100)
+  nameTa      String    @map("name_ta") @db.VarChar(100)
+  numeralCode Int       @unique @map("numeral_code")
+  raasiId     Int?      @map("raasi_id")
+  profiles    Profile[]
+
+  @@map("stars")
+}
+
+model Country {
+  id                      Int                        @id @default(autoincrement())
+  iso2                    String                     @unique @map("iso2") @db.VarChar(2)
+  iso3                    String                     @unique @map("iso3") @db.VarChar(3)
+  nameEn                  String                     @db.VarChar(100)
+  nameTa                  String?                    @map("name_ta") @db.VarChar(100)
+  dialingCode             String?                    @map("dialing_code") @db.VarChar(10)
+  priority                Int                        @default(999)
+  isActive                Boolean                    @default(true) @map("is_active")
+  bornProfiles            Profile[]                  @relation("ProfileBornCountry")
+  currentProfiles         Profile[]                  @relation("ProfileCurrentCountry")
+  states                  State[]
+  preferredByProfiles     PartnerPreferenceCountry[]
+
+  @@map("countries")
+}
+
+model State {
+  id              Int       @id @default(autoincrement())
+  countryId       Int       @map("country_id")
+  nameEn          String    @db.VarChar(100)
+  nameTa          String?   @map("name_ta") @db.VarChar(100)
+  country         Country   @relation(fields: [countryId], references: [id])
+  cities          City[]
+  profilesCurrent Profile[] @relation("ProfileCurrentState")
+
+  @@index([countryId])
+  @@map("states")
+}
+
+model City {
+  id              Int       @id @default(autoincrement())
+  stateId         Int       @map("state_id")
+  nameEn          String    @db.VarChar(100)
+  nameTa          String?   @map("name_ta") @db.VarChar(100)
+  state           State     @relation(fields: [stateId], references: [id])
+  profilesCurrent Profile[] @relation("ProfileCurrentCity")
+
+  @@index([stateId])
+  @@map("cities")
+}
+
+model MotherTongue {
+  id       Int       @id @default(autoincrement())
+  nameEn   String    @unique @map("name_en") @db.VarChar(100)
+  nameTa   String    @map("name_ta") @db.VarChar(100)
+  profiles Profile[]
+
+  @@map("mother_tongues")
+}
+
+model EducationCategory {
+  id       Int               @id @default(autoincrement())
+  nameEn   String            @unique @map("name_en") @db.VarChar(100)
+  nameTa   String            @map("name_ta") @db.VarChar(100)
+  sortOrder Int              @default(999) @map("sort_order")
+  details  EducationDetail[]
+  profiles Profile[]
+
+  @@map("education_categories")
+}
+
+model EducationDetail {
+  id         Int               @id @default(autoincrement())
+  categoryId Int               @map("category_id")
+  nameEn     String            @map("name_en") @db.VarChar(200)
+  nameTa     String            @map("name_ta") @db.VarChar(200)
+  category   EducationCategory @relation(fields: [categoryId], references: [id])
+  profiles   Profile[]
+
+  @@map("education_details")
+}
+
+model OccupationCategory {
+  id        Int                @id @default(autoincrement())
+  nameEn    String             @unique @map("name_en") @db.VarChar(100)
+  nameTa    String             @map("name_ta") @db.VarChar(100)
+  sortOrder Int                @default(999) @map("sort_order")
+  details   OccupationDetail[]
+  profiles  Profile[]
+
+  @@map("occupation_categories")
+}
+
+model OccupationDetail {
+  id         Int                @id @default(autoincrement())
+  categoryId Int                @map("category_id")
+  nameEn     String             @map("name_en") @db.VarChar(200)
+  nameTa     String             @map("name_ta") @db.VarChar(200)
+  category   OccupationCategory @relation(fields: [categoryId], references: [id])
+  profiles   Profile[]
+
+  @@map("occupation_details")
+}
+
+// =============================================================================
+// SECTION 6: MATRIMONY PROFILE DOMAIN
+// =============================================================================
+
+model Profile {
+  id                    Int                    @id @default(autoincrement())
+  userId                Int                    @map("user_id")
+  profileRegisteredFor  ProfileRegisteredFor   @map("profile_registered_for")
+  status                ProfileStatus          @default(draft)
+  name                  String                 @db.VarChar(100)
+  gender                Gender
+  dateOfBirth           DateTime               @map("date_of_birth") @db.Date
+  maritalStatus         MaritalStatus          @default(never_married) @map("marital_status")
+  heightCm              Int                    @map("height_cm")
+  weightKg              Int?                   @map("weight_kg")
+  bodyType              BodyType?              @map("body_type")
+  complexion            Complexion?
+  motherTongueId        Int?                   @map("mother_tongue_id")
+  educationCategoryId   Int?                   @map("education_category_id")
+  educationDetailId     Int?                   @map("education_detail_id")
+  occupationCategoryId  Int?                   @map("occupation_category_id")
+  occupationDetailId    Int?                   @map("occupation_detail_id")
+  annualIncome          IncomeRange?           @map("annual_income")
+  religionId            Int                    @map("religion_id")
+  casteId               Int                    @map("caste_id")
+  subCasteId            Int?                   @map("sub_caste_id")
+  raasiId               Int                    @map("raasi_id")
+  starId                Int                    @map("star_id")
+  gotram                String?                @db.VarChar(100)
+  bornCountryId         Int                    @map("born_country_id")
+  currentCountryId      Int                    @map("current_country_id")
+  currentStateId        Int?                   @map("current_state_id")
+  currentCityId         Int?                   @map("current_city_id")
+  cityOrState           String                 @map("city_or_state") @db.VarChar(100)
+  mainProfilePicture    String?                @map("main_profile_picture") @db.VarChar(500)
+  aboutMe               String                 @map("about_me") @db.Text
+  isManglik             Boolean?               @map("is_manglik")
+  profileViewCount      Int                    @default(0) @map("profile_view_count")
+  isProfileComplete     Boolean                @default(false) @map("is_profile_complete")
+  moderatorNote         String?                @map("moderator_note") @db.Text
+  approvedAt            DateTime?              @map("approved_at")
+  createdAt             DateTime               @default(now()) @map("created_at")
+  updatedAt             DateTime               @updatedAt @map("updated_at")
+  deletedAt             DateTime?              @map("deleted_at")
+  user                  User                   @relation(fields: [userId], references: [id], onDelete: Restrict)
+  religion              Religion               @relation(fields: [religionId], references: [id])
+  caste                 Caste                  @relation(fields: [casteId], references: [id])
+  subCaste              SubCaste?              @relation(fields: [subCasteId], references: [id])
+  raasi                 Raasi                  @relation(fields: [raasiId], references: [id])
+  star                  Star                   @relation(fields: [starId], references: [id])
+  motherTongue          MotherTongue?          @relation(fields: [motherTongueId], references: [id])
+  educationCategory     EducationCategory?     @relation(fields: [educationCategoryId], references: [id])
+  educationDetail       EducationDetail?       @relation(fields: [educationDetailId], references: [id])
+  occupationCategory    OccupationCategory?    @relation(fields: [occupationCategoryId], references: [id])
+  occupationDetail      OccupationDetail?      @relation(fields: [occupationDetailId], references: [id])
+  bornCountry           Country                @relation("ProfileBornCountry", fields: [bornCountryId], references: [id])
+  currentCountry        Country                @relation("ProfileCurrentCountry", fields: [currentCountryId], references: [id])
+  currentState          State?                 @relation("ProfileCurrentState", fields: [currentStateId], references: [id])
+  currentCity           City?                  @relation("ProfileCurrentCity", fields: [currentCityId], references: [id])
+  photos                Photo[]
+  documents             ProfileDocument[]
+  lifestyle             Lifestyle?
+  familyDetail          FamilyDetail?
+  partnerPreference     PartnerPreference?
+  favoritedBy           Favorite[]
+  recentViews           RecentView[]
+  interestsSent         Interest[]             @relation("InterestSender")
+  interestsReceived     Interest[]             @relation("InterestReceiver")
+  reportsAgainst        Report[]               @relation("ReportTarget")
+  compatibilityScores   CompatibilityScore[]   @relation("ScoreProfile")
+
+  @@fulltext([name, aboutMe])
+  @@index([gender, religionId, casteId, currentCountryId, status])
+  @@index([raasiId, starId])
+  @@index([dateOfBirth])
+  @@index([heightCm])
+  @@index([maritalStatus])
+  @@index([educationCategoryId])
+  @@index([annualIncome])
+  @@index([userId])
+  @@index([status])
+  @@index([deletedAt])
+  @@map("profiles")
+}
+
+model Photo {
+  id           Int         @id @default(autoincrement())
+  profileId    Int         @map("profile_id")
+  photoUrl     String      @map("photo_url") @db.VarChar(500)
+  thumbnailUrl String?     @map("thumbnail_url") @db.VarChar(500)
+  status       PhotoStatus @default(pending)
+  isMain       Boolean     @default(false) @map("is_main")
+  sortOrder    Int         @default(0) @map("sort_order")
+  uploadedAt   DateTime    @default(now()) @map("uploaded_at")
+  moderatedAt  DateTime?   @map("moderated_at")
+  moderatorId  Int?        @map("moderator_id")
+  profile      Profile     @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId, status])
+  @@map("photos")
+}
+
+model ProfileDocument {
+  id           Int            @id @default(autoincrement())
+  profileId    Int            @map("profile_id")
+  documentType DocumentType   @map("document_type")
+  fileUrl      String         @map("file_url") @db.VarChar(500)
+  fileType     FileType       @map("file_type")
+  status       DocumentStatus @default(pending)
+  uploadedAt   DateTime       @default(now()) @map("uploaded_at")
+  verifiedAt   DateTime?      @map("verified_at")
+  verifiedById Int?           @map("verified_by_id")
+  profile      Profile        @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId])
+  @@index([status])
+  @@map("profile_documents")
+}
+
+model Lifestyle {
+  id               Int            @id @default(autoincrement())
+  profileId        Int            @unique @map("profile_id")
+  diet             DietType?
+  drinking         DrinkingHabit?
+  smoking          SmokingHabit?
+  physicalActivity String?        @map("physical_activity") @db.VarChar(100)
+  hobbies          Json?
+  languages        Json?
+  profile          Profile        @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@map("lifestyles")
+}
+
+model FamilyDetail {
+  id                    Int          @id @default(autoincrement())
+  profileId             Int          @unique @map("profile_id")
+  fatherName            String?      @map("father_name") @db.VarChar(100)
+  fatherOccupation      String?      @map("father_occupation") @db.VarChar(150)
+  motherName            String?      @map("mother_name") @db.VarChar(100)
+  motherOccupation      String?      @map("mother_occupation") @db.VarChar(150)
+  numBrothers           Int?         @map("num_brothers")
+  numMarriedBrothers    Int?         @map("num_married_brothers")
+  numSisters            Int?         @map("num_sisters")
+  numMarriedSisters     Int?         @map("num_married_sisters")
+  familyStatus          FamilyStatus? @map("family_status")
+  familyValues          FamilyValues? @map("family_values")
+  familyOriginCity      String?      @map("family_origin_city") @db.VarChar(100)
+  familyOriginCountryId Int?         @map("family_origin_country_id")
+  additionalInfo        String?      @map("additional_info") @db.Text
+  profile               Profile      @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@map("family_details")
+}
+
+// =============================================================================
+// SECTION 7: PARTNER PREFERENCE DOMAIN
+// =============================================================================
+
+model PartnerPreference {
+  id                 Int                        @id @default(autoincrement())
+  profileId          Int                        @unique @map("profile_id")
+  minAge             Int?                       @map("min_age")
+  maxAge             Int?                       @map("max_age")
+  minHeightCm        Int?                       @map("min_height_cm")
+  maxHeightCm        Int?                       @map("max_height_cm")
+  maritalStatuses    Json?                      @map("marital_statuses")
+  diet               DietType?
+  smoking            SmokingHabit?
+  drinking           DrinkingHabit?
+  incomeMin          IncomeRange?               @map("income_min")
+  otherNotes         String?                    @map("other_notes") @db.Text
+  profile            Profile                    @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  preferredCastes    PartnerPreferenceCaste[]
+  preferredCountries PartnerPreferenceCountry[]
+
+  @@map("partner_preferences")
+}
+
+model PartnerPreferenceCaste {
+  preferenceId Int               @map("preference_id")
+  casteId      Int               @map("caste_id")
+  preference   PartnerPreference @relation(fields: [preferenceId], references: [id], onDelete: Cascade)
+  caste        Caste             @relation(fields: [casteId], references: [id])
+
+  @@id([preferenceId, casteId])
+  @@map("partner_preference_castes")
+}
+
+model PartnerPreferenceCountry {
+  preferenceId Int               @map("preference_id")
+  countryId    Int               @map("country_id")
+  preference   PartnerPreference @relation(fields: [preferenceId], references: [id], onDelete: Cascade)
+  country      Country           @relation(fields: [countryId], references: [id])
+
+  @@id([preferenceId, countryId])
+  @@map("partner_preference_countries")
+}
+
+// =============================================================================
+// SECTION 8: ENGAGEMENT DOMAIN
+// =============================================================================
+
+model Interest {
+  id                Int            @id @default(autoincrement())
+  senderProfileId   Int            @map("sender_profile_id")
+  receiverProfileId Int            @map("receiver_profile_id")
+  status            InterestStatus @default(pending)
+  messageNote       String?        @map("message_note") @db.VarChar(500)
+  respondedAt       DateTime?      @map("responded_at")
+  expiresAt         DateTime?      @map("expires_at")
+  createdAt         DateTime       @default(now()) @map("created_at")
+  updatedAt         DateTime       @updatedAt @map("updated_at")
+  senderProfile     Profile        @relation("InterestSender", fields: [senderProfileId], references: [id], onDelete: Cascade)
+  receiverProfile   Profile        @relation("InterestReceiver", fields: [receiverProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([senderProfileId, receiverProfileId])
+  @@index([receiverProfileId, status])
+  @@index([senderProfileId, status])
+  @@map("interests")
+}
+
+model Favorite {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  profileId Int      @map("profile_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  user      User     @relation("UserFavorites", fields: [userId], references: [id], onDelete: Cascade)
+  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, profileId])
+  @@index([userId])
+  @@map("favorites")
+}
+
+model Block {
+  id            Int      @id @default(autoincrement())
+  blockerUserId Int      @map("blocker_user_id")
+  blockedUserId Int      @map("blocked_user_id")
+  reason        String?  @db.VarChar(255)
+  createdAt     DateTime @default(now()) @map("created_at")
+  blocker       User     @relation("BlockerUser", fields: [blockerUserId], references: [id], onDelete: Cascade)
+  blocked       User     @relation("BlockedUser", fields: [blockedUserId], references: [id], onDelete: Cascade)
+
+  @@unique([blockerUserId, blockedUserId])
+  @@index([blockerUserId])
+  @@map("blocks")
+}
+
+model RecentView {
+  id              Int      @id @default(autoincrement())
+  viewerUserId    Int      @map("viewer_user_id")
+  viewedProfileId Int      @map("viewed_profile_id")
+  viewedAt        DateTime @default(now()) @map("viewed_at")
+  viewer          User     @relation("ViewerUser", fields: [viewerUserId], references: [id], onDelete: Cascade)
+  viewedProfile   Profile  @relation(fields: [viewedProfileId], references: [id], onDelete: Cascade)
+
+  @@index([viewedProfileId])
+  @@index([viewerUserId])
+  @@index([viewedAt])
+  @@map("recent_views")
+}
+
+// =============================================================================
+// SECTION 9: AI COMPATIBILITY SCORING
+// =============================================================================
+
+model CompatibilityScore {
+  id              Int      @id @default(autoincrement())
+  profileId       Int      @map("profile_id")
+  targetProfileId Int      @map("target_profile_id")
+  overallScore    Int      @map("overall_score")
+  astroScore      Int?     @map("astro_score")
+  locationScore   Int?     @map("location_score")
+  cultureScore    Int?     @map("culture_score")
+  highlights      Json?
+  flags           Json?
+  computedAt      DateTime @default(now()) @map("computed_at")
+  profile         Profile  @relation("ScoreProfile", fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, targetProfileId])
+  @@index([profileId, overallScore])
+  @@map("compatibility_scores")
+}
+
+// =============================================================================
+// SECTION 10: COMMUNICATION DOMAIN
+// =============================================================================
+
+model Conversation {
+  id            Int                       @id @default(autoincrement())
+  lastMessageAt DateTime?                 @map("last_message_at")
+  createdAt     DateTime                  @default(now()) @map("created_at")
+  updatedAt     DateTime                  @updatedAt @map("updated_at")
+  messages      Message[]
+  participants  ConversationParticipant[]
+
+  @@index([lastMessageAt])
+  @@map("conversations")
+}
+
+model ConversationParticipant {
+  conversationId Int          @map("conversation_id")
+  userId         Int          @map("user_id")
+  joinedAt       DateTime     @default(now()) @map("joined_at")
+  lastReadAt     DateTime?    @map("last_read_at")
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([conversationId, userId])
+  @@index([userId])
+  @@map("conversation_participants")
+}
+
+model Message {
+  id               Int          @id @default(autoincrement())
+  conversationId   Int          @map("conversation_id")
+  senderId         Int          @map("sender_id")
+  messageText      String       @map("message_text") @db.Text
+  isRead           Boolean      @default(false) @map("is_read")
+  readAt           DateTime?    @map("read_at")
+  deletedBySender  Boolean      @default(false) @map("deleted_by_sender")
+  createdAt        DateTime     @default(now()) @map("created_at")
+  conversation     Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender           User         @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+  @@index([senderId])
+  @@map("messages")
+}
+
+// =============================================================================
+// SECTION 11: NOTIFICATION DOMAIN
+// =============================================================================
+
+model Notification {
+  id          Int              @id @default(autoincrement())
+  userId      Int              @map("user_id")
+  type        NotificationType
+  titleEn     String           @map("title_en") @db.VarChar(200)
+  titleTa     String?          @map("title_ta") @db.VarChar(200)
+  bodyEn      String           @map("body_en") @db.Text
+  bodyTa      String?          @map("body_ta") @db.Text
+  referenceId Int?             @map("reference_id")
+  isRead      Boolean          @default(false) @map("is_read")
+  readAt      DateTime?        @map("read_at")
+  createdAt   DateTime         @default(now()) @map("created_at")
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
+  @@map("notifications")
+}
+
+// =============================================================================
+// SECTION 12: FINANCIAL DOMAIN
+// =============================================================================
+
+model MembershipPlan {
+  id                Int              @id @default(autoincrement())
+  name              String           @db.VarChar(100)
+  slug              String           @unique @db.VarChar(100)
+  description       String?          @db.Text
+  price             Decimal          @db.Decimal(10, 2)
+  currency          String           @default("CAD") @db.VarChar(3)
+  durationDays      Int              @map("duration_days")
+  features          Json
+  highlightFeatures Json?            @map("highlight_features")
+  maxInterestsDaily Int?             @map("max_interests_daily")
+  maxMessagesDaily  Int?             @map("max_messages_daily")
+  canViewContacts   Boolean          @default(false) @map("can_view_contacts")
+  canViewHoroscope  Boolean          @default(false) @map("can_view_horoscope")
+  isActive          Boolean          @default(true) @map("is_active")
+  sortOrder         Int              @default(999) @map("sort_order")
+  createdAt         DateTime         @default(now()) @map("created_at")
+  updatedAt         DateTime         @updatedAt @map("updated_at")
+  memberships       UserMembership[]
+
+  @@map("membership_plans")
+}
+
+model UserMembership {
+  id          Int              @id @default(autoincrement())
+  userId      Int              @map("user_id")
+  planId      Int              @map("plan_id")
+  startsAt    DateTime         @map("starts_at")
+  endsAt      DateTime         @map("ends_at")
+  status      MembershipStatus @default(active)
+  autoRenew   Boolean          @default(false) @map("auto_renew")
+  cancelledAt DateTime?        @map("cancelled_at")
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan        MembershipPlan   @relation(fields: [planId], references: [id])
+  payments    Payment[]
+
+  @@index([userId, status])
+  @@index([endsAt])
+  @@map("user_memberships")
+}
+
+model Payment {
+  id                   Int             @id @default(autoincrement())
+  userId               Int             @map("user_id")
+  membershipId         Int?            @map("membership_id")
+  transactionReference String          @unique @map("transaction_reference") @db.VarChar(255)
+  gateway              String          @db.VarChar(50)
+  gatewayPaymentId     String?         @map("gateway_payment_id") @db.VarChar(255)
+  amount               Decimal         @db.Decimal(10, 2)
+  currency             String          @default("CAD") @db.VarChar(3)
+  taxAmount            Decimal         @default(0.00) @map("tax_amount") @db.Decimal(10, 2)
+  paymentMethod        String          @map("payment_method") @db.VarChar(50)
+  status               PaymentStatus   @default(pending)
+  failureReason        String?         @map("failure_reason") @db.VarChar(255)
+  refundedAt           DateTime?       @map("refunded_at")
+  createdAt            DateTime        @default(now()) @map("created_at")
+  user                 User            @relation(fields: [userId], references: [id], onDelete: Restrict)
+  membership           UserMembership? @relation(fields: [membershipId], references: [id])
+  invoice              Invoice?
+
+  @@index([userId])
+  @@index([status])
+  @@map("payments")
+}
+
+model Invoice {
+  id            Int      @id @default(autoincrement())
+  paymentId     Int      @unique @map("payment_id")
+  invoiceNumber String   @unique @map("invoice_number") @db.VarChar(100)
+  invoicePdfUrl String?  @map("invoice_pdf_url") @db.VarChar(500)
+  issuedAt      DateTime @default(now()) @map("issued_at")
+  payment       Payment  @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+
+  @@map("invoices")
+}
+
+// =============================================================================
+// SECTION 13: MODERATION & SUPPORT DOMAIN
+// =============================================================================
+
+model Report {
+  id                Int          @id @default(autoincrement())
+  reporterUserId    Int          @map("reporter_user_id")
+  reportedProfileId Int          @map("reported_profile_id")
+  reason            String       @db.VarChar(100)
+  description       String?      @db.Text
+  status            ReportStatus @default(pending)
+  moderatorId       Int?         @map("moderator_id")
+  moderatorNote     String?      @map("moderator_note") @db.Text
+  resolvedAt        DateTime?    @map("resolved_at")
+  createdAt         DateTime     @default(now()) @map("created_at")
+  updatedAt         DateTime     @updatedAt @map("updated_at")
+  reporter          User         @relation("ReportReporter", fields: [reporterUserId], references: [id], onDelete: Cascade)
+  reportedProfile   Profile      @relation("ReportTarget", fields: [reportedProfileId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([reportedProfileId])
+  @@map("reports")
+}
+
+model SupportTicket {
+  id           Int             @id @default(autoincrement())
+  userId       Int             @map("user_id")
+  subject      String          @db.VarChar(255)
+  category     String          @db.VarChar(100)
+  status       TicketStatus    @default(open)
+  priority     String          @default("normal") @db.VarChar(20)
+  assignedToId Int?            @map("assigned_to_id")
+  resolvedAt   DateTime?       @map("resolved_at")
+  createdAt    DateTime        @default(now()) @map("created_at")
+  updatedAt    DateTime        @updatedAt @map("updated_at")
+  user         User            @relation("TicketOwner", fields: [userId], references: [id], onDelete: Cascade)
+  messages     TicketMessage[]
+
+  @@index([userId])
+  @@index([status])
+  @@map("support_tickets")
+}
+
+model TicketMessage {
+  id        Int           @id @default(autoincrement())
+  ticketId  Int           @map("ticket_id")
+  senderId  Int           @map("sender_id")
+  body      String        @db.Text
+  isStaff   Boolean       @default(false) @map("is_staff")
+  createdAt DateTime      @default(now()) @map("created_at")
+  ticket    SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  sender    User          @relation(fields: [senderId], references: [id])
+
+  @@index([ticketId])
+  @@map("ticket_messages")
+}
+
+// =============================================================================
+// SECTION 14: CMS DOMAIN
+// =============================================================================
+
+model BlogPost {
+  id              Int        @id @default(autoincrement())
+  authorId        Int?       @map("author_id")
+  slug            String     @unique @db.VarChar(200)
+  titleEn         String     @map("title_en") @db.VarChar(255)
+  titleTa         String?    @map("title_ta") @db.VarChar(255)
+  bodyEn          String     @map("body_en") @db.LongText
+  bodyTa          String?    @map("body_ta") @db.LongText
+  metaDescription String?    @map("meta_description") @db.VarChar(300)
+  featuredImage   String?    @map("featured_image") @db.VarChar(500)
+  status          PostStatus @default(draft)
+  publishedAt     DateTime?  @map("published_at")
+  createdAt       DateTime   @default(now()) @map("created_at")
+  updatedAt       DateTime   @updatedAt @map("updated_at")
+  tags            BlogPostTag[]
+
+  @@index([status, publishedAt])
+  @@map("blog_posts")
+}
+
+model BlogTag {
+  id    Int           @id @default(autoincrement())
+  name  String        @unique @db.VarChar(100)
+  slug  String        @unique @db.VarChar(100)
+  posts BlogPostTag[]
+
+  @@map("blog_tags")
+}
+
+model BlogPostTag {
+  postId Int      @map("post_id")
+  tagId  Int      @map("tag_id")
+  post   BlogPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tag    BlogTag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([postId, tagId])
+  @@map("blog_post_tags")
+}
+
+model Faq {
+  id         Int      @id @default(autoincrement())
+  categoryId Int?     @map("category_id")
+  questionEn String   @map("question_en") @db.VarChar(500)
+  questionTa String?  @map("question_ta") @db.VarChar(500)
+  answerEn   String   @map("answer_en") @db.Text
+  answerTa   String?  @map("answer_ta") @db.Text
+  sortOrder  Int      @default(999) @map("sort_order")
+  isActive   Boolean  @default(true) @map("is_active")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@index([categoryId])
+  @@map("faqs")
+}
+
+model MenuItem {
+  id           Int        @id @default(autoincrement())
+  parentId     Int?       @map("parent_id")
+  titleEn      String     @map("title_en") @db.VarChar(100)
+  titleTa      String     @map("title_ta") @db.VarChar(100)
+  targetUrl    String     @map("target_url") @db.VarChar(255)
+  icon         String?    @db.VarChar(100)
+  displayOrder Int        @map("display_order")
+  isActive     Boolean    @default(true) @map("is_active")
+  parent       MenuItem?  @relation("MenuItemParent", fields: [parentId], references: [id])
+  children     MenuItem[] @relation("MenuItemParent")
+
+  @@map("menu_items")
+}
+
+// =============================================================================
+// SECTION 15: SYSTEM CONFIGURATION
+// =============================================================================
+
+model Setting {
+  id          Int      @id @default(autoincrement())
+  key         String   @unique @db.VarChar(150)
+  value       String   @db.Text
+  type        String   @default("string") @db.VarChar(20)
+  description String?  @db.VarChar(255)
+  isPublic    Boolean  @default(false) @map("is_public")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("settings")
+}
+
+// =============================================================================
+// SECTION 16: AUDIT & SECURITY LOGGING
+// =============================================================================
+
+model AuditLog {
+  id          Int      @id @default(autoincrement())
+  userId      Int?     @map("user_id")
+  actionType  String   @map("action_type") @db.VarChar(100)
+  entityType  String?  @map("entity_type") @db.VarChar(100)
+  entityId    Int?     @map("entity_id")
+  description String   @db.Text
+  oldValue    Json?    @map("old_value")
+  newValue    Json?    @map("new_value")
+  ipAddress   String?  @map("ip_address") @db.VarChar(45)
+  userAgent   String?  @map("user_agent") @db.VarChar(500)
+  createdAt   DateTime @default(now()) @map("created_at")
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([actionType])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model SecurityEvent {
+  id          Int      @id @default(autoincrement())
+  userId      Int?     @map("user_id")
+  eventType   String   @map("event_type") @db.VarChar(100)
+  severity    String   @default("info") @db.VarChar(20)
+  ipAddress   String   @map("ip_address") @db.VarChar(45)
+  userAgent   String?  @map("user_agent") @db.VarChar(500)
+  description String   @db.VarChar(500)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([ipAddress])
+  @@index([eventType])
+  @@index([createdAt])
+  @@map("security_events")
+}
