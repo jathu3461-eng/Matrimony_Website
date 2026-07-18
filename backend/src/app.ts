@@ -1,9 +1,12 @@
+import dotenv from 'dotenv';
+dotenv.config(); // MUST be first — loads env vars before any config module (e.g. redis) reads them
+
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
-import dotenv from 'dotenv';
+import bcrypt from 'bcryptjs';
 
 import prisma from './config/db';
 import redis from './config/redis';
@@ -14,10 +17,12 @@ import searchRoutes from './routes/search.routes';
 import listRoutes from './routes/list.routes';
 import aiRoutes from './routes/ai.routes';
 import paymentRoutes from './routes/payment.routes';
+import matchRoutes from './routes/match.routes';
 import adminRoutes from './routes/admin.routes';
+import interestRoutes from './routes/interest.routes';
+import conversationRoutes from './routes/conversation.routes';
+import notificationRoutes from './routes/notification.routes';
 import { errorHandler } from './middleware/error.middleware';
-
-dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 8000;
@@ -59,7 +64,72 @@ app.use('/api/v1/search', searchRoutes);
 app.use('/api/v1/lists', listRoutes);
 app.use('/api/v1/ai', aiRoutes);
 app.use('/api/v1/payments', paymentRoutes);
+app.use('/api/v1/matches', matchRoutes);
 app.use('/api/v1/admin', adminRoutes);
+app.use('/api/v1/interests', interestRoutes);
+app.use('/api/v1/conversations', conversationRoutes);
+app.use('/api/v1/notifications', notificationRoutes);
+
+// ============================================================
+// ONE-TIME Admin Setup Endpoint (secret-key protected)
+// ============================================================
+app.post('/api/v1/setup/make-admin', express.json(), async (req: Request, res: Response) => {
+  const SETUP_SECRET = 'mukurtham_setup_9k2x7p4q';
+  const { secret, email } = req.body;
+
+  if (secret !== SETUP_SECRET) {
+    res.status(403).json({ success: false, error: 'Invalid setup secret.' });
+    return;
+  }
+
+  try {
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      res.status(404).json({ success: false, error: `No user found with email: ${email}` });
+      return;
+    }
+
+    // Update accountType to admin
+    await prisma.user.update({
+      where: { email },
+      data: { accountType: 'admin' as any },
+    });
+
+    // Upsert admin role
+    const adminRole = await prisma.role.upsert({
+      where: { name: 'admin' },
+      update: {},
+      create: { name: 'admin' },
+    });
+
+    // Assign admin role to user
+    await prisma.userRole.upsert({
+      where: { userId_roleId: { userId: user.id, roleId: adminRole.id } },
+      update: {},
+      create: { userId: user.id, roleId: adminRole.id },
+    });
+
+    res.json({ success: true, message: `User ${email} has been granted admin role.` });
+  } catch (err: any) {
+    console.error('[Setup] make-admin error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ============================================================
+// DB Connection Test Endpoint (debug only)
+// ============================================================
+app.get('/api/v1/setup/test-db', async (req: Request, res: Response) => {
+  const dbUrl = process.env.DATABASE_URL || 'NOT SET';
+  // Mask password in URL for safety
+  const maskedUrl = dbUrl.replace(/:([^:@]+)@/, ':****@');
+  try {
+    await prisma.$queryRaw`SELECT 1 AS ok`;
+    res.json({ success: true, message: 'Database connected!', url: maskedUrl });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message, url: maskedUrl });
+  }
+});
 
 // ============================================================
 // API Health-Check Endpoint
@@ -104,9 +174,62 @@ app.use((req: Request, res: Response) => {
 app.use(errorHandler);
 
 // ============================================================
-// Bootstrap
-// ============================================================
-app.listen(port, () => {
+// Seed default admin account on startup if not present
+const seedAdmin = async () => {
+  try {
+    const adminEmail = 'matrimony2026@gmail.com';
+    const existingUser = await prisma.user.findFirst({
+      where: { email: adminEmail }
+    });
+    if (!existingUser) {
+      console.log('🌱 Admin account not found. Seeding admin account (matrimony2026@gmail.com)...');
+      const hashedPassword = bcrypt.hashSync('Matrimony2026@', 12);
+      
+      const user = await prisma.user.create({
+        data: {
+          username: 'admin',
+          email: adminEmail,
+          password: hashedPassword,
+          phoneNumber: '0770000000',
+          accountType: 'admin' as any,
+        }
+      });
+
+      // Upsert admin role
+      const adminRole = await prisma.role.upsert({
+        where: { name: 'admin' },
+        update: {},
+        create: { name: 'admin', isSystem: true },
+      });
+
+      // Assign admin role to user
+      await prisma.userRole.upsert({
+        where: { userId_roleId: { userId: user.id, roleId: adminRole.id } },
+        update: {},
+        create: { userId: user.id, roleId: adminRole.id },
+      });
+      console.log('✔ Default Admin Account successfully seeded!');
+    } else {
+      // Ensure existing account has correct password hash (in case they modified it)
+      const isPasswordCorrect = bcrypt.compareSync('Matrimony2026@', existingUser.password);
+      if (!isPasswordCorrect) {
+        console.log('🌱 Correcting password for matrimony2026@gmail.com...');
+        await prisma.user.update({
+          where: { email: adminEmail },
+          data: {
+            password: bcrypt.hashSync('Matrimony2026@', 12),
+            accountType: 'admin' as any
+          }
+        });
+      }
+    }
+  } catch (err) {
+    console.error('❌ Error seeding default admin:', err);
+  }
+};
+
+app.listen(port, async () => {
+  await seedAdmin();
   console.log(`\n🚀 Mukurtham Matrimony Backend running on http://localhost:${port}`);
   console.log(`📦 Environment: ${process.env.NODE_ENV || 'development'}\n`);
 });

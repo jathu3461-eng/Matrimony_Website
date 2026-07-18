@@ -95,4 +95,98 @@ router.get('/menu-items', apiRateLimiter, async (_, res: Response) => {
   res.json({ success: true, data: items });
 });
 
+/**
+ * @route   GET /api/v1/reference/states?countryId=:id
+ * @desc    Fetch states/provinces for a given country
+ * @access  Public
+ */
+router.get('/states', apiRateLimiter, async (req, res: Response) => {
+  const countryId = parseInt(req.query.countryId as string);
+  if (!countryId || isNaN(countryId)) {
+    res.status(400).json({ success: false, error: { message: 'countryId is required' } });
+    return;
+  }
+  const states = await prisma.state.findMany({
+    where: { countryId },
+    orderBy: { nameEn: 'asc' },
+    select: { id: true, nameEn: true, nameTa: true, countryId: true },
+  });
+  res.json({ success: true, data: states });
+});
+
+/**
+ * @route   GET /api/v1/reference/cities?stateId=:id
+ * @desc    Fetch cities for a given state
+ * @access  Public
+ */
+router.get('/cities', apiRateLimiter, async (req, res: Response) => {
+  const stateId = parseInt(req.query.stateId as string);
+  if (!stateId || isNaN(stateId)) {
+    res.status(400).json({ success: false, error: { message: 'stateId is required' } });
+    return;
+  }
+  const cities = await prisma.city.findMany({
+    where: { stateId },
+    orderBy: { nameEn: 'asc' },
+    select: { id: true, nameEn: true, nameTa: true, stateId: true },
+  });
+  res.json({ success: true, data: cities });
+});
+
+/**
+ * @route   GET /api/v1/reference/mother-tongues
+ * @desc    Fetch all mother tongues
+ * @access  Public
+ */
+router.get('/mother-tongues', apiRateLimiter, async (_, res: Response) => {
+  const tongues = await prisma.motherTongue.findMany({ orderBy: { nameEn: 'asc' } });
+  res.json({ success: true, data: tongues });
+});
+
+/**
+ * @route   GET /api/v1/reference/education-categories
+ * @desc    Fetch all education categories
+ * @access  Public
+ */
+router.get('/education-categories', apiRateLimiter, async (_, res: Response) => {
+  const cats = await prisma.educationCategory.findMany({ orderBy: { sortOrder: 'asc' } });
+  res.json({ success: true, data: cats });
+});
+
+/**
+ * @route   GET /api/v1/reference/occupation-categories
+ * @desc    Fetch all occupation categories with details
+ * @access  Public
+ */
+router.get('/occupation-categories', apiRateLimiter, async (_, res: Response) => {
+  const cats = await prisma.occupationCategory.findMany({
+    orderBy: { sortOrder: 'asc' },
+    include: { details: { orderBy: { nameEn: 'asc' } } },
+  });
+  res.json({ success: true, data: cats });
+});
+
+/**
+ * @route   GET /api/v1/reference/all
+ * @desc    Return all static reference data needed for the profile wizard in one call
+ * @access  Public
+ */
+router.get('/all', apiRateLimiter, async (_, res: Response) => {
+  const [religions, raasis, stars, countries, motherTongues, educationCategories, occupationCategories] =
+    await Promise.all([
+      prisma.religion.findMany({ orderBy: { nameEn: 'asc' } }),
+      prisma.raasi.findMany({ orderBy: { numeralCode: 'asc' } }),
+      prisma.star.findMany({ orderBy: { numeralCode: 'asc' } }),
+      prisma.country.findMany({ orderBy: [{ priority: 'asc' }, { nameEn: 'asc' }] }),
+      prisma.motherTongue.findMany({ orderBy: { nameEn: 'asc' } }),
+      prisma.educationCategory.findMany({ orderBy: { sortOrder: 'asc' } }),
+      prisma.occupationCategory.findMany({
+        orderBy: { sortOrder: 'asc' },
+        include: { details: { orderBy: { nameEn: 'asc' } } },
+      }),
+    ]);
+  res.json({ success: true, data: { religions, raasis, stars, countries, motherTongues, educationCategories, occupationCategories } });
+});
+
 export default router;
+

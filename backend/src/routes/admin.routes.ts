@@ -9,8 +9,12 @@ import {
   getSettings,
   updateSetting,
   getUsers,
+  getBrokers,
   toggleUserStatus,
+  updateBrokerStatus,
   getPayments,
+  getProfiles,
+  verifyProfile,
 } from '../controllers/admin.controller';
 import { authenticate, requireRole } from '../middleware/auth.middleware';
 import { apiRateLimiter } from '../middleware/rateLimit.middleware';
@@ -45,6 +49,12 @@ router.get('/users', ...adminAuth, apiRateLimiter, getUsers);
 router.put('/users/:id/status', ...adminAuth, toggleUserStatus);
 
 // ============================================================
+// Broker Management
+// ============================================================
+router.get('/brokers', ...adminAuth, apiRateLimiter, getBrokers);
+router.put('/brokers/:id/status', ...adminAuth, updateBrokerStatus);
+
+// ============================================================
 // Platform Settings / CMS
 // ============================================================
 router.get('/settings', ...adminAuth, getSettings);
@@ -54,5 +64,11 @@ router.put('/settings/:key', ...adminAuth, updateSetting);
 // Payments
 // ============================================================
 router.get('/payments', ...adminAuth, apiRateLimiter, getPayments);
+
+// ============================================================
+// Profiles Management
+// ============================================================
+router.get('/profiles', ...adminAuth, apiRateLimiter, getProfiles);
+router.put('/profiles/:id/verify', ...adminAuth, apiRateLimiter, verifyProfile);
 
 export default router;

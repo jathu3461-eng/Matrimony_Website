@@ -56,17 +56,18 @@ class MockRedis {
 }
 
 const isWinLocal = process.platform === 'win32' && process.env.NODE_ENV === 'development';
+const useMock = isWinLocal || process.env.USE_MOCK_REDIS === 'true';
 const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
 
-// Use In-Memory Mock Redis for local Windows development to avoid connection errors, otherwise use real Redis
-const redis = isWinLocal 
+// Use In-Memory Mock Redis if specified or during local Windows development to avoid connection errors, otherwise use real Redis
+const redis = useMock 
   ? (new MockRedis() as any) 
   : new Redis(redisUrl, {
       maxRetriesPerRequest: null,
       enableReadyCheck: true,
     });
 
-if (!isWinLocal) {
+if (!useMock) {
   redis.on('connect', () => {
     console.log('Redis client successfully connected');
   });
@@ -74,7 +75,7 @@ if (!isWinLocal) {
     console.error('Redis client error:', err);
   });
 } else {
-  console.log('Running on Windows local dev - Using Mock In-Memory Redis');
+  console.log('Using Mock In-Memory Redis (either Win local dev or USE_MOCK_REDIS is true)');
 }
 
 export default redis;

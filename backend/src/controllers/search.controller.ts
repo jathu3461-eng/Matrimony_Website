@@ -9,8 +9,9 @@ export const searchProfiles = async (req: Request, res: Response): Promise<void>
       gender,
       minAge,
       maxAge,
-      minHeightFeet,
-      maxHeightFeet,
+      minHeightCm,
+      maxHeightCm,
+      maritalStatus,
       religionId,
       casteId,
       raasiId,
@@ -47,13 +48,16 @@ export const searchProfiles = async (req: Request, res: Response): Promise<void>
       }
     }
 
-    // Height
-    if (minHeightFeet) {
-      whereClause.heightFeet = { gte: Number(minHeightFeet) };
+    // Height (stored in cm in the DB)
+    if (minHeightCm) {
+      whereClause.heightCm = { gte: Number(minHeightCm) };
     }
-    if (maxHeightFeet) {
-      whereClause.heightFeet = { ...whereClause.heightFeet, lte: Number(maxHeightFeet) };
+    if (maxHeightCm) {
+      whereClause.heightCm = { ...whereClause.heightCm, lte: Number(maxHeightCm) };
     }
+
+    // Marital status
+    if (maritalStatus) whereClause.maritalStatus = maritalStatus;
 
     // Lookups
     if (religionId) whereClause.religionId = Number(religionId);
@@ -62,14 +66,12 @@ export const searchProfiles = async (req: Request, res: Response): Promise<void>
     if (starId) whereClause.starId = Number(starId);
     if (countryId) whereClause.currentCountryId = Number(countryId);
 
-    // Keyword search over multiple text fields
+    // Keyword search (name and cityOrState are actual string columns)
     if (keyword) {
       const kw = String(keyword);
       whereClause.OR = [
-        { name: { contains: kw } },
-        { occupation: { contains: kw } },
-        { education: { contains: kw } },
-        { cityOrState: { contains: kw } },
+        { name: { contains: kw, mode: 'insensitive' } },
+        { cityOrState: { contains: kw, mode: 'insensitive' } },
       ];
     }
 
@@ -80,15 +82,17 @@ export const searchProfiles = async (req: Request, res: Response): Promise<void>
         skip,
         take,
         include: {
-          religion: true,
-          caste: true,
-          raasi: true,
-          star: true,
-          bornCountry: true,
-          currentCountry: true,
+          religion: { select: { nameEn: true } },
+          caste: { select: { nameEn: true } },
+          raasi: { select: { nameEn: true } },
+          star: { select: { nameEn: true } },
+          currentCountry: { select: { nameEn: true } },
+          occupationDetail: { select: { nameEn: true } },
+          educationDetail: { select: { nameEn: true } },
           photos: {
-            where: { status: 'approved' },
-            take: 1, // Get primary photo for search results
+            where: { status: 'approved', isMain: true },
+            take: 1,
+            select: { photoUrl: true },
           },
         },
         orderBy: { createdAt: 'desc' },

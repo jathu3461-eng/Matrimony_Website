@@ -107,6 +107,18 @@ export const authorize = (...allowedRoles: string[]) => {
       return;
     }
 
+    // Strict security constraint: Only matrimony2026@gmail.com can access admin endpoints
+    if (allowedRoles.includes('admin') && req.user.email !== 'matrimony2026@gmail.com') {
+      res.status(403).json({
+        success: false,
+        error: {
+          message: 'Access denied. Unauthorized administrator account.',
+          code: 'FORBIDDEN'
+        },
+      });
+      return;
+    }
+
     next();
   };
 };

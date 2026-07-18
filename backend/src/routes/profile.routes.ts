@@ -7,6 +7,8 @@ import {
   updateProfile,
   uploadProfilePhotos,
   uploadHoroscope,
+  getPreferences,
+  savePreferences,
 } from '../controllers/profile.controller';
 import { authenticate } from '../middleware/auth.middleware';
 import { validateBody } from '../middleware/validate.middleware';
@@ -114,5 +116,19 @@ router.post(
   upload.single('horoscope'),
   uploadHoroscope
 );
+
+/**
+ * @route   GET /api/v1/profiles/:id/preferences
+ * @desc    Get partner preferences for a profile
+ * @access  Public
+ */
+router.get('/:id/preferences', apiRateLimiter, getPreferences);
+
+/**
+ * @route   PUT /api/v1/profiles/:id/preferences
+ * @desc    Save partner preferences for a profile
+ * @access  Protected
+ */
+router.put('/:id/preferences', authenticate, apiRateLimiter, savePreferences);
 
 export default router;

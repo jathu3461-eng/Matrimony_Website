@@ -84,6 +84,44 @@ export const createProfile = async (req: AuthenticatedRequest, res: Response): P
       }
     }
 
+    let resolvedMainPicture = mainProfilePicture;
+    let newPhotoUrl: string | null = null;
+
+    if (mainProfilePicture && mainProfilePicture.startsWith('data:image/')) {
+      const matches = mainProfilePicture.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+      if (!matches || matches.length !== 3) {
+        res.status(400).json({ success: false, error: { message: 'Invalid image format.', code: 'BAD_REQUEST' } });
+        return;
+      }
+
+      const buffer = Buffer.from(matches[2], 'base64');
+      const tempFileName = `profile_temp_${userId}_${Date.now()}`;
+      
+      try {
+        const fileUrl = await uploadToCloudinary(buffer, 'profiles', tempFileName);
+
+        // AI verification
+        const verification = await verifyProfilePhoto(fileUrl);
+        if (!verification.isVerified) {
+          res.status(400).json({
+            success: false,
+            error: { message: `Photo rejected: ${verification.reason}`, code: 'PHOTO_REJECTED' },
+          });
+          return;
+        }
+
+        resolvedMainPicture = fileUrl;
+        newPhotoUrl = fileUrl;
+      } catch (uploadError: any) {
+        console.error('[Profile] Cloudinary/AI upload error:', uploadError);
+        res.status(500).json({
+          success: false,
+          error: { message: 'Failed to verify or upload profile photo.', code: 'INTERNAL_SERVER_ERROR' },
+        });
+        return;
+      }
+    }
+
     // Save profile record using correct DB field names matching the Prisma schema
     const profile = await prisma.profile.create({
       data: {
@@ -100,10 +138,21 @@ export const createProfile = async (req: AuthenticatedRequest, res: Response): P
         bornCountryId:    Number(bornCountryId),
         currentCountryId: Number(currentCountryId),
         cityOrState:      cityOrState || '',
-        mainProfilePicture: mainProfilePicture || null,
+        mainProfilePicture: resolvedMainPicture || null,
         aboutMe:          aboutMe || '',
       },
     });
+
+    if (newPhotoUrl) {
+      await prisma.photo.create({
+        data: {
+          profileId: profile.id,
+          photoUrl: newPhotoUrl,
+          status: 'approved',
+          isMain: true,
+        },
+      });
+    }
 
     res.status(201).json({
       success: true,
@@ -233,13 +282,69 @@ export const updateProfile = async (req: AuthenticatedRequest, res: Response): P
       return;
     }
 
+    let resolvedMainPicture = req.body.mainProfilePicture;
+    let newPhotoUrl: string | null = null;
+
+    if (resolvedMainPicture && resolvedMainPicture.startsWith('data:image/')) {
+      const matches = resolvedMainPicture.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+      if (!matches || matches.length !== 3) {
+        res.status(400).json({ success: false, error: { message: 'Invalid image format.', code: 'BAD_REQUEST' } });
+        return;
+      }
+
+      const buffer = Buffer.from(matches[2], 'base64');
+      const fileName = `profile_${profileId}_${Date.now()}`;
+      
+      try {
+        const fileUrl = await uploadToCloudinary(buffer, 'profiles', fileName);
+
+        // AI verification
+        const verification = await verifyProfilePhoto(fileUrl);
+        if (!verification.isVerified) {
+          res.status(400).json({
+            success: false,
+            error: { message: `Photo rejected: ${verification.reason}`, code: 'PHOTO_REJECTED' },
+          });
+          return;
+        }
+
+        resolvedMainPicture = fileUrl;
+        newPhotoUrl = fileUrl;
+      } catch (uploadError: any) {
+        console.error('[Profile] Cloudinary/AI upload error:', uploadError);
+        res.status(500).json({
+          success: false,
+          error: { message: 'Failed to verify or upload profile photo.', code: 'INTERNAL_SERVER_ERROR' },
+        });
+        return;
+      }
+    }
+
     const updated = await prisma.profile.update({
       where: { id: profileId },
       data: {
         ...req.body,
+        mainProfilePicture: resolvedMainPicture !== undefined ? (resolvedMainPicture || null) : undefined,
         dateOfBirth: req.body.dateOfBirth ? new Date(req.body.dateOfBirth) : undefined,
       },
     });
+
+    if (newPhotoUrl) {
+      // Mark other photos of this profile as not main
+      await prisma.photo.updateMany({
+        where: { profileId },
+        data: { isMain: false },
+      });
+
+      await prisma.photo.create({
+        data: {
+          profileId,
+          photoUrl: newPhotoUrl,
+          status: 'approved',
+          isMain: true,
+        },
+      });
+    }
 
     res.status(200).json({
       success: true,
@@ -284,12 +389,25 @@ export const uploadProfilePhotos = async (req: AuthenticatedRequest, res: Respon
       return;
     }
 
+    // Mark other photos of this profile as not main
+    await prisma.photo.updateMany({
+      where: { profileId },
+      data: { isMain: false },
+    });
+
     const photo = await prisma.photo.create({
       data: {
         profileId,
         photoUrl: fileUrl,
         status: 'approved', // Approved by AI
+        isMain: true,
       },
+    });
+
+    // Update mainProfilePicture on profile
+    await prisma.profile.update({
+      where: { id: profileId },
+      data: { mainProfilePicture: fileUrl },
     });
 
     res.status(201).json({
@@ -344,5 +462,105 @@ export const uploadHoroscope = async (req: AuthenticatedRequest, res: Response):
       success: false,
       error: { message: 'Failed to upload horoscope.', code: 'INTERNAL_SERVER_ERROR' },
     });
+  }
+};
+
+// ============================================================
+// GET /api/v1/profiles/:id/preferences
+// ============================================================
+export const getPreferences = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  const profileId = parseInt(req.params.id);
+  try {
+    const pref = await prisma.partnerPreference.findUnique({
+      where: { profileId },
+      include: {
+        preferredCastes: { include: { caste: true } },
+        preferredCountries: { include: { country: true } },
+      },
+    });
+    res.status(200).json({ success: true, data: pref });
+  } catch (error) {
+    console.error('[Profile] getPreferences error:', error);
+    res.status(500).json({ success: false, error: { message: 'Failed to get preferences.', code: 'INTERNAL_SERVER_ERROR' } });
+  }
+};
+
+// ============================================================
+// PUT /api/v1/profiles/:id/preferences
+// Body: { minAge, maxAge, minHeightCm, maxHeightCm, maritalStatuses, religion, country, casteIds, countryIds }
+// ============================================================
+export const savePreferences = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  if (!req.user) {
+    res.status(401).json({ success: false, error: { message: 'Unauthorized.', code: 'UNAUTHORIZED' } });
+    return;
+  }
+
+  const profileId = parseInt(req.params.id);
+  const { minAge, maxAge, minHeightCm, maxHeightCm, maritalStatuses, otherNotes, casteIds, countryIds } = req.body;
+
+  try {
+    // Verify ownership
+    const profile = await prisma.profile.findFirst({ where: { id: profileId, userId: req.user.id, deletedAt: null } });
+    if (!profile) {
+      res.status(403).json({ success: false, error: { message: 'Profile not found or access denied.', code: 'FORBIDDEN' } });
+      return;
+    }
+
+    // Upsert the preference row
+    const pref = await prisma.partnerPreference.upsert({
+      where: { profileId },
+      create: {
+        profileId,
+        minAge: minAge ? Number(minAge) : null,
+        maxAge: maxAge ? Number(maxAge) : null,
+        minHeightCm: minHeightCm ? Number(minHeightCm) : null,
+        maxHeightCm: maxHeightCm ? Number(maxHeightCm) : null,
+        maritalStatuses: (maritalStatuses as any) || null,
+        otherNotes: otherNotes || null,
+      },
+      update: {
+        minAge: minAge ? Number(minAge) : null,
+        maxAge: maxAge ? Number(maxAge) : null,
+        minHeightCm: minHeightCm ? Number(minHeightCm) : null,
+        maxHeightCm: maxHeightCm ? Number(maxHeightCm) : null,
+        maritalStatuses: (maritalStatuses as any) || null,
+        otherNotes: otherNotes || null,
+      },
+    });
+
+    // Replace preferred castes
+    if (casteIds !== undefined) {
+      await prisma.partnerPreferenceCaste.deleteMany({ where: { preferenceId: pref.id } });
+      if (Array.isArray(casteIds) && casteIds.length > 0) {
+        await prisma.partnerPreferenceCaste.createMany({
+          data: casteIds.map((cid: number) => ({ preferenceId: pref.id, casteId: Number(cid) })),
+          skipDuplicates: true,
+        });
+      }
+    }
+
+    // Replace preferred countries
+    if (countryIds !== undefined) {
+      await prisma.partnerPreferenceCountry.deleteMany({ where: { preferenceId: pref.id } });
+      if (Array.isArray(countryIds) && countryIds.length > 0) {
+        await prisma.partnerPreferenceCountry.createMany({
+          data: countryIds.map((cid: number) => ({ preferenceId: pref.id, countryId: Number(cid) })),
+          skipDuplicates: true,
+        });
+      }
+    }
+
+    const updatedPref = await prisma.partnerPreference.findUnique({
+      where: { profileId },
+      include: {
+        preferredCastes: { include: { caste: true } },
+        preferredCountries: { include: { country: true } },
+      },
+    });
+
+    res.status(200).json({ success: true, message: 'Partner preferences saved.', data: updatedPref });
+  } catch (error) {
+    console.error('[Profile] savePreferences error:', error);
+    res.status(500).json({ success: false, error: { message: 'Failed to save preferences.', code: 'INTERNAL_SERVER_ERROR' } });
   }
 };

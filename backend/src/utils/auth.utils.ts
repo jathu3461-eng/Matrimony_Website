@@ -5,9 +5,9 @@ import redis from '../config/redis';
 
 const JWT_SECRET = process.env.JWT_SECRET!;
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET!;
-const ACCESS_TOKEN_EXPIRY = '15m';
-const REFRESH_TOKEN_EXPIRY = '7d';
-const REFRESH_TOKEN_EXPIRY_SECONDS = 60 * 60 * 24 * 7; // 7 days
+const ACCESS_TOKEN_EXPIRY = '1d';          // Extended from 15m — users stay logged in
+const REFRESH_TOKEN_EXPIRY = '30d';        // Extended from 7d — persistent session
+const REFRESH_TOKEN_EXPIRY_SECONDS = 60 * 60 * 24 * 30; // 30 days
 
 // ============================================================
 // Password Utilities
@@ -39,14 +39,14 @@ export interface TokenPayload {
 }
 
 /**
- * Generates a short-lived JWT Access Token (15 minutes).
+ * Generates a long-lived JWT Access Token (1 day).
  */
 export const generateAccessToken = (payload: TokenPayload): string => {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: ACCESS_TOKEN_EXPIRY });
 };
 
 /**
- * Generates a long-lived JWT Refresh Token (7 days).
+ * Generates a long-lived JWT Refresh Token (30 days).
  */
 export const generateRefreshToken = (payload: TokenPayload): string => {
   return jwt.sign(payload, JWT_REFRESH_SECRET, { expiresIn: REFRESH_TOKEN_EXPIRY });
@@ -72,8 +72,12 @@ export const whitelistRefreshToken = async (
   userId: number,
   refreshToken: string
 ): Promise<void> => {
-  const key = `refresh_token:${userId}:${crypto.createHash('sha256').update(refreshToken).digest('hex').substring(0, 16)}`;
-  await redis.setex(key, REFRESH_TOKEN_EXPIRY_SECONDS, refreshToken);
+  try {
+    const key = `refresh_token:${userId}:${crypto.createHash('sha256').update(refreshToken).digest('hex').substring(0, 16)}`;
+    await redis.setex(key, REFRESH_TOKEN_EXPIRY_SECONDS, refreshToken);
+  } catch (error) {
+    console.warn(`[Redis] Failed to whitelist token for user ${userId}. Redis might be down.`);
+  }
 };
 
 /**
@@ -83,9 +87,14 @@ export const isRefreshTokenValid = async (
   userId: number,
   refreshToken: string
 ): Promise<boolean> => {
-  const key = `refresh_token:${userId}:${crypto.createHash('sha256').update(refreshToken).digest('hex').substring(0, 16)}`;
-  const stored = await redis.get(key);
-  return stored === refreshToken;
+  try {
+    const key = `refresh_token:${userId}:${crypto.createHash('sha256').update(refreshToken).digest('hex').substring(0, 16)}`;
+    const stored = await redis.get(key);
+    return stored === refreshToken;
+  } catch (error) {
+    console.warn(`[Redis] Failed to validate token for user ${userId}. Skipping validation.`);
+    return true; // allow if redis is down in dev
+  }
 };
 
 /**
