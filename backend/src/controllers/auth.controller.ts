@@ -11,7 +11,8 @@ import {
   revokeRefreshToken,
 } from '../utils/auth.utils';
 import { AuthenticatedRequest } from '../middleware/auth.middleware';
-import { sendEmailOtp } from '../utils/email.utils';
+import { sendEmailOtp, sendPasswordResetEmail } from '../utils/email.utils';
+import crypto from 'crypto';
 
 // ============================================================
 // POST /api/v1/auth/send-registration-otp
@@ -500,44 +501,125 @@ export const logout = async (req: AuthenticatedRequest, res: Response): Promise<
 // ============================================================
 // POST /api/v1/auth/forgot-password
 // ============================================================
+
+
 export const forgotPassword = async (req: Request, res: Response): Promise<void> => {
-  const { email } = req.body;
+  const { email, accountType = 'individual' } = req.body;
+  const ipAddress = req.ip || '';
+  const userAgent = req.headers['user-agent'] || '';
 
   try {
-    const user = await prisma.user.findFirst({ where: { email, deletedAt: null } });
-
-    // Always return success to prevent email enumeration attacks
-    if (!user) {
-      res.status(200).json({ success: true, message: 'If an account with that email exists, a reset code has been sent.' });
-      return;
-    }
-
-    // Rate-limit: max 3 OTPs in 10 minutes
-    const recentRequests = await prisma.emailVerification.count({
-      where: { email, createdAt: { gte: new Date(Date.now() - 10 * 60 * 1000) } },
-    });
-    if (recentRequests >= 3) {
-      res.status(429).json({
+    if (!email || !email.includes('@')) {
+      res.status(400).json({
         success: false,
-        error: { message: 'Too many reset requests. Please wait 10 minutes.', code: 'RATE_LIMIT' },
+        error: { message: 'Please enter a valid email address.', code: 'VALIDATION_ERROR' },
       });
       return;
     }
 
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const otpHash = await hashPassword(otp);
-
-    await prisma.emailVerification.create({
-      data: {
-        email,
-        otp: otpHash,
-        expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+    // Rate limiting: Maximum 5 reset requests per hour
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    const recentRequests = await prisma.passwordResetToken.count({
+      where: {
+        createdAt: { gte: oneHourAgo },
+        ipAddress,
       },
     });
 
-    await sendEmailOtp(email, otp);
+    if (recentRequests >= 5) {
+      res.status(429).json({
+        success: false,
+        error: { message: 'Too many password reset requests. Please try again in an hour.', code: 'RATE_LIMIT' },
+      });
+      return;
+    }
 
-    res.status(200).json({ success: true, message: 'If an account with that email exists, a reset code has been sent.' });
+    // Lookup user by email and accountType
+    const user = await prisma.user.findFirst({
+      where: {
+        email: email.trim(),
+        accountType: accountType as any,
+        deletedAt: null,
+      },
+    });
+
+    // Always respond with a generic success message to prevent email enumeration
+    const genericResponse = {
+      success: true,
+      message: 'If the email is registered, a password reset link has been sent.',
+    };
+
+    if (!user) {
+      res.status(200).json(genericResponse);
+      return;
+    }
+
+    // Log the request activity
+    await prisma.auditLog.create({
+      data: {
+        userId: user.id,
+        actionType: 'PASSWORD_RESET_REQUESTED',
+        description: `Password reset requested for email ${email} (${accountType}) from IP: ${ipAddress}`,
+        ipAddress,
+        userAgent,
+      },
+    });
+
+    // If account is suspended or not approved, do not send reset link. Send account warning instead.
+    if (user.isSuspended || !user.isApproved) {
+      const supportEmail = 'support@mukurtham.ca';
+      const warningHtml = `
+        <p>Hello ${user.username},</p>
+        <p>We received a password reset request for your account. However, your account is currently pending approval or is suspended.</p>
+        <p>Please contact our support team at <a href="mailto:${supportEmail}">${supportEmail}</a> for assistance.</p>
+      `;
+      // Send warning notification in the background
+      prisma.user.findUnique({ where: { id: user.id } }).then(async () => {
+        const nodemailer = require('nodemailer');
+        const fromAddr = process.env.NODEMAILER_FROM || 'no-reply@mukurtham.ca';
+        const transporter = nodemailer.createTransport({
+          host: process.env.NODEMAILER_HOST || '',
+          port: parseInt(process.env.NODEMAILER_PORT || '587'),
+          secure: parseInt(process.env.NODEMAILER_PORT || '587') === 465,
+          auth: { user: process.env.NODEMAILER_USER || '', pass: process.env.NODEMAILER_PASS || '' },
+        });
+        await transporter.sendMail({
+          from: `"Mukurtham Matrimony" <${fromAddr}>`,
+          to: user.email,
+          subject: 'Account Status Alert | Password Reset Request',
+          html: warningHtml,
+        });
+      }).catch(() => {});
+
+      res.status(200).json(genericResponse);
+      return;
+    }
+
+    // Generate secure single-use token (expires in 15 minutes)
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+
+    // Save token to database
+    await prisma.passwordResetToken.create({
+      data: {
+        userId: user.id,
+        accountType,
+        token,
+        expiresAt,
+        ipAddress,
+        userAgent,
+      },
+    });
+
+    // Build reset link
+    const clientUrl = process.env.CLIENT_ORIGIN || 'http://localhost:3000';
+    const resetPath = accountType === 'broker' ? '/broker-reset-password' : '/reset-password';
+    const resetUrl = `${clientUrl}${resetPath}?token=${token}`;
+
+    // Send professional HTML email
+    await sendPasswordResetEmail(user.email, user.username, resetUrl, accountType === 'broker');
+
+    res.status(200).json(genericResponse);
   } catch (error) {
     console.error('[Auth] forgotPassword error:', error);
     res.status(500).json({
@@ -551,43 +633,99 @@ export const forgotPassword = async (req: Request, res: Response): Promise<void>
 // POST /api/v1/auth/reset-password
 // ============================================================
 export const resetPassword = async (req: Request, res: Response): Promise<void> => {
-  const { email, newPassword } = req.body;
+  const { token, newPassword } = req.body;
+  const ipAddress = req.ip || '';
+  const userAgent = req.headers['user-agent'] || '';
 
   try {
-    if (!email || !newPassword) {
+    if (!token || !newPassword) {
       res.status(400).json({
         success: false,
-        error: { message: 'Email and new password are required.', code: 'VALIDATION_ERROR' },
+        error: { message: 'Reset token and new password are required.', code: 'VALIDATION_ERROR' },
       });
       return;
     }
 
-    if (newPassword.length < 8) {
+    // Password validation rules (min 8 chars, 1 uppercase, 1 lowercase, 1 number, 1 special char)
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
+    if (!passwordRegex.test(newPassword)) {
       res.status(400).json({
         success: false,
-        error: { message: 'Password must be at least 8 characters.', code: 'VALIDATION_ERROR' },
+        error: { message: 'Password does not meet complexity requirements.', code: 'VALIDATION_ERROR' },
       });
       return;
     }
 
-    // Check if user exists
-    const user = await prisma.user.findFirst({ where: { email } });
-    if (!user) {
-      res.status(404).json({
+    // Look up valid, unused, non-expired token
+    const resetToken = await prisma.passwordResetToken.findFirst({
+      where: {
+        token,
+        used: false,
+        expiresAt: { gte: new Date() },
+      },
+    });
+
+    if (!resetToken) {
+      res.status(400).json({
         success: false,
-        error: { message: 'User not found.', code: 'NOT_FOUND' },
+        error: { message: 'Invalid or expired reset link.', code: 'INVALID_TOKEN' },
       });
       return;
     }
 
-    // Update password
+    // Find the associated user
+    const user = await prisma.user.findUnique({
+      where: {
+        id: resetToken.userId,
+      },
+    });
+
+    if (!user || user.deletedAt || user.isSuspended || !user.isApproved) {
+      res.status(400).json({
+        success: false,
+        error: { message: 'Account is inactive or has been disabled.', code: 'INACTIVE_USER' },
+      });
+      return;
+    }
+
+    // Hash the new password and update user
     const hashedPassword = await hashPassword(newPassword);
-    await prisma.user.update({ where: { email }, data: { password: hashedPassword } });
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { password: hashedPassword },
+    });
 
-    // Invalidate all sessions for security
-    await prisma.session.deleteMany({ where: { user: { email } } });
+    // Mark token as used
+    await prisma.passwordResetToken.update({
+      where: { id: resetToken.id },
+      data: { used: true },
+    });
 
-    res.status(200).json({ success: true, message: 'Password reset successfully. Please log in with your new password.' });
+    // Delete all previous reset tokens for this user for security
+    await prisma.passwordResetToken.deleteMany({
+      where: { userId: user.id },
+    });
+
+    // Invalidate all active sessions across devices
+    await prisma.session.deleteMany({
+      where: { userId: user.id },
+    });
+
+    // Log the reset completed activity
+    await prisma.auditLog.create({
+      data: {
+        userId: user.id,
+        actionType: 'PASSWORD_RESET_COMPLETED',
+        description: `Password changed successfully from IP: ${ipAddress}`,
+        ipAddress,
+        userAgent,
+      },
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Password reset successfully. Please log in with your new password.',
+    });
   } catch (error) {
     console.error('[Auth] resetPassword error:', error);
     res.status(500).json({
@@ -596,4 +734,45 @@ export const resetPassword = async (req: Request, res: Response): Promise<void> 
     });
   }
 };
+
+// ============================================================
+// GET /api/v1/auth/validate-reset-token?token=xxx
+// ============================================================
+export const validateResetToken = async (req: Request, res: Response): Promise<void> => {
+  const { token } = req.query as { token: string };
+
+  try {
+    if (!token) {
+      res.status(400).json({ success: false, valid: false, error: { message: 'Token is required.' } });
+      return;
+    }
+
+    const resetToken = await prisma.passwordResetToken.findFirst({
+      where: {
+        token,
+        used: false,
+        expiresAt: { gte: new Date() },
+      },
+    });
+
+    if (!resetToken) {
+      res.status(200).json({
+        success: true,
+        valid: false,
+        error: { message: 'This reset link is invalid or has expired.' },
+      });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      valid: true,
+      accountType: resetToken.accountType,
+    });
+  } catch (error) {
+    console.error('[Auth] validateResetToken error:', error);
+    res.status(500).json({ success: false, valid: false });
+  }
+};
+
 

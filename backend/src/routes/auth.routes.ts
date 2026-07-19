@@ -11,6 +11,7 @@ import {
   resendBrokerOtp,
   forgotPassword,
   resetPassword,
+  validateResetToken,
 } from '../controllers/auth.controller';
 import { authenticate } from '../middleware/auth.middleware';
 import { validateBody } from '../middleware/validate.middleware';
@@ -84,5 +85,6 @@ router.post('/refresh', refreshAccessToken);
 router.post('/logout', authenticate, logout);
 router.post('/forgot-password', authRateLimiter, forgotPassword);
 router.post('/reset-password', authRateLimiter, resetPassword);
+router.get('/validate-reset-token', validateResetToken);
 
 export default router;
