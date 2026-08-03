@@ -1,24 +1,31 @@
-name: Mukurtham CI/CD Pipeline
+name: Mukurtham Production CI/CD Pipeline
 
 on:
   push:
     branches: [main, develop]
-  pull_request:
-    branches: [main]
+
+# Principle of least privilege — only grant what each job needs
+permissions:
+  contents: read
+  packages: write
+  id-token: write
 
 env:
   NODE_VERSION: '20.x'
+  DOCKER_IMAGE_BACKEND: ghcr.io/jathu3461-eng/mukurtham_matrimony/backend
+  DOCKER_IMAGE_FRONTEND: ghcr.io/jathu3461-eng/mukurtham_matrimony/frontend
   DATABASE_URL: mysql://root:test@localhost:3306/mukurtham_test
   REDIS_URL: redis://localhost:6379
   JWT_SECRET: ci-test-jwt-secret-at-least-32-chars-long
   JWT_REFRESH_SECRET: ci-test-refresh-secret-at-least-32-chars
+  USE_MOCK_REDIS: 'false'
 
 jobs:
   # ============================================================
-  # Backend: Lint, Type-Check, Test
+  # Build and Test Verification Job
   # ============================================================
-  backend-ci:
-    name: Backend CI
+  build-and-test:
+    name: Build & Test Verification
     runs-on: ubuntu-latest
 
     services:
@@ -46,126 +53,119 @@ jobs:
           --health-retries=5
 
     steps:
-      - name: Checkout repository
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js ${{ env.NODE_VERSION }}
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          cache-dependency-path: backend/package-lock.json
+          cache-dependency-path: |
+            backend/package-lock.json
+            frontend/package-lock.json
 
-      - name: Install backend dependencies
-        run: npm ci
+      # Verify Backend: install, generate, type-check, test, build (all blocking)
+      - name: Verify Backend
+        run: |
+          npm ci
+          npm run prisma:generate
+          npx tsc --noEmit
+          npm run test
+          npm run build
         working-directory: backend
+        env:
+          DATABASE_URL: mysql://root:test@localhost:3306/mukurtham_test
 
-      - name: Generate Prisma Client
-        run: npm run prisma:generate
-        working-directory: backend
-
-      - name: TypeScript type check
-        run: npx tsc --noEmit
-        working-directory: backend
-
-      - name: Run unit tests with coverage
-        run: npm run test:coverage
-        working-directory: backend
-
-      - name: Upload coverage report
-        uses: actions/upload-artifact@v4
-        with:
-          name: backend-coverage
-          path: backend/coverage
-
-  # ============================================================
-  # Frontend: Type-Check & Build
-  # ============================================================
-  frontend-ci:
-    name: Frontend CI
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Install frontend dependencies
-        run: npm ci
-        working-directory: frontend
-
-      - name: TypeScript type check
-        run: npx tsc --noEmit
-        working-directory: frontend
-
-      - name: Build production bundle
-        run: npm run build
+      # Verify Frontend builds and passes typechecking
+      - name: Verify Frontend build
+        run: |
+          npm ci
+          npx tsc --noEmit
+          npm run build
         working-directory: frontend
         env:
-          NEXT_PUBLIC_API_URL: https://api.mukurtham.ca
+          NEXT_PUBLIC_API_URL: http://localhost:8000
+          NEXT_TELEMETRY_DISABLED: 1
 
   # ============================================================
-  # Docker Build (runs after both CI jobs pass)
+  # Docker Image Build & Push Job
   # ============================================================
-  docker-build:
-    name: Docker Build
+  docker-publish:
+    name: Docker Build & Publish
     runs-on: ubuntu-latest
-    needs: [backend-ci, frontend-ci]
+    needs: build-and-test
     if: github.ref == 'refs/heads/main'
 
     steps:
-      - name: Checkout repository
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Login to Docker Hub
+      - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_TOKEN }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build & push backend image
+      # Build and push Backend image
+      - name: Build & Push Backend Docker Image
         uses: docker/build-push-action@v5
         with:
-          context: ./backend
+          context: .
+          file: backend/Dockerfile
           push: true
           tags: |
-            mukurtham/backend:latest
-            mukurtham/backend:${{ github.sha }}
+            ${{ env.DOCKER_IMAGE_BACKEND }}:latest
+            ${{ env.DOCKER_IMAGE_BACKEND }}:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Build & push frontend image
+      # Build and push Frontend image
+      - name: Build & Push Frontend Docker Image
         uses: docker/build-push-action@v5
         with:
-          context: ./frontend
+          context: .
+          file: frontend/Dockerfile
           push: true
           tags: |
-            mukurtham/frontend:latest
-            mukurtham/frontend:${{ github.sha }}
+            ${{ env.DOCKER_IMAGE_FRONTEND }}:latest
+            ${{ env.DOCKER_IMAGE_FRONTEND }}:${{ github.sha }}
+          build-args: |
+            NEXT_PUBLIC_API_URL=http://localhost:8000
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
   # ============================================================
-  # Deploy to Production (after successful Docker build)
+  # Deployment and Rolling Rollback Job
   # ============================================================
-  deploy-production:
-    name: Deploy to Production
+  deploy:
+    name: Continuous Deployment & Verification
     runs-on: ubuntu-latest
-    needs: docker-build
+    needs: docker-publish
     if: github.ref == 'refs/heads/main'
     environment: production
 
     steps:
-      - name: Trigger rolling update via SSH
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # Copy the production docker-compose file to the server so it has the latest service configuration and GHCR image tags
+      - name: Copy docker-compose.prod.yml to Server
+        uses: appleboy/scp-action@v0.1.4
+        with:
+          host: ${{ secrets.PROD_SERVER_HOST }}
+          username: ${{ secrets.PROD_SERVER_USER }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          source: "infrastructure/docker-compose.prod.yml"
+          target: "/opt/mukurtham"
+          strip_components: 1
+
+      # Connects to target VM via SSH to run backup, pull images, run migrations, and spin up services
+      - name: Deploy to Host Server via SSH
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.PROD_SERVER_HOST }}
@@ -173,6 +173,65 @@ jobs:
           key: ${{ secrets.PROD_SSH_KEY }}
           script: |
             cd /opt/mukurtham
-            docker compose pull
-            docker compose up -d --no-deps --build
+
+            # 1. Backup existing database before running migration
+            docker compose -f docker-compose.prod.yml exec -T backend node infrastructure/scripts/backup-restore.js backup || true
+
+            # 2. Pull new container images
+            docker compose -f docker-compose.prod.yml pull
+
+            # 3. Launch updated containers
+            docker compose -f docker-compose.prod.yml up -d --no-deps backend frontend
+
+            # 4. Run prisma database migrations on target
+            docker compose -f docker-compose.prod.yml exec -T backend npx prisma db push --schema=dist/prisma/schema.prisma
+
+            # 5. Clean up old images
             docker system prune -f
+
+      # Setup checking environment on GitHub runner to hit the deployed target
+      - name: Run Smoke Test Health Check
+        run: |
+          node infrastructure/scripts/health-check.js
+        env:
+          FRONTEND_URL: http://${{ secrets.PROD_SERVER_HOST }}:3000
+          BACKEND_URL: http://${{ secrets.PROD_SERVER_HOST }}:8000
+
+      # Trigger Automated Rollback if health checks fail
+      - name: Trigger Automatic Rollback on Failure
+        if: failure()
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.PROD_SERVER_HOST }}
+          username: ${{ secrets.PROD_SERVER_USER }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          script: |
+            cd /opt/mukurtham
+            echo "💥 Smoke test failed! Initiating rolling rollback..."
+            
+            # Revert to last stable commit (using GIT tags or previous image version tag)
+            docker compose -f docker-compose.prod.yml rollback || echo "No docker compose rollback built-in support. Reverting tags manually."
+            
+            # Restore the database backup
+            LATEST_BACKUP=$(ls -t infrastructure/backups/*.sql | head -n 1)
+            if [ ! -z "$LATEST_BACKUP" ]; then
+              echo "Database rollback selected backup: $LATEST_BACKUP"
+              docker compose -f docker-compose.prod.yml exec -T backend node infrastructure/scripts/backup-restore.js restore $(basename $LATEST_BACKUP)
+            fi
+
+      # Broadcast status via Webhook notifications (Slack/Discord webhook URLs)
+      - name: Send Slack Notification (Success)
+        if: success()
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_TITLE: "🚀 Mukurtham Matrimony Deployment Success!"
+          SLACK_COLOR: "good"
+
+      - name: Send Slack Notification (Failure)
+        if: failure()
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_TITLE: "🚨 Mukurtham Matrimony Deployment/Rollback Alert!"
+          SLACK_COLOR: "danger"

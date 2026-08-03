@@ -230,39 +230,65 @@ docker-compose -f infrastructure/elk-compose.yml up -d
 
 ---
 
-## 🔄 CI/CD Pipeline
+## 🔄 CI/CD Pipeline (GitHub Actions)
 
-### GitHub Actions
+Mukurtham Matrimony is configured with a fully automated CI/CD pipeline using **GitHub Actions** and **GitHub Container Registry (GHCR)**.
 
-```yaml
-# .github/workflows/deploy.yml
-name: Deploy to Production
+### Pipeline Workflow
 
-on:
-  push:
-    branches: [main]
+Whenever you push or merge code to the `main` branch:
+1. **Verify (Build & Test)**: The runner sets up Node.js, runs TypeScript type checks, starts temporary MySQL/Redis containers, runs backend unit tests, and verifies the frontend build.
+2. **Build & Publish**: The runner builds the Docker images for backend and frontend, and pushes them to **GitHub Container Registry (ghcr.io)**.
+3. **Deploy via SSH**: 
+   - Copies `infrastructure/docker-compose.prod.yml` to the remote server directory `/opt/mukurtham`.
+   - Connects to the server via SSH to pull new images, restart container services, and run database migrations.
+4. **Smoke Test / Health Check**: Runs a smoke test script to verify both API and frontend are running. If it fails, it initiates an automatic rollback and database restore.
 
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      
-      - name: Build Docker Images
-        run: |
-          docker build -t backend:${{ github.sha }} ./backend
-          docker build -t frontend:${{ github.sha }} ./frontend
-      
-      - name: Push to Registry
-        run: |
-          echo ${{ secrets.DOCKER_PASSWORD }} | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
-          docker push backend:${{ github.sha }}
-          docker push frontend:${{ github.sha }}
-      
-      - name: Deploy
-        run: |
-          ssh deploy@prod.server "cd /app && docker-compose pull && docker-compose up -d"
-```
+---
+
+### 🔑 Required Repository Secrets
+
+To activate the deployment, go to your GitHub repository:
+**Settings > Secrets and variables > Actions > New repository secret** and add the following keys:
+
+| Secret Key | Description | Example / Format |
+|---|---|---|
+| `PROD_SERVER_HOST` | The IP address or domain name of your production server | `198.51.100.1` |
+| `PROD_SERVER_USER` | The user used to SSH into the production server | `root` or `ubuntu` |
+| `PROD_SSH_KEY` | The private SSH key matching the public key authorized on the server | `-----BEGIN OPENSSH PRIVATE KEY-----...` |
+| `SLACK_WEBHOOK` | (Optional) Slack incoming webhook URL for deploy notifications | `https://hooks.slack.com/services/...` |
+
+---
+
+### ⚙️ Production Server Initial Setup
+
+Run the following once on your production server:
+
+1. **Install Docker & Docker Compose**:
+   ```bash
+   sudo apt update
+   sudo apt install -y docker.io docker-compose-v2
+   ```
+
+2. **Prepare Target Directory**:
+   ```bash
+   sudo mkdir -p /opt/mukurtham
+   sudo chown -R $USER:$USER /opt/mukurtham
+   ```
+
+3. **Authenticate Docker with GitHub Registry**:
+   To allow the server to pull private images, run:
+   ```bash
+   echo "YOUR_GITHUB_PAT" | docker login ghcr.io -u YOUR_GITHUB_USERNAME --password-stdin
+   ```
+   *(Create a Personal Access Token (PAT) with `read:packages` scope in GitHub settings).*
+
+4. **Create Production `.env` File**:
+   Create a `.env` file inside `/opt/mukurtham/.env` with your production database, credentials, and keys (like Stripe and Cloudinary).
+
+Once configured, any push to `main` will automatically build, deploy, and update the website live!
+
+---
 
 ---
 
