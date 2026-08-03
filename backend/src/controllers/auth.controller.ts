@@ -111,51 +111,122 @@ export const register = async (req: Request, res: Response): Promise<void> => {
 
   try {
     if (email.toLowerCase() === 'matrimony2026@gmail.com') {
-      res.status(403).json({ success: false, error: { message: 'This email is reserved.', code: 'FORBIDDEN' }});
+      res.status(403).json({ success: false, error: { message: 'This email is reserved.', code: 'FORBIDDEN' } });
       return;
     }
 
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanUsername = username.trim();
+    const cleanPhone = phoneNumber.trim();
+
+    // 1. Check for duplicate email/username/phone BEFORE hashing (fast fail)
     const existingUser = await prisma.user.findFirst({
-      where: { OR: [{ email }, { username }, { phoneNumber }] },
+      where: { OR: [{ email: cleanEmail }, { username: cleanUsername }, { phoneNumber: cleanPhone }] },
+      select: { email: true, username: true, phoneNumber: true },
     });
 
     if (existingUser) {
       let conflictField = 'Email';
-      if (existingUser.username === username) conflictField = 'Username';
-      if (existingUser.phoneNumber === phoneNumber) conflictField = 'Phone number';
+      if (existingUser.username.toLowerCase() === cleanUsername.toLowerCase()) conflictField = 'Username';
+      if (existingUser.phoneNumber === cleanPhone) conflictField = 'Phone number';
       res.status(409).json({ success: false, error: { message: `${conflictField} is already registered.`, code: 'CONFLICT' } });
       return;
     }
 
+    // 2. Hash password
     const hashedPassword = await hashPassword(password);
     const accountTypeMap: Record<string, string> = { user: 'individual', broker: 'broker', admin: 'admin', moderator: 'moderator' };
     const accountType = (accountTypeMap[role] || 'individual') as any;
 
-    const user = await prisma.user.create({
+    // 3. Create User
+    const newUser = await prisma.user.create({
       data: {
-        username, email, password: hashedPassword, phoneNumber, uiLanguage,
-        accountType, isApproved: true,
-        roles: { create: { role: { connectOrCreate: { where: { name: role }, create: { name: role, description: `${role} role`, isSystem: true } } } } },
+        username: cleanUsername,
+        email: cleanEmail,
+        password: hashedPassword,
+        phoneNumber: cleanPhone,
+        uiLanguage,
+        accountType,
+        isApproved: true,
       },
     });
 
-    const tokenPayload = { sub: user.id, username: user.username, email: user.email, roles: [role] };
+    // 4. Ensure role row exists, then link to user
+    try {
+      let roleRow = await prisma.role.findUnique({ where: { name: role } });
+      if (!roleRow) {
+        roleRow = await prisma.role.create({
+          data: { name: role, description: `${role} role`, isSystem: true },
+        });
+      }
+      await prisma.userRole.create({ data: { userId: newUser.id, roleId: roleRow.id } });
+    } catch (roleErr: any) {
+      // P2002 on userRole means duplicate — acceptable (role already assigned)
+      if (roleErr?.code !== 'P2002') {
+        console.warn('[Auth] Role assignment warning:', roleErr?.message || roleErr);
+      }
+    }
+
+    // 5. Tokens
+    const tokenPayload = { sub: newUser.id, username: newUser.username, email: newUser.email, roles: [role] };
     const accessToken = generateAccessToken(tokenPayload);
     const refreshToken = generateRefreshToken(tokenPayload);
-    await whitelistRefreshToken(user.id, refreshToken);
-    await prisma.session.create({
+    await whitelistRefreshToken(newUser.id, refreshToken);
+
+    // 6. Session record
+    try {
+      await prisma.session.create({
+        data: {
+          userId: newUser.id,
+          refreshToken,
+          ipAddress: (req.headers['x-forwarded-for'] as string)?.split(',')[0] || req.ip || '',
+          userAgent: req.headers['user-agent'] || '',
+          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        },
+      });
+    } catch (sessionErr: any) {
+      console.warn('[Auth] Session creation warning:', sessionErr?.message || sessionErr);
+    }
+
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Registration successful.',
       data: {
-        userId: user.id, refreshToken,
-        ipAddress: (req.headers['x-forwarded-for'] as string)?.split(',')[0] || req.ip || '',
-        userAgent: req.headers['user-agent'] || '',
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        accessToken,
+        user: {
+          id: newUser.id,
+          username: newUser.username,
+          email: newUser.email,
+          uiLanguage: newUser.uiLanguage,
+          roles: [role],
+        },
       },
     });
-    res.cookie('refreshToken', refreshToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'strict', maxAge: 7 * 24 * 60 * 60 * 1000 });
-    res.status(201).json({ success: true, message: 'Registration successful.', data: { accessToken, user: { id: user.id, username: user.username, email: user.email, uiLanguage: user.uiLanguage, roles: [role] } } });
-  } catch (error) {
-    console.error('[Auth] Register error:', error);
-    res.status(500).json({ success: false, error: { message: 'Registration failed. Please try again.', code: 'INTERNAL_SERVER_ERROR' } });
+  } catch (error: any) {
+    console.error('[Auth] Register error:', error?.message || error);
+
+    // P2002 — duplicate constraint from user.create (race condition window)
+    if (error?.code === 'P2002') {
+      const target = (Array.isArray(error.meta?.target) ? error.meta.target.join(' ') : String(error.meta?.target || '')).toLowerCase();
+      let msg = 'User with this detail already exists.';
+      if (target.includes('email') || target.includes('users_email_key')) msg = 'Email is already registered.';
+      else if (target.includes('username') || target.includes('users_username_key')) msg = 'Username is already taken.';
+      else if (target.includes('phone') || target.includes('users_phone_number_key')) msg = 'Phone number is already registered.';
+      res.status(409).json({ success: false, error: { message: msg, code: 'CONFLICT' } });
+      return;
+    }
+
+    res.status(500).json({
+      success: false,
+      error: { message: error?.message || 'Registration failed. Please try again.', code: 'INTERNAL_SERVER_ERROR' },
+    });
   }
 };
 
@@ -543,14 +614,12 @@ export const forgotPassword = async (req: Request, res: Response): Promise<void>
       },
     });
 
-    // Always respond with a generic success message to prevent email enumeration
-    const genericResponse = {
-      success: true,
-      message: 'If the email is registered, a password reset link has been sent.',
-    };
-
+    // If user is not found, return a clear 404 message as requested by Step 1
     if (!user) {
-      res.status(200).json(genericResponse);
+      res.status(404).json({
+        success: false,
+        error: { message: 'This email address is not registered in our system.', code: 'EMAIL_NOT_REGISTERED' },
+      });
       return;
     }
 
@@ -565,33 +634,30 @@ export const forgotPassword = async (req: Request, res: Response): Promise<void>
       },
     });
 
-    // If account is suspended or not approved, do not send reset link. Send account warning instead.
-    if (user.isSuspended || !user.isApproved) {
-      const supportEmail = 'support@mukurtham.ca';
-      const warningHtml = `
-        <p>Hello ${user.username},</p>
-        <p>We received a password reset request for your account. However, your account is currently pending approval or is suspended.</p>
-        <p>Please contact our support team at <a href="mailto:${supportEmail}">${supportEmail}</a> for assistance.</p>
-      `;
-      // Send warning notification in the background
-      prisma.user.findUnique({ where: { id: user.id } }).then(async () => {
-        const nodemailer = require('nodemailer');
-        const fromAddr = process.env.NODEMAILER_FROM || 'no-reply@mukurtham.ca';
-        const transporter = nodemailer.createTransport({
-          host: process.env.NODEMAILER_HOST || '',
-          port: parseInt(process.env.NODEMAILER_PORT || '587'),
-          secure: parseInt(process.env.NODEMAILER_PORT || '587') === 465,
-          auth: { user: process.env.NODEMAILER_USER || '', pass: process.env.NODEMAILER_PASS || '' },
-        });
-        await transporter.sendMail({
-          from: `"Mukurtham Matrimony" <${fromAddr}>`,
-          to: user.email,
-          subject: 'Account Status Alert | Password Reset Request',
-          html: warningHtml,
-        });
-      }).catch(() => {});
+    // Handle deleted account case
+    if (user.deletedAt) {
+      res.status(404).json({
+        success: false,
+        error: { message: 'This account has been deleted.', code: 'DELETED_ACCOUNT' },
+      });
+      return;
+    }
 
-      res.status(200).json(genericResponse);
+    // Handle suspended account case
+    if (user.isSuspended) {
+      res.status(403).json({
+        success: false,
+        error: { message: 'This account has been suspended. Please contact support.', code: 'ACCOUNT_SUSPENDED' },
+      });
+      return;
+    }
+
+    // Handle pending approval account case
+    if (!user.isApproved) {
+      res.status(403).json({
+        success: false,
+        error: { message: 'This account is pending approval. Password reset is not available until approved.', code: 'PENDING_APPROVAL' },
+      });
       return;
     }
 
@@ -616,15 +682,36 @@ export const forgotPassword = async (req: Request, res: Response): Promise<void>
     const resetPath = accountType === 'broker' ? '/broker-reset-password' : '/reset-password';
     const resetUrl = `${clientUrl}${resetPath}?token=${token}`;
 
-    // Send professional HTML email
-    await sendPasswordResetEmail(user.email, user.username, resetUrl, accountType === 'broker');
+    // Send professional HTML email. If it fails, catch and throw error so we never return a fake success response.
+    try {
+      await sendPasswordResetEmail(user.email, user.username, resetUrl, accountType === 'broker');
+    } catch (emailError: any) {
+      console.error('[Auth] Failed to deliver password reset email:', emailError);
+      
+      // Delete the generated token since we failed to email it
+      await prisma.passwordResetToken.deleteMany({
+        where: { token }
+      });
 
-    res.status(200).json(genericResponse);
-  } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: { 
+          message: `Email delivery failed: ${emailError.message || 'Check SMTP configuration or API keys.'}`, 
+          code: 'EMAIL_DELIVERY_FAILED' 
+        },
+      });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Password reset link has been successfully sent to your email.',
+    });
+  } catch (error: any) {
     console.error('[Auth] forgotPassword error:', error);
     res.status(500).json({
       success: false,
-      error: { message: 'Failed to process reset request.', code: 'INTERNAL_SERVER_ERROR' },
+      error: { message: error.message || 'Failed to process reset request.', code: 'INTERNAL_SERVER_ERROR' },
     });
   }
 };

@@ -133,6 +133,17 @@ app.get('/api/v1/setup/test-db', async (req: Request, res: Response) => {
   }
 });
 
+// Root route required for cPanel Node.js Selector availability check
+app.get(['/', '/api'], (req: Request, res: Response) => {
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.status(200).json({
+    status: 'ok',
+    name: 'Mukurtham Matrimony API',
+    version: '1.0.0',
+    timestamp: new Date().toISOString(),
+  });
+});
+
 // ============================================================
 // API Health-Check Endpoint
 // ============================================================

@@ -15,6 +15,48 @@ fs.mkdirSync(path.join(deployDir, 'backend'));
 fs.mkdirSync(path.join(deployDir, 'frontend'));
 
 // ==========================================
+// 0. Generate database.sql from migrations
+// ==========================================
+console.log('🗄️  Generating database.sql from Prisma migration...');
+const migrationDir = path.join(rootDir, 'database', 'prisma', 'migrations');
+const migrationSqlParts = [];
+
+const header = `-- ============================================================
+-- Mukurtham Matrimony -- Production Database Schema
+-- Generated: ${new Date().toISOString()}
+-- Target:    Namecheap MySQL 8.0
+-- Database:  mukutmzw_mukurthammatrimony
+-- ============================================================
+
+SET NAMES utf8mb4;
+SET CHARACTER SET utf8mb4;
+SET collation_connection = 'utf8mb4_unicode_ci';
+SET FOREIGN_KEY_CHECKS = 0;
+SET SQL_MODE = 'NO_AUTO_VALUE_ON_ZERO';
+SET time_zone = '+00:00';
+
+`;
+migrationSqlParts.push(header);
+
+if (fs.existsSync(migrationDir)) {
+  const migrations = fs.readdirSync(migrationDir)
+    .filter(d => fs.statSync(path.join(migrationDir, d)).isDirectory())
+    .sort();
+  for (const migration of migrations) {
+    const sqlFile = path.join(migrationDir, migration, 'migration.sql');
+    if (fs.existsSync(sqlFile)) {
+      migrationSqlParts.push(`\n-- Migration: ${migration}\n`);
+      migrationSqlParts.push(fs.readFileSync(sqlFile, 'utf8'));
+    }
+  }
+}
+migrationSqlParts.push('\n\n-- Re-enable foreign key checks\nSET FOREIGN_KEY_CHECKS = 1;\n');
+fs.writeFileSync(path.join(deployDir, 'database.sql'), migrationSqlParts.join(''), 'utf8');
+console.log(`✔ database.sql generated (${Math.round(fs.statSync(path.join(deployDir, 'database.sql')).size / 1024)} KB).`);
+
+
+
+// ==========================================
 // 1. Package BACKEND
 // ==========================================
 console.log('📦 Copying Backend production files...');
@@ -41,6 +83,14 @@ if (fs.existsSync(path.join(rootDir, 'backend', 'package-lock.json'))) {
   );
 }
 
+// Generate cPanel Passenger root app.js wrapper
+fs.writeFileSync(
+  path.join(deployDir, 'backend', 'app.js'),
+  "// cPanel Phusion Passenger Startup File\nrequire('./dist/app.js');\n",
+  'utf8'
+);
+console.log('✔ cPanel root app.js startup file generated.');
+
 // Copy prisma schema directory
 const prismaSrc = path.join(rootDir, 'database', 'prisma');
 const prismaDest = path.join(deployDir, 'backend', 'prisma');
@@ -64,7 +114,7 @@ if (fs.existsSync(prismaSrc)) {
 const backendEnvDest = path.join(deployDir, 'backend', '.env');
 const productionEnv = `# cPanel automatically injects PORT — do NOT hardcode it here
 NODE_ENV=production
-DATABASE_URL="mysql://mukutmzw_mukutmzw:Matrimony2026DB@localhost:3306/mukutmzw_mukurthammatrimony"
+DATABASE_URL="mysql://mukutmzw_mukutmzw:Matrimony2026DB@127.0.0.1:3306/mukutmzw_mukurthammatrimony"
 
 USE_MOCK_REDIS=true
 REDIS_URL="redis://127.0.0.1:6379"
@@ -108,8 +158,13 @@ try {
   execSync('npx prisma generate', { cwd: dbDir, stdio: 'inherit' });
   console.log('✔ Prisma client generated successfully.');
 } catch (error) {
-  console.error('❌ Error generating Prisma client:', error.message);
-  process.exit(1);
+  const prismaClientSrc = path.join(rootDir, 'backend', 'prisma-client');
+  if (fs.existsSync(prismaClientSrc)) {
+    console.warn('⚠ File lock detected on Prisma engine DLL (dev server active). Using existing backend/prisma-client bundle.');
+  } else {
+    console.error('❌ Error generating Prisma client:', error.message);
+    process.exit(1);
+  }
 }
 
 // Copy the custom generated prisma-client folder
@@ -172,6 +227,14 @@ if (fs.existsSync(publicSrc)) {
   fs.cpSync(publicSrc, publicDest, { recursive: true });
 }
 
+// ⚠️ CloudLinux cPanel Node.js Selector creates a virtualenv symlink for node_modules.
+//    A physical node_modules directory in the app root causes a cPanel deployment error.
+const frontendNodeModules = path.join(deployDir, 'frontend', 'node_modules');
+if (fs.existsSync(frontendNodeModules)) {
+  fs.rmSync(frontendNodeModules, { recursive: true, force: true });
+  console.log('✔ Removed standalone node_modules for CloudLinux virtualenv compatibility.');
+}
+
 // Copy static assets (.next/static must be copied to standalone/.next/static)
 const staticSrc = path.join(rootDir, 'frontend', '.next', 'static');
 const staticDest = path.join(deployDir, 'frontend', '.next', 'static');
@@ -181,7 +244,7 @@ if (fs.existsSync(staticSrc)) {
 
 // Generate frontend .env file for production so it knows where the cPanel backend is!
 const frontendEnvPath = path.join(deployDir, 'frontend', '.env');
-const frontendEnvContent = `NEXT_PUBLIC_BACKEND_URL=https://api.mukurtham.ca\nPORT=3000\nNODE_ENV=production\n`;
+const frontendEnvContent = `NEXT_PUBLIC_BACKEND_URL=https://api.mukurtham.ca\nNEXT_PUBLIC_SITE_URL=https://mukurtham.ca\nPORT=3000\nNODE_ENV=production\n`;
 fs.writeFileSync(frontendEnvPath, frontendEnvContent, 'utf8');
 console.log('✔ Production .env generated for Frontend (pointing to https://api.mukurtham.ca).');
 

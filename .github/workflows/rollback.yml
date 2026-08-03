@@ -1,0 +1,69 @@
+name: Mukurtham Manual Rollback Trigger
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_tag:
+        description: 'Docker image tag to revert to (e.g. latest, v1.0.0, commit-sha)'
+        required: true
+        default: 'latest'
+      restore_db:
+        description: 'Restore the database from the last backup? (true/false)'
+        required: true
+        default: 'true'
+
+env:
+  DOCKER_IMAGE_BACKEND: ghcr.io/jathu3461-eng/mukurtham_matrimony/backend
+  DOCKER_IMAGE_FRONTEND: ghcr.io/jathu3461-eng/mukurtham_matrimony/frontend
+
+jobs:
+  manual-rollback:
+    name: Execute Rollback & Restore
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Revert Server Containers and Database via SSH
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.PROD_SERVER_HOST }}
+          username: ${{ secrets.PROD_SERVER_USER }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          script: |
+            cd /opt/mukurtham
+            echo "🚨 Initiating manual rollback to tag: ${{ github.event.inputs.target_tag }}..."
+
+            # 1. Update tags in .env configuration for persistence
+            touch .env
+            sed -i '/^BACKEND_TAG=/d' .env
+            sed -i '/^FRONTEND_TAG=/d' .env
+            echo "BACKEND_TAG=${{ github.event.inputs.target_tag }}" >> .env
+            echo "FRONTEND_TAG=${{ github.event.inputs.target_tag }}" >> .env
+
+            # 2. Re-pull and relaunch target versions
+            docker compose -f docker-compose.prod.yml pull backend frontend
+            docker compose -f docker-compose.prod.yml up -d backend frontend
+
+            # 3. Handle database restore if specified
+            if [ "${{ github.event.inputs.restore_db }}" = "true" ]; then
+              LATEST_BACKUP=$(ls -t infrastructure/backups/*.sql | head -n 1)
+              if [ ! -z "$LATEST_BACKUP" ]; then
+                echo "Restoring database backup: $LATEST_BACKUP"
+                docker compose -f docker-compose.prod.yml exec -T backend node infrastructure/scripts/backup-restore.js restore $(basename $LATEST_BACKUP)
+              else
+                echo "Warning: No backup file found to restore!"
+              fi
+            fi
+
+            # 4. Reload services
+            docker compose -f docker-compose.prod.yml restart backend frontend
+            echo "✅ Rollback actions completed."
+
+      - name: Verify Health Status
+        run: |
+          node infrastructure/scripts/health-check.js
+        env:
+          FRONTEND_URL: http://${{ secrets.PROD_SERVER_HOST }}:3000
+          BACKEND_URL: http://${{ secrets.PROD_SERVER_HOST }}:8000

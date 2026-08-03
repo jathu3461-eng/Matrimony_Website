@@ -276,6 +276,7 @@ model User {
   supportTickets       SupportTicket[]           @relation("TicketOwner")
   ticketMessages       TicketMessage[]
   brokerProfile        BrokerProfile?
+  brokerAppointments   Appointment[]             @relation("BrokerAppointments")
 
   @@index([email])
   @@index([phoneNumber])
@@ -617,6 +618,7 @@ model Profile {
   interestsReceived     Interest[]             @relation("InterestReceiver")
   reportsAgainst        Report[]               @relation("ReportTarget")
   compatibilityScores   CompatibilityScore[]   @relation("ScoreProfile")
+  clientAppointments    Appointment[]          @relation("ClientAppointments")
 
   @@fulltext([name, aboutMe])
   @@index([gender, religionId, casteId, currentCountryId, status])
@@ -1168,4 +1170,64 @@ model SecurityEvent {
   @@index([eventType])
   @@index([createdAt])
   @@map("security_events")
+}
+
+// =============================================================================
+// SECTION 17: BROKER APPOINTMENTS
+// =============================================================================
+
+enum AppointmentStatus {
+  upcoming
+  completed
+  cancelled
+  rescheduled
+  pending
+}
+
+enum AppointmentType {
+  video_call
+  phone_call
+  in_person
+  whatsapp
+}
+
+model Appointment {
+  id              Int               @id @default(autoincrement())
+  brokerUserId    Int               @map("broker_user_id")
+  clientProfileId Int?              @map("client_profile_id")
+  title           String            @db.VarChar(200)
+  scheduledAt     DateTime          @map("scheduled_at")
+  type            AppointmentType   @default(video_call)
+  status          AppointmentStatus @default(upcoming)
+  notes           String?           @db.Text
+  meetingLink     String?           @map("meeting_link") @db.VarChar(500)
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+  brokerUser      User              @relation("BrokerAppointments", fields: [brokerUserId], references: [id], onDelete: Cascade)
+  clientProfile   Profile?          @relation("ClientAppointments", fields: [clientProfileId], references: [id], onDelete: SetNull)
+
+  @@index([brokerUserId, scheduledAt])
+  @@index([status])
+  @@map("appointments")
+}
+
+// =============================================================================
+// SECTION 18: PASSWORD RESET SYSTEM
+// =============================================================================
+
+model PasswordResetToken {
+  id          Int      @id @default(autoincrement())
+  userId      Int      @map("user_id")
+  accountType String   @map("account_type") @db.VarChar(50)
+  token       String   @unique @db.VarChar(255)
+  otp         String?  @db.VarChar(10)
+  expiresAt   DateTime @map("expires_at")
+  used        Boolean  @default(false)
+  createdAt   DateTime @default(now()) @map("created_at")
+  ipAddress   String?  @map("ip_address") @db.VarChar(45)
+  userAgent   String?  @map("user_agent") @db.VarChar(500)
+
+  @@index([token])
+  @@index([userId, accountType])
+  @@map("password_reset_tokens")
 }

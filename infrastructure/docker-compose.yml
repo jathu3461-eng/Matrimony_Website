@@ -14,8 +14,11 @@ services:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
+    networks:
+      - mukurtham-network
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$$MYSQL_ROOT_PASSWORD"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot_password"]
+      interval: 10s
       timeout: 5s
       retries: 5
 
@@ -27,11 +30,71 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
+    networks:
+      - mukurtham-network
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
       timeout: 5s
       retries: 5
+
+  backend:
+    build:
+      context: ../
+      dockerfile: backend/Dockerfile
+    container_name: mukurtham-backend
+    restart: always
+    environment:
+      - PORT=8000
+      - NODE_ENV=production
+      - DATABASE_URL=mysql://mukurtham_user:mukurtham_password@mysql:3306/mukurtham_matrimony
+      - REDIS_URL=redis://redis:6379
+      - CLIENT_ORIGIN=http://localhost:3000
+      - JWT_SECRET=super_secret_jwt_sign_key_9876543210!
+      - JWT_REFRESH_SECRET=super_secret_jwt_refresh_sign_key_0123456789!
+    ports:
+      - "8000:8000"
+    volumes:
+      - backend_backups:/app/infrastructure/backups
+    networks:
+      - mukurtham-network
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8000/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  frontend:
+    build:
+      context: ../
+      dockerfile: frontend/Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=http://localhost:8000
+    container_name: mukurtham-frontend
+    restart: always
+    ports:
+      - "3000:3000"
+    networks:
+      - mukurtham-network
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
 
 volumes:
   mysql_data:
   redis_data:
+  backend_backups:
+
+networks:
+  mukurtham-network:
+    driver: bridge

@@ -7,17 +7,6 @@ import {
 } from '../utils/auth.utils';
 import bcrypt from 'bcryptjs';
 
-// Mock Redis so OTP tests don't need a live Redis connection
-jest.mock('../config/redis', () => ({
-  setex: jest.fn().mockResolvedValue('OK'),
-  get: jest.fn().mockResolvedValue(null),
-  del: jest.fn().mockResolvedValue(1),
-  default: {
-    setex: jest.fn().mockResolvedValue('OK'),
-    get: jest.fn().mockResolvedValue(null),
-    del: jest.fn().mockResolvedValue(1),
-  },
-}));
 
 
 // ============================================================

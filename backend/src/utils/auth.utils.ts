@@ -3,8 +3,8 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import redis from '../config/redis';
 
-const JWT_SECRET = process.env.JWT_SECRET!;
-const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET!;
+const JWT_SECRET = process.env.JWT_SECRET || 'mukurtham_prod_secret_key_9876543210!';
+const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'mukurtham_prod_refresh_key_0123456789!';
 const ACCESS_TOKEN_EXPIRY = '1d';          // Extended from 15m — users stay logged in
 const REFRESH_TOKEN_EXPIRY = '30d';        // Extended from 7d — persistent session
 const REFRESH_TOKEN_EXPIRY_SECONDS = 60 * 60 * 24 * 30; // 30 days
@@ -14,10 +14,11 @@ const REFRESH_TOKEN_EXPIRY_SECONDS = 60 * 60 * 24 * 30; // 30 days
 // ============================================================
 
 /**
- * Hashes a plain-text password using bcrypt with 12 salt rounds.
+ * Hashes a plain-text password using bcrypt with 10 salt rounds.
+ * (10 is the industry standard — fast enough for auth, strong enough for security)
  */
 export const hashPassword = async (password: string): Promise<string> => {
-  return bcrypt.hash(password, 12);
+  return bcrypt.hash(password, 10);
 };
 
 /**

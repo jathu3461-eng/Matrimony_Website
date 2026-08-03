@@ -174,19 +174,26 @@ jobs:
           script: |
             cd /opt/mukurtham
 
-            # 1. Backup existing database before running migration
+            # 1. Update tags in .env configuration for persistence
+            touch .env
+            sed -i '/^BACKEND_TAG=/d' .env
+            sed -i '/^FRONTEND_TAG=/d' .env
+            echo "BACKEND_TAG=${{ github.sha }}" >> .env
+            echo "FRONTEND_TAG=${{ github.sha }}" >> .env
+
+            # 2. Backup existing database before running migration
             docker compose -f docker-compose.prod.yml exec -T backend node infrastructure/scripts/backup-restore.js backup || true
 
-            # 2. Pull new container images
+            # 3. Pull new container images
             docker compose -f docker-compose.prod.yml pull
 
-            # 3. Launch updated containers
+            # 4. Launch updated containers
             docker compose -f docker-compose.prod.yml up -d --no-deps backend frontend
 
-            # 4. Run prisma database migrations on target
+            # 5. Run prisma database migrations on target
             docker compose -f docker-compose.prod.yml exec -T backend npx prisma db push --schema=dist/prisma/schema.prisma
 
-            # 5. Clean up old images
+            # 6. Clean up old images
             docker system prune -f
 
       # Setup checking environment on GitHub runner to hit the deployed target
