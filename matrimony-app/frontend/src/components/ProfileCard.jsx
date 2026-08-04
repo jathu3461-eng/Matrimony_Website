@@ -142,13 +142,19 @@ export default function ProfileCard({ profile, actions, onShortlistChange }) {
       </div>
 
       <Link to={`/profile/${profile.id}`} className="block relative z-10">
-        {/* Card Header / Image Section */}
         <div className="h-56 bg-gradient-to-br from-pink-100 via-rose-100 to-amber-100 flex items-center justify-center overflow-hidden relative">
           {profile.main_profile_picture && !profile.blur_photo ? (
             <img
               src={`/uploads/${profile.main_profile_picture}`}
               alt={profile.name}
               className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.style.display = 'none';
+                if (e.target.parentNode) {
+                  e.target.parentNode.innerHTML = `<div class="flex flex-col items-center justify-center"><div class="w-28 h-28 rounded-full bg-gradient-to-tr from-pink-400 to-rose-300 flex items-center justify-center shadow-lg border-4 border-white"><span class="text-5xl">${profile.gender === 'F' ? '👧🏽' : '👦🏽'}</span></div></div>`;
+                }
+              }}
             />
           ) : profile.blur_photo ? (
             <div className="flex flex-col items-center justify-center w-full h-full bg-pink-50/80 p-4">

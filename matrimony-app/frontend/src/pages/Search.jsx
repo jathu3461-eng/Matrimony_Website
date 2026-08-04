@@ -60,9 +60,10 @@ export default function Search() {
         </div>
         <div className="w-full md:w-80 h-48 mt-6 md:mt-0 relative rounded-2xl overflow-hidden shadow-lg border-2 border-white">
           <img
-            src="/uploads/search_header_couple.png"
+            src="/uploads/couple_hero.png"
             alt="Search Header Couple"
             className="w-full h-full object-cover"
+            onError={(e) => { e.target.onerror = null; e.target.style.display = 'none'; }}
           />
         </div>
       </div>
