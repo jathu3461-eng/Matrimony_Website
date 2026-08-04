@@ -4,6 +4,8 @@ const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const path = require('path');
 
+const { dbReady } = require('./db');
+
 const authRoutes = require('./routes/auth');
 const profileRoutes = require('./routes/profiles');
 const adminRoutes = require('./routes/admin');
@@ -30,21 +32,24 @@ app.use('/api/chat', chatRoutes);
 
 app.get('/api/health', (req, res) => res.json({ ok: true, timestamp: new Date().toISOString() }));
 
-// Serve the built frontend in production (after `npm run build` in /frontend)
+// Serve the built frontend in production
 const frontendDist = path.join(__dirname, '..', 'frontend', 'dist');
 app.use(express.static(frontendDist));
 app.get(/^(?!\/api).*/, (req, res) => {
   res.sendFile(path.join(frontendDist, 'index.html'), (err) => {
-    if (err) res.status(200).send('Matrimony API is running. Start the frontend dev server separately in development.');
+    if (err) res.status(200).send('Matrimony API is running.');
   });
 });
 
-// Central error handler (multer errors, etc.)
+// Central error handler
 app.use((err, req, res, next) => {
   console.error(err);
   res.status(err.status || 500).json({ error: err.message || 'Internal server error' });
 });
 
-app.listen(PORT, () => {
-  console.log(`Matrimony API server running on http://localhost:${PORT}`);
+// Wait for DB to be ready before accepting requests
+dbReady.then(() => {
+  app.listen(PORT, () => {
+    console.log(`✅ Matrimony API server running on http://localhost:${PORT}`);
+  });
 });

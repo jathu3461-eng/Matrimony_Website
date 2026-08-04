@@ -1,221 +1,255 @@
-const Database = require('better-sqlite3');
+require('dotenv').config();
+const mysql = require('mysql2/promise');
 const bcrypt = require('bcryptjs');
-const path = require('path');
 
-const db = new Database(path.join(__dirname, 'data', 'matrimony.db'));
-db.pragma('journal_mode = WAL');
-db.pragma('foreign_keys = ON');
+// ─── Connection Pool ──────────────────────────────────────────────────────────
+const pool = mysql.createPool({
+  host:     process.env.DB_HOST     || 'localhost',
+  user:     process.env.DB_USER     || 'mukutmzw_dbuser',
+  password: process.env.DB_PASSWORD || 'Mukurtham@2026',
+  database: process.env.DB_NAME     || 'mukutmzw_matrimony',
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0,
+  multipleStatements: true,
+});
 
-// ---------------------------------------------------------------------------
-// SCHEMA
-// (Written for SQLite here so the whole app runs with zero external services.
-//  Column types map 1:1 onto MySQL/PostgreSQL — swap the Database driver in
-//  this file for `mysql2`/`pg` + an ORM like Sequelize/Prisma to go to a real
-//  server; the rest of the codebase talks to `db` through the same queries.)
-// ---------------------------------------------------------------------------
+// ─── Helper API (mirrors better-sqlite3 interface) ────────────────────────────
+const db = {
+  /** Returns first matching row or null */
+  async get(sql, params = []) {
+    const [rows] = await pool.execute(sql, params);
+    return rows[0] || null;
+  },
+  /** Returns all matching rows */
+  async all(sql, params = []) {
+    const [rows] = await pool.execute(sql, params);
+    return rows;
+  },
+  /** Runs INSERT/UPDATE/DELETE — returns { lastInsertRowid, changes } */
+  async run(sql, params = []) {
+    const [result] = await pool.execute(sql, params);
+    return { lastInsertRowid: result.insertId, changes: result.affectedRows };
+  },
+  /** Runs raw SQL (no params) */
+  async exec(sql) {
+    await pool.query(sql);
+  },
+  pool,
+};
 
-db.exec(`
-CREATE TABLE IF NOT EXISTS users (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  username TEXT UNIQUE NOT NULL,
-  email TEXT UNIQUE NOT NULL,
-  password_hash TEXT NOT NULL,
-  phone_number TEXT NOT NULL,
-  role TEXT NOT NULL CHECK(role IN ('regular','broker','admin')) DEFAULT 'regular',
-  business_name TEXT,
-  broker_profile_limit INTEGER DEFAULT 50,
-  is_approved INTEGER NOT NULL DEFAULT 0,
-  ui_language TEXT NOT NULL DEFAULT 'en' CHECK(ui_language IN ('en','ta')),
-  reset_otp TEXT,
-  reset_otp_expires INTEGER,
-  created_at TEXT DEFAULT CURRENT_TIMESTAMP
-);
+// ─── Schema ───────────────────────────────────────────────────────────────────
+async function initDB() {
+  const conn = await pool.getConnection();
+  try {
+    await conn.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        username VARCHAR(30) UNIQUE NOT NULL,
+        email VARCHAR(255) UNIQUE NOT NULL,
+        password_hash TEXT NOT NULL,
+        phone_number VARCHAR(20) NOT NULL,
+        role ENUM('regular','broker','admin') NOT NULL DEFAULT 'regular',
+        business_name TEXT,
+        broker_profile_limit INT DEFAULT 50,
+        is_approved TINYINT NOT NULL DEFAULT 0,
+        ui_language ENUM('en','ta') NOT NULL DEFAULT 'en',
+        reset_otp VARCHAR(10),
+        reset_otp_expires BIGINT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
 
-CREATE TABLE IF NOT EXISTS profiles (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  owner_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  profile_registered_for TEXT NOT NULL,
-  name TEXT NOT NULL,
-  gender TEXT NOT NULL CHECK(gender IN ('M','F')),
-  date_of_birth TEXT NOT NULL,
-  height_feet INTEGER NOT NULL,
-  height_inches INTEGER NOT NULL,
-  education TEXT NOT NULL,
-  occupation TEXT NOT NULL,
-  religion_id INTEGER,
-  caste_id INTEGER,
-  sub_religion TEXT,
-  raasi_id INTEGER,
-  star_id INTEGER,
-  born_country_id TEXT,
-  current_country_id TEXT,
-  city_or_state TEXT,
-  main_profile_picture TEXT,
-  horoscope_chart TEXT,
-  about_me TEXT NOT NULL,
-  blur_photo INTEGER NOT NULL DEFAULT 0,
-  blur_horoscope INTEGER NOT NULL DEFAULT 0,
-  status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active','hidden')),
-  created_at TEXT DEFAULT CURRENT_TIMESTAMP
-);
+      CREATE TABLE IF NOT EXISTS profiles (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        owner_user_id INT NOT NULL,
+        profile_registered_for TEXT NOT NULL,
+        name TEXT NOT NULL,
+        gender ENUM('M','F') NOT NULL,
+        date_of_birth VARCHAR(20) NOT NULL,
+        height_feet INT NOT NULL,
+        height_inches INT NOT NULL,
+        education TEXT NOT NULL,
+        occupation TEXT NOT NULL,
+        religion_id INT,
+        caste_id INT,
+        sub_religion TEXT,
+        raasi_id INT,
+        star_id INT,
+        born_country_id VARCHAR(10),
+        current_country_id VARCHAR(10),
+        city_or_state TEXT,
+        main_profile_picture TEXT,
+        horoscope_chart TEXT,
+        about_me TEXT NOT NULL,
+        blur_photo TINYINT NOT NULL DEFAULT 0,
+        blur_horoscope TINYINT NOT NULL DEFAULT 0,
+        diet VARCHAR(20) NOT NULL DEFAULT 'any',
+        family_values VARCHAR(20) NOT NULL DEFAULT 'moderate',
+        career_goals VARCHAR(20) NOT NULL DEFAULT 'working',
+        willing_to_relocate VARCHAR(20) NOT NULL DEFAULT 'open',
+        income_range TEXT,
+        manglik_status VARCHAR(10) NOT NULL DEFAULT 'no',
+        is_verified TINYINT NOT NULL DEFAULT 0,
+        status ENUM('active','hidden') NOT NULL DEFAULT 'active',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (owner_user_id) REFERENCES users(id) ON DELETE CASCADE
+      );
 
-CREATE TABLE IF NOT EXISTS religions (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  name_en TEXT NOT NULL,
-  name_ta TEXT NOT NULL
-);
+      CREATE TABLE IF NOT EXISTS religions (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name_en TEXT NOT NULL,
+        name_ta TEXT NOT NULL
+      );
 
-CREATE TABLE IF NOT EXISTS castes (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  name_en TEXT NOT NULL,
-  name_ta TEXT NOT NULL
-);
+      CREATE TABLE IF NOT EXISTS castes (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name_en TEXT NOT NULL,
+        name_ta TEXT NOT NULL
+      );
 
-CREATE TABLE IF NOT EXISTS raasis (
-  id INTEGER PRIMARY KEY,
-  name_en TEXT NOT NULL,
-  name_ta TEXT NOT NULL
-);
+      CREATE TABLE IF NOT EXISTS raasis (
+        id INT PRIMARY KEY,
+        name_en TEXT NOT NULL,
+        name_ta TEXT NOT NULL
+      );
 
-CREATE TABLE IF NOT EXISTS stars (
-  id INTEGER PRIMARY KEY,
-  name_en TEXT NOT NULL,
-  name_ta TEXT NOT NULL
-);
+      CREATE TABLE IF NOT EXISTS stars (
+        id INT PRIMARY KEY,
+        name_en TEXT NOT NULL,
+        name_ta TEXT NOT NULL
+      );
 
-CREATE TABLE IF NOT EXISTS countries (
-  code TEXT PRIMARY KEY,
-  name_en TEXT NOT NULL,
-  priority INTEGER
-);
+      CREATE TABLE IF NOT EXISTS countries (
+        code VARCHAR(5) PRIMARY KEY,
+        name_en TEXT NOT NULL,
+        priority INT
+      );
 
-CREATE TABLE IF NOT EXISTS settings (
-  id INTEGER PRIMARY KEY CHECK (id = 1),
-  site_name TEXT DEFAULT 'Mukurtham Matrimony',
-  site_logo TEXT,
-  site_favicon TEXT,
-  contact_number TEXT DEFAULT '+1 (416) 555-0198',
-  contact_email TEXT DEFAULT 'support@mukurtham.ca',
-  contact_address TEXT DEFAULT '',
-  meta_title TEXT DEFAULT 'Mukurtham Matrimony - Global Sri Lankan Tamil Matches',
-  meta_description TEXT DEFAULT 'Find your ideal bride or groom within the global Sri Lankan Tamil diaspora.',
-  meta_keywords TEXT DEFAULT 'tamil matrimony, srilankan tamil bride, jaffna matrimony, mukurtham',
-  google_analytics_id TEXT,
-  color_primary TEXT DEFAULT '#800000',
-  color_secondary TEXT DEFAULT '#78350f',
-  color_background TEXT DEFAULT '#fafaf9'
-);
+      CREATE TABLE IF NOT EXISTS settings (
+        id INT PRIMARY KEY DEFAULT 1,
+        site_name VARCHAR(255) DEFAULT 'Mukurtham Matrimony',
+        site_logo TEXT,
+        site_favicon TEXT,
+        contact_number VARCHAR(50) DEFAULT '+1 (416) 555-0198',
+        contact_email VARCHAR(255) DEFAULT 'support@mukurtham.ca',
+        contact_address TEXT DEFAULT '',
+        meta_title TEXT DEFAULT 'Mukurtham Matrimony - Global Sri Lankan Tamil Matches',
+        meta_description TEXT DEFAULT 'Find your ideal bride or groom within the global Sri Lankan Tamil diaspora.',
+        meta_keywords TEXT DEFAULT 'tamil matrimony, srilankan tamil bride, jaffna matrimony, mukurtham',
+        google_analytics_id TEXT,
+        color_primary VARCHAR(20) DEFAULT '#800000',
+        color_secondary VARCHAR(20) DEFAULT '#78350f',
+        color_background VARCHAR(20) DEFAULT '#fafaf9'
+      );
 
-CREATE TABLE IF NOT EXISTS footer_settings (
-  id INTEGER PRIMARY KEY CHECK (id = 1),
-  footer_copyright_text_en TEXT DEFAULT '© 2026 Mukurtham Matrimony. All Rights Reserved.',
-  footer_copyright_text_ta TEXT DEFAULT '© 2026 முகூர்த்தம் மேட்ரிமோனி. அனைத்து உரிமைகளும் பாதுகாக்கப்பட்டவை.',
-  footer_about_snippet_en TEXT DEFAULT 'Trusted matchmaking for the global Sri Lankan Tamil diaspora.',
-  footer_about_snippet_ta TEXT DEFAULT 'உலகளாவிய இலங்கை தமிழ் சமூகத்திற்கான நம்பகமான திருமண தேடல்.',
-  social_facebook TEXT,
-  social_youtube TEXT,
-  social_tiktok TEXT,
-  social_instagram TEXT
-);
+      CREATE TABLE IF NOT EXISTS footer_settings (
+        id INT PRIMARY KEY DEFAULT 1,
+        footer_copyright_text_en TEXT DEFAULT '© 2026 Mukurtham Matrimony. All Rights Reserved.',
+        footer_copyright_text_ta TEXT DEFAULT '© 2026 முகூர்த்தம் மேட்ரிமோனி. அனைத்து உரிமைகளும் பாதுகாக்கப்பட்டவை.',
+        footer_about_snippet_en TEXT DEFAULT 'Trusted matchmaking for the global Sri Lankan Tamil diaspora.',
+        footer_about_snippet_ta TEXT DEFAULT 'உலகளாவிய இலங்கை தமிழ் சமூகத்திற்கான நம்பகமான திருமண தேடல்.',
+        social_facebook TEXT,
+        social_youtube TEXT,
+        social_tiktok TEXT,
+        social_instagram TEXT
+      );
 
-CREATE TABLE IF NOT EXISTS menu_items (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  title_en TEXT NOT NULL,
-  title_ta TEXT NOT NULL,
-  target_url TEXT NOT NULL,
-  display_order INTEGER NOT NULL DEFAULT 0,
-  is_active INTEGER NOT NULL DEFAULT 1
-);
+      CREATE TABLE IF NOT EXISTS menu_items (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        title_en TEXT NOT NULL,
+        title_ta TEXT NOT NULL,
+        target_url TEXT NOT NULL,
+        display_order INT NOT NULL DEFAULT 0,
+        is_active TINYINT NOT NULL DEFAULT 1
+      );
 
-CREATE TABLE IF NOT EXISTS shortlists (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  profile_id INTEGER NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE(user_id, profile_id)
-);
+      CREATE TABLE IF NOT EXISTS shortlists (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        profile_id INT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY uq_shortlist (user_id, profile_id),
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE
+      );
 
-CREATE TABLE IF NOT EXISTS interests (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  sender_profile_id INTEGER NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-  receiver_profile_id INTEGER NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-  status TEXT NOT NULL CHECK(status IN ('pending', 'accepted', 'rejected')) DEFAULT 'pending',
-  message TEXT,
-  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE(sender_profile_id, receiver_profile_id)
-);
+      CREATE TABLE IF NOT EXISTS interests (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        sender_profile_id INT NOT NULL,
+        receiver_profile_id INT NOT NULL,
+        status ENUM('pending','accepted','rejected','declined') NOT NULL DEFAULT 'pending',
+        message TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY uq_interest (sender_profile_id, receiver_profile_id),
+        FOREIGN KEY (sender_profile_id) REFERENCES profiles(id) ON DELETE CASCADE,
+        FOREIGN KEY (receiver_profile_id) REFERENCES profiles(id) ON DELETE CASCADE
+      );
 
-CREATE TABLE IF NOT EXISTS horoscope_match (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  profile_id_1 INTEGER NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-  profile_id_2 INTEGER NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-  score INTEGER NOT NULL,
-  details TEXT NOT NULL,
-  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE(profile_id_1, profile_id_2)
-);
+      CREATE TABLE IF NOT EXISTS chat_messages (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        thread_id VARCHAR(50) NOT NULL,
+        sender_profile_id INT NOT NULL,
+        receiver_profile_id INT NOT NULL,
+        message TEXT NOT NULL,
+        read_at TIMESTAMP NULL,
+        sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (sender_profile_id) REFERENCES profiles(id) ON DELETE CASCADE,
+        FOREIGN KEY (receiver_profile_id) REFERENCES profiles(id) ON DELETE CASCADE
+      );
 
-CREATE TABLE IF NOT EXISTS chat_messages (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  thread_id TEXT NOT NULL,
-  sender_profile_id INTEGER NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-  receiver_profile_id INTEGER NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-  message TEXT NOT NULL,
-  read_at TEXT,
-  sent_at TEXT DEFAULT CURRENT_TIMESTAMP
-);
-CREATE INDEX IF NOT EXISTS idx_chat_thread ON chat_messages(thread_id, sent_at);
+      CREATE TABLE IF NOT EXISTS notifications (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        sender_id INT NOT NULL,
+        type VARCHAR(50) DEFAULT 'interest_received',
+        message TEXT NOT NULL,
+        is_read TINYINT DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE
+      );
 
-CREATE TABLE IF NOT EXISTS notifications (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  sender_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  type TEXT DEFAULT 'interest_received',
-  message TEXT NOT NULL,
-  is_read INTEGER DEFAULT 0,
-  created_at TEXT DEFAULT CURRENT_TIMESTAMP
-);
-`);
+      CREATE TABLE IF NOT EXISTS horoscope_match (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        profile_id_1 INT NOT NULL,
+        profile_id_2 INT NOT NULL,
+        score INT NOT NULL,
+        details TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY uq_horoscope (profile_id_1, profile_id_2),
+        FOREIGN KEY (profile_id_1) REFERENCES profiles(id) ON DELETE CASCADE,
+        FOREIGN KEY (profile_id_2) REFERENCES profiles(id) ON DELETE CASCADE
+      );
+    `);
 
-// Run alter tables for existing environments — all wrapped so they're safe on re-runs
-const safeAlter = (sql) => { try { db.exec(sql); } catch (_) {} };
+    // Index for chat thread lookups
+    await conn.query(`CREATE INDEX IF NOT EXISTS idx_chat_thread ON chat_messages(thread_id, sent_at)`).catch(() => {});
 
-// Phase 1
-safeAlter('ALTER TABLE profiles ADD COLUMN blur_photo INTEGER NOT NULL DEFAULT 0;');
-safeAlter('ALTER TABLE profiles ADD COLUMN blur_horoscope INTEGER NOT NULL DEFAULT 0;');
+    await seed(conn);
+    console.log('✅ MySQL DB initialized');
+  } finally {
+    conn.release();
+  }
+}
 
-// Phase 2 — lifestyle & verification columns
-safeAlter("ALTER TABLE profiles ADD COLUMN diet TEXT NOT NULL DEFAULT 'any';");
-safeAlter("ALTER TABLE profiles ADD COLUMN family_values TEXT NOT NULL DEFAULT 'moderate';");
-safeAlter("ALTER TABLE profiles ADD COLUMN career_goals TEXT NOT NULL DEFAULT 'working';");
-safeAlter("ALTER TABLE profiles ADD COLUMN willing_to_relocate TEXT NOT NULL DEFAULT 'open';");
-safeAlter('ALTER TABLE profiles ADD COLUMN income_range TEXT;');
-safeAlter("ALTER TABLE profiles ADD COLUMN manglik_status TEXT NOT NULL DEFAULT 'no';");
-safeAlter('ALTER TABLE profiles ADD COLUMN is_verified INTEGER NOT NULL DEFAULT 0;');
+// ─── Seed Data ────────────────────────────────────────────────────────────────
+async function seed(conn) {
+  // Settings row
+  await conn.query('INSERT IGNORE INTO settings (id) VALUES (1)');
+  await conn.query('INSERT IGNORE INTO footer_settings (id) VALUES (1)');
 
-// Phase 2 — interests message field
-safeAlter('ALTER TABLE interests ADD COLUMN message TEXT;');
-
-
-// ---------------------------------------------------------------------------
-// SEED DATA (idempotent)
-// ---------------------------------------------------------------------------
-
-function seed() {
-  const settingsRow = db.prepare('SELECT id FROM settings WHERE id = 1').get();
-  if (!settingsRow) db.prepare('INSERT INTO settings (id) VALUES (1)').run();
-
-  const footerRow = db.prepare('SELECT id FROM footer_settings WHERE id = 1').get();
-  if (!footerRow) db.prepare('INSERT INTO footer_settings (id) VALUES (1)').run();
-
-  const adminExists = db.prepare('SELECT id FROM users WHERE email = ?').get('matrimony2026@gmail.com');
-  if (!adminExists) {
-    db.prepare(`INSERT INTO users (username, email, password_hash, phone_number, role, is_approved, ui_language)
-                VALUES (?,?,?,?,?,?,?)`)
-      .run('superadmin', 'matrimony2026@gmail.com', bcrypt.hashSync('Matrimony2026', 10), '+10000000000', 'admin', 1, 'en');
+  // Admin user
+  const [[adminRow]] = await conn.query('SELECT id FROM users WHERE email = ?', ['matrimony2026@gmail.com']);
+  if (!adminRow) {
+    const hash = bcrypt.hashSync('Matrimony2026', 10);
+    await conn.query(
+      'INSERT INTO users (username, email, password_hash, phone_number, role, is_approved, ui_language) VALUES (?,?,?,?,?,?,?)',
+      ['superadmin', 'matrimony2026@gmail.com', hash, '+10000000000', 'admin', 1, 'en']
+    );
   }
 
-  const menuCount = db.prepare('SELECT COUNT(*) c FROM menu_items').get().c;
+  // Menu items
+  const [[{ c: menuCount }]] = await conn.query('SELECT COUNT(*) c FROM menu_items');
   if (menuCount === 0) {
     const items = [
       ['Home', 'முகப்பு', '/', 1],
@@ -223,66 +257,65 @@ function seed() {
       ['About Us', 'எங்களைப் பற்றி', '/about', 3],
       ['Contact', 'தொடர்பு', '/contact', 4],
     ];
-    const ins = db.prepare('INSERT INTO menu_items (title_en, title_ta, target_url, display_order, is_active) VALUES (?,?,?,?,1)');
-    items.forEach(i => ins.run(...i));
+    for (const [en, ta, url, order] of items) {
+      await conn.query('INSERT INTO menu_items (title_en, title_ta, target_url, display_order, is_active) VALUES (?,?,?,?,1)', [en, ta, url, order]);
+    }
   }
 
-  const religionCount = db.prepare('SELECT COUNT(*) c FROM religions').get().c;
-  if (religionCount === 0) {
-    const rel = [
-      ['Hindu', 'இந்து'], ['Christian', 'கிறிஸ்தவம்'], ['Muslim', 'இஸ்லாம்'],
-      ['Buddhist', 'பௌத்தம்'], ['Other', 'மற்றவை'],
-    ];
-    const ins = db.prepare('INSERT INTO religions (name_en, name_ta) VALUES (?,?)');
-    rel.forEach(r => ins.run(...r));
+  // Religions
+  const [[{ c: relCount }]] = await conn.query('SELECT COUNT(*) c FROM religions');
+  if (relCount === 0) {
+    const rel = [['Hindu','இந்து'],['Christian','கிறிஸ்தவம்'],['Muslim','இஸ்லாம்'],['Buddhist','பௌத்தம்'],['Other','மற்றவை']];
+    for (const [en, ta] of rel) await conn.query('INSERT INTO religions (name_en, name_ta) VALUES (?,?)', [en, ta]);
   }
 
-  const casteCount = db.prepare('SELECT COUNT(*) c FROM castes').get().c;
+  // Castes
+  const [[{ c: casteCount }]] = await conn.query('SELECT COUNT(*) c FROM castes');
   if (casteCount === 0) {
     const castes = [
-      ['Vellalar', 'வெள்ளாளர்'], ['Karaiyar', 'கரையார்'], ['Mukuvar', 'முக்குவர்'],
-      ['Koviyar', 'கோவியர்'], ['Vishwakarma (Kammalar)', 'விஸ்வகர்மா / கம்மாளர்'],
-      ['Chettiar', 'செட்டியார்'], ['Iyer (Brahmin)', 'ஐயர்'], ['Madapalli', 'மடைப்பள்ளி'],
-      ['Nattuvar', 'நட்டுவர்'], ['Maravar', 'மறவர்'], ['Intercaste / Other', 'கலப்புச் சாதி / ஏனையவை'],
-      ['Not Disclosed / Any', 'சாதி தடையில்லை'],
+      ['Vellalar','வெள்ளாளர்'],['Karaiyar','கரையார்'],['Mukuvar','முக்குவர்'],
+      ['Koviyar','கோவியர்'],['Vishwakarma (Kammalar)','விஸ்வகர்மா / கம்மாளர்'],
+      ['Chettiar','செட்டியார்'],['Iyer (Brahmin)','ஐயர்'],['Madapalli','மடைப்பள்ளி'],
+      ['Nattuvar','நட்டுவர்'],['Maravar','மறவர்'],['Intercaste / Other','கலப்புச் சாதி / ஏனையவை'],
+      ['Not Disclosed / Any','சாதி தடையில்லை'],
     ];
-    const ins = db.prepare('INSERT INTO castes (name_en, name_ta) VALUES (?,?)');
-    castes.forEach(c => ins.run(...c));
+    for (const [en, ta] of castes) await conn.query('INSERT INTO castes (name_en, name_ta) VALUES (?,?)', [en, ta]);
   }
 
-  const raasiCount = db.prepare('SELECT COUNT(*) c FROM raasis').get().c;
+  // Raasis
+  const [[{ c: raasiCount }]] = await conn.query('SELECT COUNT(*) c FROM raasis');
   if (raasiCount === 0) {
-    const raasis = [
-      'Aries|மேஷம்', 'Taurus|ரிஷபம்', 'Gemini|மிதுனம்', 'Cancer|கடகம்', 'Leo|சிம்மம்',
-      'Virgo|கன்னி', 'Libra|துலாம்', 'Scorpio|விருச்சிகம்', 'Sagittarius|தனுசு',
-      'Capricorn|மகரம்', 'Aquarius|கும்பம்', 'Pisces|மீனம்',
-    ];
-    const ins = db.prepare('INSERT INTO raasis (id, name_en, name_ta) VALUES (?,?,?)');
-    raasis.forEach((r, idx) => { const [en, ta] = r.split('|'); ins.run(idx + 1, en, ta); });
+    const raasis = ['Aries|மேஷம்','Taurus|ரிஷபம்','Gemini|மிதுனம்','Cancer|கடகம்','Leo|சிம்மம்',
+      'Virgo|கன்னி','Libra|துலாம்','Scorpio|விருச்சிகம்','Sagittarius|தனுசு',
+      'Capricorn|மகரம்','Aquarius|கும்பம்','Pisces|மீனம்'];
+    for (let i = 0; i < raasis.length; i++) {
+      const [en, ta] = raasis[i].split('|');
+      await conn.query('INSERT INTO raasis (id, name_en, name_ta) VALUES (?,?,?)', [i + 1, en, ta]);
+    }
   }
 
-  const starCount = db.prepare('SELECT COUNT(*) c FROM stars').get().c;
+  // Stars
+  const [[{ c: starCount }]] = await conn.query('SELECT COUNT(*) c FROM stars');
   if (starCount === 0) {
-    const stars = [
-      'Ashwini|அசுவினி', 'Bharani|பரணி', 'Krittika|கார்த்திகை', 'Rohini|ரோகிணி',
-      'Mrigashirsha|மிருகசீரிடம்', 'Ardra|திருவாதிரை', 'Punarvasu|புனர்பூசம்', 'Pushya|பூசம்',
-      'Ashlesha|ஆயில்யம்', 'Magha|மகம்', 'Purva Phalguni|பூரம்', 'Uttara Phalguni|உத்திரம்',
-      'Hasta|அஸ்தம்', 'Chitra|சித்திரை', 'Swati|சுவாதி', 'Visakha|விசாகம்', 'Anuradha|அனுஷம்',
-      'Jyestha|கேட்டை', 'Mula|மூலம்', 'Purva Ashadha|பூராடம்', 'Uttara Ashadha|உத்திராடம்',
-      'Shravana|திருவோணம்', 'Dhanishta|அவிட்டம்', 'Shatabhisha|சதயம்', 'Purva Bhadrapada|பூரட்டாதி',
-      'Uttara Bhadrapada|உத்திரட்டாதி', 'Revati|ரேவதி',
-    ];
-    const ins = db.prepare('INSERT INTO stars (id, name_en, name_ta) VALUES (?,?,?)');
-    stars.forEach((s, idx) => { const [en, ta] = s.split('|'); ins.run(idx + 1, en, ta); });
+    const stars = ['Ashwini|அசுவினி','Bharani|பரணி','Krittika|கார்த்திகை','Rohini|ரோகிணி',
+      'Mrigashirsha|மிருகசீரிடம்','Ardra|திருவாதிரை','Punarvasu|புனர்பூசம்','Pushya|பூசம்',
+      'Ashlesha|ஆயில்யம்','Magha|மகம்','Purva Phalguni|பூரம்','Uttara Phalguni|உத்திரம்',
+      'Hasta|அஸ்தம்','Chitra|சித்திரை','Swati|சுவாதி','Visakha|விசாகம்','Anuradha|அனுஷம்',
+      'Jyestha|கேட்டை','Mula|மூலம்','Purva Ashadha|பூராடம்','Uttara Ashadha|உத்திராடம்',
+      'Shravana|திருவோணம்','Dhanishta|அவிட்டம்','Shatabhisha|சதயம்','Purva Bhadrapada|பூரட்டாதி',
+      'Uttara Bhadrapada|உத்திரட்டாதி','Revati|ரேவதி'];
+    for (let i = 0; i < stars.length; i++) {
+      const [en, ta] = stars[i].split('|');
+      await conn.query('INSERT INTO stars (id, name_en, name_ta) VALUES (?,?,?)', [i + 1, en, ta]);
+    }
   }
 
-  const countryCount = db.prepare('SELECT COUNT(*) c FROM countries').get().c;
+  // Countries
+  const [[{ c: countryCount }]] = await conn.query('SELECT COUNT(*) c FROM countries');
   if (countryCount === 0) {
-    const priority = [
-      ['CA', 'Canada', 1], ['GB', 'United Kingdom', 2], ['LK', 'Sri Lanka', 3], ['IN', 'India', 4],
-      ['FR', 'France', 5], ['DE', 'Germany', 6], ['CH', 'Switzerland', 7], ['AU', 'Australia', 8],
-      ['NO', 'Norway', 9], ['US', 'United States', 10],
-    ];
+    const priority = [['CA','Canada',1],['GB','United Kingdom',2],['LK','Sri Lanka',3],['IN','India',4],
+      ['FR','France',5],['DE','Germany',6],['CH','Switzerland',7],['AU','Australia',8],
+      ['NO','Norway',9],['US','United States',10]];
     const rest = [
       ['AF','Afghanistan'],['AL','Albania'],['DZ','Algeria'],['AD','Andorra'],['AO','Angola'],
       ['AG','Antigua and Barbuda'],['AR','Argentina'],['AM','Armenia'],['AT','Austria'],['AZ','Azerbaijan'],
@@ -322,12 +355,15 @@ function seed() {
       ['UA','Ukraine'],['AE','United Arab Emirates'],['UY','Uruguay'],['UZ','Uzbekistan'],['VU','Vanuatu'],
       ['VE','Venezuela'],['VN','Vietnam'],['YE','Yemen'],['ZM','Zambia'],['ZW','Zimbabwe'],
     ];
-    const ins = db.prepare('INSERT INTO countries (code, name_en, priority) VALUES (?,?,?)');
-    priority.forEach(([code, name, p]) => ins.run(code, name, p));
-    rest.forEach(([code, name]) => ins.run(code, name, null));
+    for (const [code, name, p] of priority) await conn.query('INSERT IGNORE INTO countries (code, name_en, priority) VALUES (?,?,?)', [code, name, p]);
+    for (const [code, name] of rest) await conn.query('INSERT IGNORE INTO countries (code, name_en, priority) VALUES (?,?,?)', [code, name, null]);
   }
 }
 
-seed();
+// Start init (server.js awaits this before listen)
+const dbReady = initDB().catch(err => {
+  console.error('❌ DB init failed:', err.message);
+  process.exit(1);
+});
 
-module.exports = db;
+module.exports = { db, dbReady };
