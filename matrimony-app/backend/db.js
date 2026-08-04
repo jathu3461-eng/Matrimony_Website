@@ -144,10 +144,10 @@ async function initDB() {
 
       CREATE TABLE IF NOT EXISTS footer_settings (
         id INT PRIMARY KEY DEFAULT 1,
-        footer_copyright_text_en TEXT DEFAULT '© 2026 Mukurtham Matrimony. All Rights Reserved.',
-        footer_copyright_text_ta TEXT DEFAULT '© 2026 முகூர்த்தம் மேட்ரிமோனி. அனைத்து உரிமைகளும் பாதுகாக்கப்பட்டவை.',
-        footer_about_snippet_en TEXT DEFAULT 'Trusted matchmaking for the global Sri Lankan Tamil diaspora.',
-        footer_about_snippet_ta TEXT DEFAULT 'உலகளாவிய இலங்கை தமிழ் சமூகத்திற்கான நம்பகமான திருமண தேடல்.',
+        footer_copyright_text_en TEXT,
+        footer_copyright_text_ta TEXT,
+        footer_about_snippet_en TEXT,
+        footer_about_snippet_ta TEXT,
         social_facebook TEXT,
         social_youtube TEXT,
         social_tiktok TEXT,
