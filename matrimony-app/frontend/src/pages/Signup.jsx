@@ -113,37 +113,35 @@ export default function Signup() {
     }
   };
 
-  /* Reusable styled input */
-  const Inp = ({ icon, field, type = 'text', placeholder, hint, right }) => (
-    <div>
-      {hint && <label className="block text-xs font-bold text-slate-600 mb-1.5">{hint}</label>}
-      <div className="relative">
-        {icon && <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-pink-400 text-sm">{icon}</span>}
-        <input
-          type={field === 'password' ? (showPw ? 'text' : 'password') : type}
-          value={form[field]}
-          onChange={set(field)}
-          onBlur={blur(field)}
-          placeholder={placeholder}
-          className={`w-full ${icon ? 'pl-9' : 'pl-4'} ${right ? 'pr-10' : 'pr-4'} py-3 rounded-xl border text-sm transition-all outline-none
-            ${touched[field] && errors[field]
-              ? 'border-rose-400 bg-rose-50'
-              : 'border-slate-200 bg-slate-50 focus:border-pink-400 focus:bg-white focus:ring-2 focus:ring-pink-100'}`}
-        />
-        {right && (
-          <button type="button" onClick={() => setShowPw(!showPw)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-pink-500 text-sm">
-            {showPw ? '🙈' : '👁️'}
-          </button>
-        )}
-      </div>
-      {touched[field] && errors[field] && (
-        <p className="text-[11px] text-rose-500 mt-1 font-semibold">{errors[field]}</p>
+const Inp = ({ icon, field, type = 'text', placeholder, hint, right, value, onChange, onBlur, showPw, setShowPw, touched, errors }) => (
+  <div>
+    {hint && <label className="block text-xs font-bold text-slate-600 mb-1.5">{hint}</label>}
+    <div className="relative">
+      {icon && <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-pink-400 text-sm">{icon}</span>}
+      <input
+        type={field === 'password' ? (showPw ? 'text' : 'password') : type}
+        value={value}
+        onChange={onChange}
+        onBlur={onBlur}
+        placeholder={placeholder}
+        className={`w-full ${icon ? 'pl-9' : 'pl-4'} ${right ? 'pr-10' : 'pr-4'} py-3 rounded-xl border text-sm transition-all outline-none
+          ${touched && errors
+            ? 'border-rose-400 bg-rose-50'
+            : 'border-slate-200 bg-slate-50 focus:border-pink-400 focus:bg-white focus:ring-2 focus:ring-pink-100'}`}
+      />
+      {right && (
+        <button type="button" onClick={() => setShowPw(!showPw)}
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-pink-500 text-sm">
+          {showPw ? '🙈' : '👁️'}
+        </button>
       )}
     </div>
-  );
+    {touched && errors && (
+      <p className="text-[11px] text-rose-500 mt-1 font-semibold">{errors}</p>
+    )}
+  </div>
+);
 
-  const isBroker = role === 'broker';
 
   return (
     <div className="min-h-screen relative overflow-hidden flex items-center justify-center py-8 px-4"
@@ -264,12 +262,12 @@ export default function Signup() {
 
             <form onSubmit={handleSubmit} className="space-y-3.5">
               <div className="grid grid-cols-2 gap-3">
-                <Inp icon="👤" field="username" hint="Full Name" placeholder="e.g. Sutharsan" />
-                <Inp icon="📧" field="email" type="email" hint="Email Address" placeholder="name@example.com" />
+                <Inp icon="👤" field="username" hint="Full Name" placeholder="e.g. Sutharsan" value={form.username} onChange={set('username')} onBlur={blur('username')} touched={touched.username} errors={errors.username} />
+                <Inp icon="📧" field="email" type="email" hint="Email Address" placeholder="name@example.com" value={form.email} onChange={set('email')} onBlur={blur('email')} touched={touched.email} errors={errors.email} />
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <Inp icon="📱" field="phone_number" hint="Mobile Number" placeholder="+14165550198" />
-                <Inp icon="🔒" field="password" hint="Create Password" placeholder="Create a password" right />
+                <Inp icon="📱" field="phone_number" hint="Mobile Number" placeholder="+14165550198" value={form.phone_number} onChange={set('phone_number')} onBlur={blur('phone_number')} touched={touched.phone_number} errors={errors.phone_number} />
+                <Inp icon="🔒" field="password" hint="Create Password" placeholder="Create a password" right value={form.password} onChange={set('password')} onBlur={blur('password')} showPw={showPw} setShowPw={setShowPw} touched={touched.password} errors={errors.password} />
               </div>
 
               <AnimatePresence>
@@ -279,7 +277,7 @@ export default function Signup() {
                     animate={{ opacity: 1, height: 'auto' }}
                     exit={{ opacity: 0, height: 0 }}
                   >
-                    <Inp icon="🏢" field="business_name" hint="Business / Agency Name" placeholder="Agency or business name" />
+                    <Inp icon="🏢" field="business_name" hint="Business / Agency Name" placeholder="Agency or business name" value={form.business_name} onChange={set('business_name')} onBlur={blur('business_name')} touched={touched.business_name} errors={errors.business_name} />
                   </motion.div>
                 )}
               </AnimatePresence>
