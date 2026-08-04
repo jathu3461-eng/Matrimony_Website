@@ -1,0 +1,50 @@
+require('dotenv').config();
+const express = require('express');
+const cookieParser = require('cookie-parser');
+const cors = require('cors');
+const path = require('path');
+
+const authRoutes = require('./routes/auth');
+const profileRoutes = require('./routes/profiles');
+const adminRoutes = require('./routes/admin');
+const publicRoutes = require('./routes/public');
+const interestRoutes = require('./routes/interests');
+const chatRoutes = require('./routes/chat');
+
+const app = express();
+const PORT = process.env.PORT || 4000;
+const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN || 'http://localhost:5173';
+
+app.use(cors({ origin: CLIENT_ORIGIN, credentials: true }));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+app.use('/api/auth', authRoutes);
+app.use('/api/profiles', profileRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/public', publicRoutes);
+app.use('/api/interests', interestRoutes);
+app.use('/api/chat', chatRoutes);
+
+app.get('/api/health', (req, res) => res.json({ ok: true, timestamp: new Date().toISOString() }));
+
+// Serve the built frontend in production (after `npm run build` in /frontend)
+const frontendDist = path.join(__dirname, '..', 'frontend', 'dist');
+app.use(express.static(frontendDist));
+app.get(/^(?!\/api).*/, (req, res) => {
+  res.sendFile(path.join(frontendDist, 'index.html'), (err) => {
+    if (err) res.status(200).send('Matrimony API is running. Start the frontend dev server separately in development.');
+  });
+});
+
+// Central error handler (multer errors, etc.)
+app.use((err, req, res, next) => {
+  console.error(err);
+  res.status(err.status || 500).json({ error: err.message || 'Internal server error' });
+});
+
+app.listen(PORT, () => {
+  console.log(`Matrimony API server running on http://localhost:${PORT}`);
+});

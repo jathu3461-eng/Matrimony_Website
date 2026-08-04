@@ -1,0 +1,151 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #root { height: 100%; }
+
+body {
+  background-color: #faf5f9;
+  background-image: 
+    radial-gradient(at 10% 10%, rgba(255, 192, 203, 0.25) 0px, transparent 50%),
+    radial-gradient(at 90% 15%, rgba(224, 187, 255, 0.25) 0px, transparent 50%),
+    radial-gradient(at 50% 90%, rgba(255, 222, 173, 0.2) 0px, transparent 50%);
+  background-attachment: fixed;
+  color: #2d1226;
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+}
+
+[lang="ta"], .lang-ta {
+  font-family: 'Noto Sans Tamil', 'Plus Jakarta Sans', sans-serif;
+}
+
+.font-display {
+  font-family: 'Outfit', 'Plus Jakarta Sans', sans-serif;
+}
+
+::selection {
+  background: #ff2a75;
+  color: #ffffff;
+}
+
+/* Glassmorphism Cards */
+.glass-card {
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1.5px solid rgba(255, 182, 219, 0.45);
+  box-shadow: 0 12px 36px -8px rgba(255, 42, 117, 0.08), 0 4px 16px rgba(0, 0, 0, 0.02);
+}
+
+.glass-card-dark {
+  background: linear-gradient(135deg, rgba(30, 11, 46, 0.95), rgba(58, 16, 74, 0.95));
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1.5px solid rgba(255, 105, 180, 0.25);
+  box-shadow: 0 16px 40px -10px rgba(30, 11, 46, 0.4);
+}
+
+/* Input Fields */
+.input-base {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: 9999px;
+  border: 1.5px solid rgba(255, 105, 180, 0.25);
+  background: rgba(255, 255, 255, 0.9);
+  outline: none;
+  transition: all 0.2s ease;
+  font-size: 0.92rem;
+  color: #2d1226;
+}
+.input-base:focus {
+  border-color: #ff2a75;
+  box-shadow: 0 0 0 4px rgba(255, 42, 117, 0.15);
+  background: #ffffff;
+}
+.input-error {
+  border-color: #ff3366 !important;
+}
+.field-error {
+  color: #ff3366;
+  font-size: 0.78rem;
+  font-weight: 700;
+  margin-top: 0.35rem;
+  margin-left: 0.75rem;
+  line-height: 1.3;
+}
+.field-error .format-hint {
+  display: block;
+  color: #d946ef;
+  opacity: 0.9;
+  font-size: 0.73rem;
+  font-weight: 500;
+  margin-top: 0.1rem;
+}
+
+/* Buttons */
+.btn-primary {
+  background: linear-gradient(135deg, #ff2a75 0%, #ff52d9 100%);
+  color: #ffffff;
+  padding: 0.8rem 1.8rem;
+  border-radius: 9999px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  box-shadow: 0 8px 25px -4px rgba(255, 42, 117, 0.45);
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.btn-primary:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 14px 30px -4px rgba(255, 42, 117, 0.6);
+}
+.btn-primary:active {
+  transform: translateY(-1px);
+}
+.btn-primary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.9);
+  color: #ff2a75;
+  border: 1.5px solid rgba(255, 42, 117, 0.3);
+  padding: 0.75rem 1.6rem;
+  border-radius: 9999px;
+  font-weight: 700;
+  transition: all 0.2s ease;
+}
+.btn-secondary:hover {
+  background: rgba(255, 240, 248, 1);
+  border-color: #ff2a75;
+  transform: translateY(-2px);
+}
+
+.btn-gold {
+  background: linear-gradient(135deg, #ffb703 0%, #fb8500 100%);
+  color: #1a0933;
+  padding: 0.8rem 1.8rem;
+  border-radius: 9999px;
+  font-weight: 800;
+  box-shadow: 0 8px 25px -4px rgba(255, 183, 3, 0.45);
+  transition: all 0.2s ease;
+}
+.btn-gold:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 14px 30px -4px rgba(255, 183, 3, 0.6);
+}
+
+/* Pulse animation for live badges */
+@keyframes floatSoft {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+
+.animate-float-soft {
+  animation: floatSoft 4s ease-in-out infinite;
+}
