@@ -5,6 +5,7 @@ import App from './App';
 import { AuthProvider } from './context/AuthContext';
 import { I18nProvider } from './context/I18nContext';
 import ErrorBoundary from './components/ErrorBoundary';
+import { ToastProvider } from './components/ui';
 import './index.css';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
@@ -13,7 +14,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
       <BrowserRouter>
         <I18nProvider>
           <AuthProvider>
-            <App />
+            <ToastProvider>
+              <App />
+            </ToastProvider>
           </AuthProvider>
         </I18nProvider>
       </BrowserRouter>

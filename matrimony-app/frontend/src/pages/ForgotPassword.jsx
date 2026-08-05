@@ -1,120 +1,179 @@
 ﻿import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useNavigate, Link } from 'react-router-dom';
+import { KeyRound, Lock, Mail } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { Link, useNavigate } from 'react-router-dom';
 import api from '../api';
-import Field from '../components/Field';
+import AuthLayout from '../components/auth/AuthLayout';
+import { Button, TextField, Badge, ErrorCard } from '../components/ui';
+import { forgotPasswordSchema, resetPasswordSchema, normalizeApiErrors } from '../lib/validation';
 
 const PASSWORD_RE = /^(?=.*[A-Z])(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/;
 
 export default function ForgotPassword() {
+  const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [email, setEmail] = useState('');
-  const [otp, setOtp] = useState('');
   const [demoOtp, setDemoOtp] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [errors, setErrors] = useState({});
-  const [submitting, setSubmitting] = useState(false);
-  const navigate = useNavigate();
+  const [serverError, setServerError] = useState('');
 
-  const requestOtp = async (ev) => {
-    ev.preventDefault();
-    setErrors({});
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return setErrors({ email: 'Invalid Format. Expected format: name@example.com' });
-    }
-    setSubmitting(true);
+  const requestForm = useForm({
+    resolver: zodResolver(forgotPasswordSchema),
+    mode: 'onTouched',
+    defaultValues: { email: '' },
+  });
+  const otpForm = useForm({
+    mode: 'onTouched',
+    defaultValues: { otp: '' },
+  });
+  const resetForm = useForm({
+    resolver: zodResolver(resetPasswordSchema),
+    mode: 'onTouched',
+    defaultValues: { password: '', confirm_password: '' },
+  });
+
+  const showErr = (form, f) => (form.formState.touchedFields[f] ? form.formState.errors[f]?.message : undefined);
+
+  const requestOtp = requestForm.handleSubmit(async ({ email: em }) => {
+    setServerError('');
     try {
-      const res = await api.post('/auth/forgot-password/request', { email });
+      const res = await api.post('/auth/forgot-password/request', { email: em });
+      setEmail(em);
       setDemoOtp(res.data.demo_otp || '');
       setStep(2);
     } catch (err) {
-      setErrors(err.response?.data?.errors || { email: 'Could not send reset code' });
-    } finally {
-      setSubmitting(false);
+      setServerError(err.response?.data?.error || 'Could not send reset code');
     }
-  };
+  });
 
-  const verifyOtp = async (ev) => {
-    ev.preventDefault();
-    setErrors({});
-    if (!/^\d{6}$/.test(otp)) return setErrors({ otp: 'Invalid Format. Expected: 6 digit code' });
-    setSubmitting(true);
+  const verifyOtp = otpForm.handleSubmit(async ({ otp }) => {
+    setServerError('');
     try {
       await api.post('/auth/forgot-password/verify', { email, otp });
       setStep(3);
     } catch (err) {
-      setErrors(err.response?.data?.errors || { otp: 'Invalid or expired code' });
-    } finally {
-      setSubmitting(false);
+      setServerError(err.response?.data?.error || 'Invalid or expired code');
     }
-  };
+  });
 
-  const resetPassword = async (ev) => {
-    ev.preventDefault();
-    setErrors({});
-    if (!PASSWORD_RE.test(newPassword)) {
-      return setErrors({ new_password: 'Password too weak. Required: Min 8 chars, 1 uppercase, 1 special character' });
+  const resetPassword = resetForm.handleSubmit(async ({ password }) => {
+    setServerError('');
+    if (!PASSWORD_RE.test(password)) {
+      resetForm.setError('password', { message: 'Password too weak. Required: Min 8 chars, 1 uppercase, 1 special character' });
+      return;
     }
-    if (newPassword !== confirmPassword) {
-      return setErrors({ confirm_password: "Passwords don't match" });
-    }
-    setSubmitting(true);
     try {
-      await api.post('/auth/forgot-password/reset', { email, otp, new_password: newPassword });
+      await api.post('/auth/forgot-password/reset', { email, otp: otpForm.getValues('otp'), new_password: password });
       navigate('/login');
     } catch (err) {
-      setErrors(err.response?.data?.errors || { new_password: 'Reset failed' });
-    } finally {
-      setSubmitting(false);
+      const fe = normalizeApiErrors(err.response?.data);
+      if (Object.keys(fe).length) {
+        for (const [k, msg] of Object.entries(fe)) resetForm.setError(k, { message: msg });
+      } else {
+        setServerError(err.response?.data?.error || 'Reset failed');
+      }
     }
+  });
+
+  const titles = {
+    1: 'Reset your password',
+    2: 'Enter the verification code',
+    3: 'Choose a new password',
   };
 
   return (
-    <div className="max-w-md mx-auto px-5 py-16">
-      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="glass-card rounded-3xl p-8">
-        <h1 className="font-display text-2xl text-burgundy-700 mb-1">Reset your password</h1>
-        <p className="text-sm text-[#4a1230]/70 mb-6">Step {step} of 3</p>
+    <AuthLayout title={titles[step]} subtitle="We’ll help you get back in securely." brand={undefined}>
+      <div className="mb-5 flex items-center gap-2">
+        {[1, 2, 3].map((n) => (
+          <div key={n} className="flex items-center gap-2">
+            {n > 1 && <div className={`h-1 w-8 rounded-full ${n <= step ? 'grad-primary' : 'bg-[var(--border-strong)]'}`} />}
+            <Badge variant={n === step ? 'primary' : n < step ? 'success' : 'neutral'}>{n}</Badge>
+          </div>
+        ))}
+        <span className="ml-auto text-xs font-bold text-[var(--ink-faint)]">Step {step} of 3</span>
+      </div>
 
+      {demoOtp && step === 2 && (
+        <div className="mb-5 p-3.5 rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] text-[13px] font-semibold text-[var(--ink-soft)]">
+          Demo mode (no email service configured): your code is{' '}
+          <strong className="text-[var(--primary)] font-extrabold tracking-widest">{demoOtp}</strong>
+        </div>
+      )}
+
+      {serverError && (
+        <div className="mb-5">
+          <ErrorCard message={serverError} onDismiss={() => setServerError('')} />
+        </div>
+      )}
+
+      <motion.div key={step} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
         {step === 1 && (
-          <form onSubmit={requestOtp} noValidate>
-            <Field label="Email Address" error={errors.email}>
-              <input className={`input-base ${errors.email ? 'input-error' : ''}`} value={email} onChange={(e) => setEmail(e.target.value)} />
-            </Field>
-            <button type="submit" disabled={submitting} className="btn-primary w-full">{submitting ? 'â€¦' : 'Send Code'}</button>
+          <form onSubmit={requestOtp} noValidate className="space-y-4">
+            <TextField
+              label="Email Address"
+              placeholder="name@example.com"
+              icon={<Mail className="w-4 h-4" />}
+              error={showErr(requestForm, 'email')}
+              autoComplete="email"
+              {...requestForm.register('email')}
+            />
+            <Button type="submit" fullWidth loading={requestForm.formState.isSubmitting}>
+              Send Reset Code
+            </Button>
           </form>
         )}
 
         {step === 2 && (
-          <form onSubmit={verifyOtp} noValidate>
-            {demoOtp && (
-              <p className="text-xs text-gold bg-gold/10 rounded-lg px-3 py-2 mb-4">
-                Demo mode (no email service configured): your code is <strong>{demoOtp}</strong>
-              </p>
-            )}
-            <Field label="6-digit Code" error={errors.otp}>
-              <input className={`input-base ${errors.otp ? 'input-error' : ''}`} value={otp} onChange={(e) => setOtp(e.target.value)} maxLength={6} />
-            </Field>
-            <button type="submit" disabled={submitting} className="btn-primary w-full">{submitting ? 'â€¦' : 'Verify Code'}</button>
+          <form onSubmit={verifyOtp} noValidate className="space-y-4">
+            <TextField
+              label="6-digit Code"
+              placeholder="000000"
+              icon={<KeyRound className="w-4 h-4" />}
+              error={showErr(otpForm, 'otp')}
+              inputMode="numeric"
+              maxLength={6}
+              {...otpForm.register('otp', {
+                required: 'Enter the 6-digit code',
+                pattern: { value: /^\d{6}$/, message: 'Expected a 6 digit code' },
+              })}
+            />
+            <Button type="submit" fullWidth loading={otpForm.formState.isSubmitting}>
+              Verify Code
+            </Button>
           </form>
         )}
 
         {step === 3 && (
-          <form onSubmit={resetPassword} noValidate>
-            <Field label="New Password" error={errors.new_password}>
-              <input type="password" className={`input-base ${errors.new_password ? 'input-error' : ''}`} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
-            </Field>
-            <Field label="Confirm New Password" error={errors.confirm_password}>
-              <input type="password" className={`input-base ${errors.confirm_password ? 'input-error' : ''}`} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
-            </Field>
-            <button type="submit" disabled={submitting} className="btn-primary w-full">{submitting ? 'â€¦' : 'Reset Password'}</button>
+          <form onSubmit={resetPassword} noValidate className="space-y-4">
+            <TextField
+              label="New Password"
+              type="password"
+              icon={<Lock className="w-4 h-4" />}
+              error={showErr(resetForm, 'password')}
+              autoComplete="new-password"
+              {...resetForm.register('password')}
+            />
+            <TextField
+              label="Confirm New Password"
+              type="password"
+              icon={<Lock className="w-4 h-4" />}
+              error={showErr(resetForm, 'confirm_password')}
+              autoComplete="new-password"
+              {...resetForm.register('confirm_password')}
+            />
+            <Button type="submit" fullWidth loading={resetForm.formState.isSubmitting}>
+              Reset Password
+            </Button>
           </form>
         )}
 
-        <p className="text-center text-sm text-[#4a1230]/70 mt-5">
-          <Link to="/login" className="text-burgundy-700 font-semibold hover:underline">Back to login</Link>
+        <p className="text-center mt-6">
+          <Link to="/login" className="text-sm font-bold text-[var(--primary)] hover:underline">
+            Back to login
+          </Link>
         </p>
       </motion.div>
-    </div>
+    </AuthLayout>
   );
 }

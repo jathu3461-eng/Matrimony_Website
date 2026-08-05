@@ -1,22 +1,125 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+﻿import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useParams } from 'react-router-dom';
+import {
+  ArrowLeft, ArrowRight, Camera, Check, FileText, GraduationCap, Heart, Landmark,
+  MapPin, Ruler, Star, User, Users, Wallet, X, Save, ImagePlus,
+} from 'lucide-react';
 import api from '../api';
-import Field from '../components/Field';
-import { useI18n } from '../context/I18nContext';
+import { Button, Stepper, ProgressBar, Badge, ErrorCard, TextField, SelectField, TextareaField, useToast } from '../components/ui';
+import { profileSteps, validateStep, POSTED_BY } from '../lib/validation';
 
-const POSTED_BY = ['Self', 'Son', 'Daughter', 'Brother', 'Sister', 'Relative', 'Friend', 'Client'];
+const STEP_ICONS = { User, GraduationCap, Ruler, Heart, Wallet, Landmark, Star, MapPin, Camera, FileText };
 
-const STEPS = ['Basics', 'Background', 'Culture & Astrology', 'Location', 'Media & Bio'];
+const DIET_OPTIONS = [
+  { value: 'any', label: 'Any / Flexible' },
+  { value: 'vegetarian', label: 'Vegetarian' },
+  { value: 'non_vegetarian', label: 'Non-Vegetarian' },
+  { value: 'vegan', label: 'Vegan' },
+  { value: 'jain', label: 'Jain' },
+];
+const FAMILY_VALUES = [
+  { value: 'traditional', label: 'Traditional' },
+  { value: 'moderate', label: 'Moderate' },
+  { value: 'liberal', label: 'Liberal' },
+];
+const CAREER_GOALS = [
+  { value: 'working', label: 'Career Oriented / Working' },
+  { value: 'home_maker', label: 'Home Maker' },
+  { value: 'open', label: 'Flexible / Open' },
+];
+const RELOCATE = [
+  { value: 'open', label: 'Open to Relocate' },
+  { value: 'local_only', label: 'Local Only' },
+  { value: 'overseas_only', label: 'Overseas Only' },
+];
+const INCOME_RANGE = [
+  { value: 'Under $50k', label: 'Under $50k' },
+  { value: '$50k - $100k', label: '$50k - $100k' },
+  { value: '$100k - $150k', label: '$100k - $150k' },
+  { value: '$150k+', label: '$150k+' },
+];
+const MANGLIK = [
+  { value: 'no', label: 'No Dosham / Non-Manglik' },
+  { value: 'yes', label: 'Chevvai Dosham / Manglik' },
+  { value: 'dont_know', label: "Don't Know" },
+];
+
+const EMPTY_FORM = {
+  profile_registered_for: 'Self', name: '', gender: '', date_of_birth: '',
+  height_feet: '5', height_inches: '6', education: '', occupation: '',
+  religion_id: '', caste_id: '', sub_religion: '', raasi_id: '', star_id: '',
+  born_country_id: '', current_country_id: '', city_or_state: '', about_me: '',
+  blur_photo: 0, blur_horoscope: 0,
+  diet: 'any', family_values: 'moderate', career_goals: 'working',
+  willing_to_relocate: 'open', income_range: '$50k - $100k', manglik_status: 'no',
+};
+
+const DRAFT_KEY_PREFIX = 'mukurtham_draft_';
+
+function OptionSelect({ label, options, value, onChange, name, required, error, help }) {
+  return (
+    <SelectField
+      label={label}
+      options={options}
+      value={value}
+      name={name}
+      onChange={onChange}
+      required={required}
+      error={error}
+      help={help}
+    />
+  );
+}
+
+function ToggleRow({ label, hint, checked, onChange }) {
+  return (
+    <label className="flex items-start gap-2.5 p-3 rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] cursor-pointer hover:border-[var(--primary-strong)] transition-colors">
+      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked ? 1 : 0)} className="mt-0.5 w-4 h-4 accent-[var(--primary)]" />
+      <span>
+        <span className="block text-sm font-bold text-[var(--ink)]">{label}</span>
+        <span className="block text-xs text-[var(--ink-faint)] mt-0.5">{hint}</span>
+      </span>
+    </label>
+  );
+}
+
+function PhotoField({ label, accept, file, onFile, existing }) {
+  return (
+    <div>
+      <label className="block text-xs font-bold text-[var(--ink-soft)] mb-1.5">{label}</label>
+      <div className="relative">
+        <input
+          type="file"
+          accept={accept}
+          onChange={(e) => onFile(e.target.files?.[0] || null)}
+          className="input-base file:mr-3 file:rounded-lg file:border-0 file:bg-[var(--primary-soft)] file:text-[var(--primary-strong)] file:font-bold file:text-xs file:px-3 file:py-1.5 file:cursor-pointer cursor-pointer"
+        />
+      </div>
+      {file && (
+        <p className="text-[11px] font-semibold text-[var(--success)] mt-1 flex items-center gap-1">
+          <Check className="w-3.5 h-3.5" aria-hidden="true" /> {file.name}
+        </p>
+      )}
+      {!file && existing && (
+        <p className="text-[11px] text-[var(--ink-faint)] mt-1 truncate">
+          Current: <span className="font-semibold">{existing}</span>
+        </p>
+      )}
+    </div>
+  );
+}
 
 export default function ProfileWizard() {
-  const { t } = useI18n();
   const navigate = useNavigate();
   const { id } = useParams();
   const isEdit = Boolean(id);
+  const toast = useToast();
+
   const [meta, setMeta] = useState(null);
   const [loadingProfile, setLoadingProfile] = useState(isEdit);
   const [step, setStep] = useState(0);
+  const [form, setForm] = useState(EMPTY_FORM);
   const [touched, setTouched] = useState({});
   const [serverError, setServerError] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -24,19 +127,30 @@ export default function ProfileWizard() {
   const [horoscopeFile, setHoroscopeFile] = useState(null);
   const [existingPhoto, setExistingPhoto] = useState(null);
   const [existingHoroscope, setExistingHoroscope] = useState(null);
+  const [draftStatus, setDraftStatus] = useState('');
+  const contentRef = useRef(null);
+  const [userId, setUserId] = useState('anon');
 
-  const [form, setForm] = useState({
-    profile_registered_for: 'Self', name: '', gender: '', date_of_birth: '',
-    height_feet: '5', height_inches: '6', education: '', occupation: '',
-    religion_id: '', caste_id: '', sub_religion: '', raasi_id: '', star_id: '',
-    born_country_id: '', current_country_id: '', city_or_state: '', about_me: '',
-    blur_photo: 0, blur_horoscope: 0,
-    diet: 'any', family_values: 'moderate', career_goals: 'working',
-    willing_to_relocate: 'open', income_range: '$50k - $100k', manglik_status: 'no',
-  });
+  const draftKey = `${DRAFT_KEY_PREFIX}${userId}`;
+
+  const stepErrors = useMemo(() => validateStep(step, form), [step, form]);
+  const completion = useMemo(() => {
+    let done = 0;
+    profileSteps.forEach((_, i) => { if (Object.keys(validateStep(i, form)).length === 0) done += 1; });
+    return Math.round((done / profileSteps.length) * 100);
+  }, [form]);
+  const validSteps = useMemo(
+    () => profileSteps.map((_, i) => Object.keys(validateStep(i, form)).length === 0),
+    [form]
+  );
+  const maxReachable = useMemo(() => {
+    let m = 0;
+    while (m < profileSteps.length && validSteps[m]) m += 1;
+    return m;
+  }, [validSteps]);
 
   useEffect(() => {
-    api.get('/profiles/meta').then((res) => setMeta(res.data));
+    api.get('/profiles/meta').then((res) => setMeta(res.data)).catch(() => setMeta({ religions: [], castes: [], raasis: [], stars: [], countries: [] }));
   }, []);
 
   useEffect(() => {
@@ -44,6 +158,7 @@ export default function ProfileWizard() {
     api.get(`/profiles/${id}`).then((res) => {
       const p = res.data.profile;
       setForm({
+        ...EMPTY_FORM,
         profile_registered_for: p.profile_registered_for || 'Self',
         name: p.name || '', gender: p.gender || '', date_of_birth: p.date_of_birth || '',
         height_feet: String(p.height_feet ?? '5'), height_inches: String(p.height_inches ?? '6'),
@@ -55,53 +170,103 @@ export default function ProfileWizard() {
         blur_photo: p.blur_photo ?? 0, blur_horoscope: p.blur_horoscope ?? 0,
         diet: p.diet || 'any', family_values: p.family_values || 'moderate',
         career_goals: p.career_goals || 'working', willing_to_relocate: p.willing_to_relocate || 'open',
-        income_range: p.income_range || '', manglik_status: p.manglik_status || 'no',
+        income_range: p.income_range || '$50k - $100k', manglik_status: p.manglik_status || 'no',
       });
       setExistingPhoto(p.main_profile_picture);
       setExistingHoroscope(p.horoscope_chart);
       setLoadingProfile(false);
-    }).catch(() => setLoadingProfile(false));
-  }, [id, isEdit]);
+    }).catch(() => { setLoadingProfile(false); toast.error('Could not load profile'); });
+  }, [id, isEdit, toast]);
+
+  // Restore draft (create mode only)
+  useEffect(() => {
+    if (isEdit) return;
+    try {
+      const raw = localStorage.getItem(draftKey);
+      if (raw) {
+        const draft = JSON.parse(raw);
+        setForm((f) => ({ ...f, ...draft.form }));
+        setStep(Math.min(draft.step || 0, profileSteps.length - 1));
+        setDraftStatus(draft.savedAt ? `Draft restored · ${draft.savedAt}` : 'Draft restored');
+        toast.info('Draft restored', { duration: 4000 });
+      }
+    } catch { /* ignore corrupt draft */ }
+  }, [draftKey, isEdit, toast]);
+
+  // Autosave draft (create mode), debounced
+  useEffect(() => {
+    if (isEdit) return;
+    const tId = setTimeout(() => {
+      try {
+        localStorage.setItem(draftKey, JSON.stringify({ form, step, savedAt: new Date().toLocaleTimeString() }));
+        setDraftStatus(`Saved ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`);
+      } catch { /* storage full */ }
+    }, 900);
+    return () => clearTimeout(tId);
+  }, [form, step, draftKey, isEdit]);
+
+  const clearDraft = useCallback(() => {
+    try { localStorage.removeItem(draftKey); } catch { /* ignore */ }
+    setDraftStatus('');
+    setForm(EMPTY_FORM);
+    setStep(0);
+    setTouched({});
+    toast.info('Draft cleared');
+  }, [draftKey, toast]);
 
   const set = (field) => (ev) => setForm((f) => ({ ...f, [field]: ev.target.value }));
   const blur = (field) => () => setTouched((tt) => ({ ...tt, [field]: true }));
 
-  const errors = useMemo(() => {
-    const e = {};
-    if (!form.name || form.name.trim().length < 2) e.name = 'Invalid Format. Name must be at least 2 characters';
-    if (!form.gender) e.gender = 'Please select a gender';
-    if (!form.date_of_birth) e.date_of_birth = 'Invalid Format. Expected format: YYYY-MM-DD';
-    else {
-      const age = Math.floor((Date.now() - new Date(form.date_of_birth).getTime()) / (365.25 * 24 * 60 * 60 * 1000));
-      if (age < 18) e.date_of_birth = 'Must be 18 years or older';
-    }
-    if (!form.education || form.education.trim().length < 2) e.education = 'Please enter an education level';
-    if (!form.occupation || form.occupation.trim().length < 2) e.occupation = 'Please enter an occupation';
-    if (!form.about_me || form.about_me.trim().length < 50) {
-      e.about_me = `Too short. Required: minimum 50 characters (currently ${form.about_me.trim().length})`;
-    }
-    return e;
-  }, [form]);
+  const focusFirstInvalid = useCallback((errs) => {
+    requestAnimationFrame(() => {
+      for (const f of profileSteps[step].fields) {
+        if (errs[f]) {
+          const el = contentRef.current?.querySelector(`[name="${f}"]`);
+          if (el) { el.focus({ preventScroll: true }); el.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
+        }
+      }
+      contentRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }, [step]);
 
-  const stepFields = [
-    ['name', 'gender', 'date_of_birth'],
-    ['education', 'occupation'],
-    [],
-    [],
-    ['about_me'],
-  ];
-
-  const currentStepHasErrors = stepFields[step].some((f) => errors[f]);
+  const markStepTouched = useCallback(() => {
+    setTouched((tt) => ({ ...tt, ...Object.fromEntries(profileSteps[step].fields.map((f) => [f, true])) }));
+  }, [step]);
 
   const goNext = () => {
-    setTouched((tt) => ({ ...tt, ...Object.fromEntries(stepFields[step].map((f) => [f, true])) }));
-    if (!currentStepHasErrors) setStep((s) => Math.min(s + 1, STEPS.length - 1));
+    markStepTouched();
+    const errs = validateStep(step, form);
+    if (Object.keys(errs).length) {
+      focusFirstInvalid(errs);
+      toast.error(`Please fix the highlighted fields in "${profileSteps[step].title}"`);
+      return;
+    }
+    setStep((s) => Math.min(s + 1, profileSteps.length - 1));
   };
+
   const goBack = () => setStep((s) => Math.max(s - 1, 0));
 
+  const goToStep = (i) => {
+    if (i < step) { setStep(i); return; }
+    if (i === step || (i <= maxReachable)) setStep(i);
+    else toast.error(`Complete the previous steps first`);
+  };
+
   const handleSubmit = async () => {
-    setTouched({ name: true, gender: true, date_of_birth: true, education: true, occupation: true, about_me: true });
-    if (Object.keys(errors).length) { setStep(0); return; }
+    const allErrors = profileSteps.map((_, i) => validateStep(i, form));
+    const firstBad = allErrors.findIndex((e) => Object.keys(e).length > 0);
+    if (firstBad !== -1) {
+      setStep(firstBad);
+      setTouched((tt) => ({ ...tt, ...Object.fromEntries(profileSteps[firstBad].fields.map((f) => [f, true])) }));
+      requestAnimationFrame(() => {
+        for (const f of profileSteps[firstBad].fields) {
+          const el = contentRef.current?.querySelector(`[name="${f}"]`);
+          if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.focus({ preventScroll: true }); break; }
+        }
+      });
+      toast.error(`Complete "${profileSteps[firstBad].title}" first`);
+      return;
+    }
 
     setSubmitting(true);
     setServerError('');
@@ -112,350 +277,441 @@ export default function ProfileWizard() {
       if (horoscopeFile) fd.append('horoscope_chart', horoscopeFile);
       if (isEdit) {
         await api.put(`/profiles/${id}`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+        toast.success('Profile updated successfully');
       } else {
         await api.post('/profiles', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+        clearDraft();
+        toast.success('Profile created — welcome to Mukurtham!');
       }
       navigate('/dashboard');
     } catch (err) {
-      setServerError(err.response?.data?.error || Object.values(err.response?.data?.errors || {})[0] || `Could not ${isEdit ? 'update' : 'create'} profile`);
+      const msg = err.response?.data?.error || Object.values(err.response?.data?.errors || {})[0] || `Could not ${isEdit ? 'update' : 'create'} profile`;
+      setServerError(msg);
+      toast.error(msg);
     } finally {
       setSubmitting(false);
     }
   };
 
-  const STEP_ICONS = ['ðŸ‘¤', 'ðŸ’¼', 'ðŸ™', 'ðŸŒ', 'ðŸ“¸'];
+  const loading = !meta || loadingProfile;
 
-  if (!meta || loadingProfile) return (
-    <div className="min-h-screen flex items-center justify-center"
-      style={{ background: 'linear-gradient(135deg,#fff0f6,#ffe3ef,#ffd3e6)' }}>
-      <div className="flex flex-col items-center gap-3">
-        <div className="w-10 h-10 rounded-full border-4 border-pink-200 border-t-pink-500 animate-spin" />
-        <p className="text-sm text-slate-500 font-semibold">Loading formâ€¦</p>
+  const StepIcon = STEP_ICONS[profileSteps[step].icon] || User;
+  const stepperSteps = profileSteps.map((s) => ({ label: s.title, hint: s.hint }));
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center grad-hero">
+        <div className="flex flex-col items-center gap-3 text-[var(--ink-soft)]">
+          <div className="w-10 h-10 rounded-full border-4 border-[var(--border-strong)] border-t-[var(--primary)] animate-spin" />
+          <p className="text-sm font-semibold">Loading form…</p>
+        </div>
       </div>
-    </div>
-  );
+    );
+  }
 
   return (
-    <div className="min-h-screen py-8 px-4"
-      style={{ background: 'linear-gradient(135deg,#fff0f6 0%,#ffe3ef 40%,#ffd3e6 70%,#ffc2dd 100%)' }}>
-      <div className="max-w-5xl mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="grid md:grid-cols-5 rounded-[2rem] overflow-hidden shadow-2xl"
-          style={{ boxShadow: '0 30px 80px rgba(224,19,106,0.2)' }}
-        >
-          {/* â”€â”€ LEFT PANEL â”€â”€ */}
-          <div className="hidden md:flex md:col-span-2 flex-col relative overflow-hidden"
-            style={{ background: 'linear-gradient(160deg,#e0136a 0%,#ec4899 45%,#ff7eb3 100%)' }}>
-            <div className="absolute top-0 right-0 w-48 h-48 rounded-full opacity-15 bg-white"
-              style={{ transform: 'translate(30%,-30%)' }} />
-            <div className="absolute bottom-0 left-0 w-40 h-40 rounded-full opacity-10 bg-white"
-              style={{ transform: 'translate(-20%,20%)' }} />
+    <div className="min-h-screen py-6 sm:py-10 px-4 grad-hero">
+      <div className="max-w-6xl mx-auto">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <div>
+            <p className="text-[11px] font-bold text-[var(--primary)] uppercase tracking-wider">
+              {isEdit ? 'Edit Profile' : 'New Profile'} · Step {step + 1} of {profileSteps.length}
+            </p>
+            <h1 className="font-display text-2xl font-extrabold text-[var(--ink)] mt-0.5">
+              {isEdit ? 'Update your profile' : 'Tell us about yourself'}
+            </h1>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="hidden sm:flex items-center gap-2 rounded-full px-3 py-1.5 border border-[var(--border)] bg-[var(--surface)]">
+              <Save className="w-3.5 h-3.5 text-[var(--ink-faint)]" aria-hidden="true" />
+              <span className="text-[11px] font-bold text-[var(--ink-soft)]">
+                {draftStatus || (isEdit ? 'Save to apply changes' : 'Autosave on')}
+              </span>
+              {!isEdit && draftStatus && (
+                <button type="button" onClick={clearDraft} className="text-[var(--ink-faint)] hover:text-[var(--error)]" aria-label="Clear draft">
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
 
-            {/* Steps sidebar */}
-            <div className="relative z-10 p-8 pt-10">
-              <div className="flex items-center gap-2 mb-8">
-                <div className="w-9 h-9 rounded-2xl bg-white/25 flex items-center justify-center text-lg">ðŸ’–</div>
-                <span className="text-white font-extrabold text-base">Mukurtham</span>
-              </div>
-              <h2 className="text-white font-extrabold text-xl mb-1">{isEdit ? 'Edit Profile' : 'Create Profile'}</h2>
-              <p className="text-pink-100 text-xs mb-8">{isEdit ? 'Update your details' : 'Complete all steps to publish'}</p>
+        <div className="grid lg:grid-cols-[300px_1fr] gap-6 items-start">
+          {/* ── Sidebar ── */}
+          <div className="hidden lg:block">
+            <div className="glass-card p-6 sticky top-6">
+              <ProgressBar value={completion} className="mb-6" />
+              <Stepper vertical steps={stepperSteps} current={step} onStepClick={goToStep} />
+            </div>
+          </div>
 
-              <div className="space-y-3">
-                {STEPS.map((s, i) => (
-                  <div key={s} className={`flex items-center gap-3 p-3 rounded-2xl transition-all ${
-                    i === step ? 'bg-white/25 shadow' : i < step ? 'opacity-70' : 'opacity-40'
-                  }`}>
-                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-sm font-bold shrink-0 ${
-                      i < step ? 'bg-green-400 text-white' : i === step ? 'bg-white text-pink-600' : 'bg-white/20 text-white'
-                    }`}>
-                      {i < step ? 'âœ“' : STEP_ICONS[i]}
-                    </div>
-                    <div>
-                      <p className="text-white text-xs font-bold">{s}</p>
-                      <p className="text-pink-100 text-[10px]">{i < step ? 'Done' : i === step ? 'In Progress' : 'Upcoming'}</p>
-                    </div>
-                  </div>
+          {/* ── Content ── */}
+          <div className="glass-card p-6 sm:p-8" ref={contentRef}>
+            {/* Mobile progress */}
+            <div className="lg:hidden mb-6">
+              <ProgressBar value={completion} className="mb-4" />
+              <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1">
+                {stepperSteps.map((s, i) => (
+                  <button
+                    key={s.label}
+                    type="button"
+                    onClick={() => goToStep(i)}
+                    aria-current={i === step ? 'step' : undefined}
+                    className={`shrink-0 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold border transition-all ${
+                      i === step
+                        ? 'grad-primary text-white border-transparent shadow-md'
+                        : i < maxReachable
+                          ? 'border-[var(--border-strong)] text-[var(--ink-soft)] bg-[var(--surface)]'
+                          : 'border-[var(--border)] text-[var(--ink-faint)] bg-[var(--surface-soft)]'
+                    }`}
+                  >
+                    <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] ${i < step ? 'bg-white/25' : ''}`}>
+                      {i < step ? <Check className="w-3 h-3" aria-hidden="true" /> : i + 1}
+                    </span>
+                    <span className="hidden sm:inline">{s.label}</span>
+                  </button>
                 ))}
               </div>
             </div>
 
-            {/* Couple image at bottom */}
-            <div className="flex-1 flex items-end">
-              <img src="/uploads/couple_hero.png" alt="Couple" className="w-full object-cover object-top" style={{ maxHeight: 240, objectPosition: 'top' }} />
-            </div>
-          </div>
-
-          {/* â”€â”€ RIGHT PANEL: Form â”€â”€ */}
-          <div className="md:col-span-3 bg-white p-7 sm:p-9">
-            {/* Mobile progress bar */}
-            <div className="flex items-center gap-1.5 mb-6 md:hidden">
-              {STEPS.map((s, i) => (
-                <div key={s} className={`flex-1 h-1.5 rounded-full transition-all ${
-                  i <= step ? 'bg-pink-500' : 'bg-pink-100'
-                }`} />
-              ))}
-            </div>
-
-            {/* Step label */}
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-2xl flex items-center justify-center text-xl"
-                style={{ background: 'linear-gradient(135deg,#f43f5e,#ec4899)' }}>
-                {STEP_ICONS[step]}
-              </div>
-              <div>
-                <p className="text-[11px] font-bold text-pink-500 uppercase tracking-wider">
-                  Step {step + 1} of {STEPS.length}
-                </p>
-                <h1 className="text-xl font-extrabold text-slate-800">{STEPS[step]}</h1>
-              </div>
-            </div>
-
-      <motion.div>
-        <AnimatePresence mode="wait">
-          <motion.div key={step} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
-
-            {step === 0 && (
-              <>
-                <Field label="Profile Posted By">
-                  <select className="input-base" value={form.profile_registered_for} onChange={set('profile_registered_for')}>
-                    {POSTED_BY.map((p) => <option key={p} value={p}>{p}</option>)}
-                  </select>
-                </Field>
-                <Field label="Full Name" error={touched.name && errors.name} formatHint="Min 2 characters, letters and spaces only">
-                  <input className={`input-base ${touched.name && errors.name ? 'input-error' : ''}`} value={form.name} onChange={set('name')} onBlur={blur('name')} placeholder="Priya Sutharsan" />
-                </Field>
-                <Field label="Gender" error={touched.gender && errors.gender}>
-                  <div className="flex gap-3">
-                    {[['M', 'Groom'], ['F', 'Bride']].map(([v, label]) => (
-                      <button type="button" key={v} onClick={() => setForm((f) => ({ ...f, gender: v }))}
-                        className={`flex-1 py-2.5 rounded-lg border text-sm font-medium transition-colors ${form.gender === v ? 'bg-burgundy-600 text-white border-burgundy-600' : 'border-burgundy/20 text-[#4a1230]/80'}`}>
-                        {label}
-                      </button>
-                    ))}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={step}
+                initial={{ opacity: 0, y: 14 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.22 }}
+              >
+                {/* Step heading */}
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-11 h-11 rounded-2xl grad-primary flex items-center justify-center text-white shadow-lg shrink-0">
+                    <StepIcon className="w-5 h-5" aria-hidden="true" />
                   </div>
-                </Field>
-                <Field label="Date of Birth" error={touched.date_of_birth && errors.date_of_birth} formatHint="YYYY-MM-DD (Must be 18 years or older)">
-                  <input type="date" className={`input-base ${touched.date_of_birth && errors.date_of_birth ? 'input-error' : ''}`} value={form.date_of_birth} onChange={set('date_of_birth')} onBlur={blur('date_of_birth')} />
-                </Field>
-              </>
-            )}
-
-            {step === 1 && (
-              <>
-                <div className="grid grid-cols-2 gap-4">
-                  <Field label="Height (Feet)">
-                    <select className="input-base" value={form.height_feet} onChange={set('height_feet')}>
-                      {[3,4,5,6,7].map((n) => <option key={n} value={n}>{n} ft</option>)}
-                    </select>
-                  </Field>
-                  <Field label="Height (Inches)">
-                    <select className="input-base" value={form.height_inches} onChange={set('height_inches')}>
-                      {Array.from({ length: 12 }, (_, i) => i).map((n) => <option key={n} value={n}>{n} in</option>)}
-                    </select>
-                  </Field>
-                </div>
-                <Field label="Education Level" error={touched.education && errors.education} formatHint="e.g. B.Sc in Computer Science (Min 2 characters)">
-                  <input className={`input-base ${touched.education && errors.education ? 'input-error' : ''}`} value={form.education} onChange={set('education')} onBlur={blur('education')} placeholder="B.Eng in Software Engineering" />
-                </Field>
-                <Field label="Current Occupation" error={touched.occupation && errors.occupation} formatHint="e.g. Software Engineer (Min 2 characters)">
-                  <input className={`input-base ${touched.occupation && errors.occupation ? 'input-error' : ''}`} value={form.occupation} onChange={set('occupation')} onBlur={blur('occupation')} placeholder="Senior Data Scientist" />
-                </Field>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <Field label="Dietary Preference">
-                    <select className="input-base" value={form.diet} onChange={set('diet')}>
-                      <option value="any">Any / Flexible</option>
-                      <option value="vegetarian">Vegetarian</option>
-                      <option value="non_vegetarian">Non-Vegetarian</option>
-                      <option value="vegan">Vegan</option>
-                      <option value="jain">Jain</option>
-                    </select>
-                  </Field>
-                  <Field label="Family Values">
-                    <select className="input-base" value={form.family_values} onChange={set('family_values')}>
-                      <option value="traditional">Traditional</option>
-                      <option value="moderate">Moderate</option>
-                      <option value="liberal">Liberal</option>
-                    </select>
-                  </Field>
+                  <div>
+                    <p className="text-[11px] font-bold text-[var(--primary)] uppercase tracking-wider">
+                      {isEdit ? 'Edit' : 'Step'} {step + 1} of {profileSteps.length}
+                    </p>
+                    <h2 className="font-display text-xl font-extrabold text-[var(--ink)] leading-tight">
+                      {profileSteps[step].title}
+                    </h2>
+                  </div>
+                  {validSteps[step] && <Badge variant="success" className="ml-auto">Complete</Badge>}
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <Field label="Career Goals">
-                    <select className="input-base" value={form.career_goals} onChange={set('career_goals')}>
-                      <option value="working">Career Oriented / Working</option>
-                      <option value="home_maker">Home Maker</option>
-                      <option value="open">Flexible / Open</option>
-                    </select>
-                  </Field>
-                  <Field label="Relocation Willingness">
-                    <select className="input-base" value={form.willing_to_relocate} onChange={set('willing_to_relocate')}>
-                      <option value="open">Open to Relocate</option>
-                      <option value="local_only">Local Only</option>
-                      <option value="overseas_only">Overseas Only</option>
-                    </select>
-                  </Field>
+                {serverError && (
+                  <div className="mb-5">
+                    <ErrorCard message={serverError} onDismiss={() => setServerError('')} />
+                  </div>
+                )}
+
+                <div className="space-y-4">
+                  {step === 0 && (
+                    <>
+                      <SelectField
+                        label="Profile Posted By"
+                        options={POSTED_BY.map((p) => ({ value: p, label: p }))}
+                        value={form.profile_registered_for}
+                        onChange={set('profile_registered_for')}
+                        name="profile_registered_for"
+                      />
+                      <TextField
+                        label="Full Name"
+                        placeholder="Priya Sutharsan"
+                        value={form.name}
+                        onChange={set('name')}
+                        onBlur={blur('name')}
+                        name="name"
+                        error={touched.name && stepErrors.name}
+                        help="Min 2 characters, letters and spaces only"
+                        required
+                      />
+                      <div>
+                        <p className="block text-xs font-bold text-[var(--ink-soft)] mb-1.5">
+                          Gender<span className="text-[var(--error)]"> *</span>
+                        </p>
+                        <div className="grid grid-cols-2 gap-3">
+                          {[['M', 'Groom', User], ['F', 'Bride', Users]].map(([v, label, Icon]) => (
+                            <button
+                              type="button"
+                              key={v}
+                              name="gender"
+                              onClick={() => setForm((f) => ({ ...f, gender: v }))}
+                              onBlur={blur('gender')}
+                              aria-pressed={form.gender === v}
+                              className={`flex items-center justify-center gap-2 py-3 rounded-xl border-2 text-sm font-bold transition-all ${
+                                form.gender === v
+                                  ? 'grad-primary text-white border-transparent shadow-lg'
+                                  : 'border-[var(--border-strong)] text-[var(--ink-soft)] bg-[var(--surface)] hover:border-[var(--primary)]'
+                              }`}
+                            >
+                              <Icon className="w-4 h-4" aria-hidden="true" />
+                              {label}
+                            </button>
+                          ))}
+                        </div>
+                        {touched.gender && stepErrors.gender && (
+                          <p className="text-[13px] font-semibold text-[var(--error)] mt-2" role="alert">{stepErrors.gender}</p>
+                        )}
+                      </div>
+                      <TextField
+                        label="Date of Birth"
+                        type="date"
+                        value={form.date_of_birth}
+                        onChange={set('date_of_birth')}
+                        onBlur={blur('date_of_birth')}
+                        name="date_of_birth"
+                        error={touched.date_of_birth && stepErrors.date_of_birth}
+                        floating={false}
+                        help="Must be 18 years or older"
+                        required
+                      />
+                    </>
+                  )}
+
+                  {step === 1 && (
+                    <>
+                      <TextField
+                        label="Education Level"
+                        placeholder="B.Eng in Software Engineering"
+                        value={form.education}
+                        onChange={set('education')}
+                        onBlur={blur('education')}
+                        name="education"
+                        error={touched.education && stepErrors.education}
+                        floating={false}
+                        required
+                      />
+                      <TextField
+                        label="Current Occupation"
+                        placeholder="Senior Data Scientist"
+                        value={form.occupation}
+                        onChange={set('occupation')}
+                        onBlur={blur('occupation')}
+                        name="occupation"
+                        error={touched.occupation && stepErrors.occupation}
+                        floating={false}
+                        required
+                      />
+                    </>
+                  )}
+
+                  {step === 2 && (
+                    <div className="grid grid-cols-2 gap-4">
+                      <SelectField
+                        label="Height (Feet)"
+                        options={[3, 4, 5, 6, 7].map((n) => ({ value: String(n), label: `${n} ft` }))}
+                        value={form.height_feet}
+                        onChange={set('height_feet')}
+                        name="height_feet"
+                        error={touched.height_feet && stepErrors.height_feet}
+                      />
+                      <SelectField
+                        label="Height (Inches)"
+                        options={Array.from({ length: 12 }, (_, i) => ({ value: String(i), label: `${i} in` }))}
+                        value={form.height_inches}
+                        onChange={set('height_inches')}
+                        name="height_inches"
+                        error={touched.height_inches && stepErrors.height_inches}
+                      />
+                    </div>
+                  )}
+
+                  {step === 3 && (
+                    <>
+                      <OptionSelect label="Dietary Preference" options={DIET_OPTIONS} value={form.diet} onChange={set('diet')} name="diet" />
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <OptionSelect label="Family Values" options={FAMILY_VALUES} value={form.family_values} onChange={set('family_values')} name="family_values" />
+                        <OptionSelect label="Career Goals" options={CAREER_GOALS} value={form.career_goals} onChange={set('career_goals')} name="career_goals" />
+                      </div>
+                      <OptionSelect label="Relocation Willingness" options={RELOCATE} value={form.willing_to_relocate} onChange={set('willing_to_relocate')} name="willing_to_relocate" />
+                    </>
+                  )}
+
+                  {step === 4 && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <OptionSelect label="Annual Income Range" options={INCOME_RANGE} value={form.income_range} onChange={set('income_range')} name="income_range" />
+                      <OptionSelect label="Manglik / Chevvai Dosham" options={MANGLIK} value={form.manglik_status} onChange={set('manglik_status')} name="manglik_status" />
+                    </div>
+                  )}
+
+                  {step === 5 && (
+                    <>
+                      <SelectField
+                        label="Religion"
+                        options={(meta.religions || []).map((r) => ({ value: String(r.id), label: r.name_en }))}
+                        value={form.religion_id}
+                        onChange={set('religion_id')}
+                        onBlur={blur('religion_id')}
+                        name="religion_id"
+                        error={touched.religion_id && stepErrors.religion_id}
+                        required
+                      />
+                      <SelectField
+                        label="Caste / Saathi"
+                        options={(meta.castes || []).map((c) => ({ value: String(c.id), label: c.name_en }))}
+                        value={form.caste_id}
+                        onChange={set('caste_id')}
+                        onBlur={blur('caste_id')}
+                        name="caste_id"
+                        error={touched.caste_id && stepErrors.caste_id}
+                        required
+                      />
+                      <TextField
+                        label="Sub-Religion / Sect"
+                        placeholder="Saiva Siddhantam"
+                        value={form.sub_religion}
+                        onChange={set('sub_religion')}
+                        name="sub_religion"
+                        floating={false}
+                      />
+                    </>
+                  )}
+
+                  {step === 6 && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <SelectField
+                        label="Zodiac / Raasi"
+                        options={(meta.raasis || []).map((r) => ({ value: String(r.id), label: r.name_en }))}
+                        value={form.raasi_id}
+                        onChange={set('raasi_id')}
+                        onBlur={blur('raasi_id')}
+                        name="raasi_id"
+                        error={touched.raasi_id && stepErrors.raasi_id}
+                        required
+                      />
+                      <SelectField
+                        label="Star / Nakshatram"
+                        options={(meta.stars || []).map((s) => ({ value: String(s.id), label: s.name_en }))}
+                        value={form.star_id}
+                        onChange={set('star_id')}
+                        onBlur={blur('star_id')}
+                        name="star_id"
+                        error={touched.star_id && stepErrors.star_id}
+                        required
+                      />
+                    </div>
+                  )}
+
+                  {step === 7 && (
+                    <>
+                      <SelectField
+                        label="Country of Birth"
+                        options={(meta.countries || []).map((c) => ({ value: c.code, label: c.name_en }))}
+                        value={form.born_country_id}
+                        onChange={set('born_country_id')}
+                        onBlur={blur('born_country_id')}
+                        name="born_country_id"
+                        error={touched.born_country_id && stepErrors.born_country_id}
+                        required
+                      />
+                      <SelectField
+                        label="Current Country of Residence"
+                        options={(meta.countries || []).map((c) => ({ value: c.code, label: c.name_en }))}
+                        value={form.current_country_id}
+                        onChange={set('current_country_id')}
+                        onBlur={blur('current_country_id')}
+                        name="current_country_id"
+                        error={touched.current_country_id && stepErrors.current_country_id}
+                        required
+                      />
+                      <TextField
+                        label="Current City or State"
+                        placeholder="Toronto"
+                        value={form.city_or_state}
+                        onChange={set('city_or_state')}
+                        onBlur={blur('city_or_state')}
+                        name="city_or_state"
+                        error={touched.city_or_state && stepErrors.city_or_state}
+                        floating={false}
+                        required
+                      />
+                    </>
+                  )}
+
+                  {step === 8 && (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <PhotoField
+                          label="Main Profile Photo (.jpg, .jpeg, .png)"
+                          accept=".jpg,.jpeg,.png"
+                          file={photoFile}
+                          onFile={setPhotoFile}
+                          existing={existingPhoto}
+                        />
+                        <PhotoField
+                          label="Horoscope Chart (.jpg, .png, .pdf)"
+                          accept=".jpg,.jpeg,.png,.pdf"
+                          file={horoscopeFile}
+                          onFile={setHoroscopeFile}
+                          existing={existingHoroscope}
+                        />
+                      </div>
+                      <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] p-4 space-y-3">
+                        <p className="text-sm font-bold text-[var(--ink)]">Privacy & Photo Settings</p>
+                        <ToggleRow
+                          label="Blur my photo"
+                          hint="Your photo stays hidden until you accept an interest"
+                          checked={form.blur_photo === 1}
+                          onChange={(v) => setForm((f) => ({ ...f, blur_photo: v }))}
+                        />
+                        <ToggleRow
+                          label="Blur my horoscope"
+                          hint="Keep your horoscope private until mutual interest"
+                          checked={form.blur_horoscope === 1}
+                          onChange={(v) => setForm((f) => ({ ...f, blur_horoscope: v }))}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {step === 9 && (
+                    <>
+                      <TextareaField
+                        label="About Me"
+                        placeholder="Hello, looking for an understanding partner who values family traditions…"
+                        value={form.about_me}
+                        onChange={set('about_me')}
+                        onBlur={blur('about_me')}
+                        name="about_me"
+                        rows={6}
+                        counter={2000}
+                        error={touched.about_me && stepErrors.about_me}
+                        help="Minimum 50 characters — tell your story, interests and what you value in a partner"
+                        required
+                      />
+                      <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] p-4 flex items-start gap-3">
+                        <Check className="w-5 h-5 text-[var(--success)] shrink-0 mt-0.5" aria-hidden="true" />
+                        <p className="text-[13px] text-[var(--ink-soft)] leading-relaxed">
+                          Your profile is <strong className="text-[var(--ink)]">{completion}% complete</strong>. Review the
+                          summary below before publishing.
+                        </p>
+                      </div>
+                    </>
+                  )}
                 </div>
+              </motion.div>
+            </AnimatePresence>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <Field label="Annual Income Range">
-                    <select className="input-base" value={form.income_range} onChange={set('income_range')}>
-                      <option value="Under $50k">Under $50k</option>
-                      <option value="$50k - $100k">$50k - $100k</option>
-                      <option value="$100k - $150k">$100k - $150k</option>
-                      <option value="$150k+">$150k+</option>
-                    </select>
-                  </Field>
-                  <Field label="Manglik / Chevvai Dosham">
-                    <select className="input-base" value={form.manglik_status} onChange={set('manglik_status')}>
-                      <option value="no">No Dosham / Non-Manglik</option>
-                      <option value="yes">Chevvai Dosham / Manglik</option>
-                      <option value="dont_know">Don't Know</option>
-                    </select>
-                  </Field>
-                </div>
-              </>
-            )}
-
-            {step === 2 && (
-              <>
-                <Field label="Religion">
-                  <select className="input-base" value={form.religion_id} onChange={set('religion_id')}>
-                    <option value="">Selectâ€¦</option>
-                    {meta.religions.map((r) => <option key={r.id} value={r.id}>{r.name_en}</option>)}
-                  </select>
-                </Field>
-                <Field label="Caste / Saathi">
-                  <select className="input-base" value={form.caste_id} onChange={set('caste_id')}>
-                    <option value="">Selectâ€¦</option>
-                    {meta.castes.map((c) => <option key={c.id} value={c.id}>{c.name_en}</option>)}
-                  </select>
-                </Field>
-                <Field label="Sub-Religion / Sect">
-                  <input className="input-base" value={form.sub_religion} onChange={set('sub_religion')} placeholder="Saiva Siddhantam" />
-                </Field>
-                <div className="grid grid-cols-2 gap-4">
-                  <Field label="Zodiac / Raasi">
-                    <select className="input-base" value={form.raasi_id} onChange={set('raasi_id')}>
-                      <option value="">Selectâ€¦</option>
-                      {meta.raasis.map((r) => <option key={r.id} value={r.id}>{r.name_en}</option>)}
-                    </select>
-                  </Field>
-                  <Field label="Star / Nakshatram">
-                    <select className="input-base" value={form.star_id} onChange={set('star_id')}>
-                      <option value="">Selectâ€¦</option>
-                      {meta.stars.map((s) => <option key={s.id} value={s.id}>{s.name_en}</option>)}
-                    </select>
-                  </Field>
-                </div>
-              </>
-            )}
-
-            {step === 3 && (
-              <>
-                <Field label="Country of Birth">
-                  <select className="input-base" value={form.born_country_id} onChange={set('born_country_id')}>
-                    <option value="">Selectâ€¦</option>
-                    {meta.countries.map((c) => <option key={c.code} value={c.code}>{c.name_en}</option>)}
-                  </select>
-                </Field>
-                <Field label="Current Country of Residence">
-                  <select className="input-base" value={form.current_country_id} onChange={set('current_country_id')}>
-                    <option value="">Selectâ€¦</option>
-                    {meta.countries.map((c) => <option key={c.code} value={c.code}>{c.name_en}</option>)}
-                  </select>
-                </Field>
-                <Field label="Current City or State">
-                  <input className="input-base" value={form.city_or_state} onChange={set('city_or_state')} placeholder="Toronto" />
-                </Field>
-              </>
-            )}
-
-            {step === 4 && (
-              <>
-                <Field label="Main Profile Photo (.jpg, .jpeg, .png)">
-                  <input type="file" accept=".jpg,.jpeg,.png" className="input-base" onChange={(e) => setPhotoFile(e.target.files[0])} />
-                  {existingPhoto && !photoFile && <p className="text-xs text-[#4a1230]/50 mt-1">Current: {existingPhoto}</p>}
-                </Field>
-                <Field label="Horoscope Chart (.jpg, .png, .pdf)">
-                  <input type="file" accept=".jpg,.jpeg,.png,.pdf" className="input-base" onChange={(e) => setHoroscopeFile(e.target.files[0])} />
-                  {existingHoroscope && !horoscopeFile && <p className="text-xs text-[#4a1230]/50 mt-1">Current: {existingHoroscope}</p>}
-                </Field>
-                <div className="flex flex-col gap-2.5 mt-2 mb-4 bg-pink-50/40 p-4 rounded-xl border border-gold/15">
-                  <p className="text-sm font-semibold text-burgundy-700">Privacy & Photo Settings</p>
-                  <label className="flex items-start gap-2.5 cursor-pointer">
-                    <input type="checkbox" className="mt-1" checked={form.blur_photo === 1} onChange={(e) => setForm(f => ({ ...f, blur_photo: e.target.checked ? 1 : 0 }))} />
-                    <span className="text-sm text-[#4a1230]/85">{t('blur_photo_label')}</span>
-                  </label>
-                  <label className="flex items-start gap-2.5 cursor-pointer">
-                    <input type="checkbox" className="mt-1" checked={form.blur_horoscope === 1} onChange={(e) => setForm(f => ({ ...f, blur_horoscope: e.target.checked ? 1 : 0 }))} />
-                    <span className="text-sm text-[#4a1230]/85">{t('blur_horoscope_label')}</span>
-                  </label>
-                </div>
-                <Field label={`About Me (${t('about_me_min')})`} error={touched.about_me && errors.about_me} formatHint="Detailed description (Min 50 characters)">
-                  <textarea
-                    rows={5}
-                    className={`input-base ${touched.about_me && errors.about_me ? 'input-error' : ''}`}
-                    value={form.about_me}
-                    onChange={set('about_me')}
-                    onBlur={blur('about_me')}
-                    placeholder="Hello, looking for an understanding partner who values family traditionsâ€¦"
-                  />
-                  <p className="text-xs text-[#4a1230]/50 mt-1">{form.about_me.trim().length} / 50 characters minimum</p>
-                </Field>
-              </>
-            )}
-
-          </motion.div>
-        </AnimatePresence>
-
-        {serverError && (
-          <div className="mt-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs font-bold text-rose-600">
-            âš ï¸ {serverError}
+            {/* Nav */}
+            <div className="flex justify-between gap-3 mt-8">
+              <Button variant="secondary" onClick={goBack} disabled={step === 0}>
+                <ArrowLeft className="w-4 h-4" aria-hidden="true" />
+                Back
+              </Button>
+              {step < profileSteps.length - 1 ? (
+                <Button onClick={goNext}>
+                  Continue
+                  <ArrowRight className="w-4 h-4" aria-hidden="true" />
+                </Button>
+              ) : (
+                <Button onClick={handleSubmit} loading={submitting} success={completion === 100 && !submitting}>
+                  {isEdit ? 'Update Profile' : 'Publish Profile'}
+                </Button>
+              )}
+            </div>
           </div>
-        )}
-
-        <div className="flex justify-between mt-8 gap-3">
-          <motion.button
-            type="button"
-            onClick={goBack}
-            disabled={step === 0}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.97 }}
-            className="flex-1 py-3 rounded-xl border border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-50 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-          >
-            â† Back
-          </motion.button>
-          {step < STEPS.length - 1 ? (
-            <motion.button
-              type="button"
-              onClick={goNext}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.97 }}
-              className="flex-1 py-3 rounded-xl font-bold text-sm text-white shadow-lg"
-              style={{ background: 'linear-gradient(90deg,#f43f5e,#ec4899)' }}
-            >
-              Continue â†’
-            </motion.button>
-          ) : (
-            <motion.button
-              type="button"
-              onClick={handleSubmit}
-              disabled={submitting}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.97 }}
-              className="flex-1 py-3 rounded-xl font-bold text-sm text-white shadow-lg disabled:opacity-70"
-              style={{ background: 'linear-gradient(90deg,#e0136a,#ec4899)' }}
-            >
-              {submitting ? 'â³ Savingâ€¦' : isEdit ? 'âœ“ Update Profile' : 'ðŸš€ Create Profile'}
-            </motion.button>
-          )}
         </div>
-      </motion.div>
-          </div>
-        </motion.div>
       </div>
     </div>
   );

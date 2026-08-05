@@ -1,132 +1,99 @@
-import { useState, useMemo } from 'react';
+import { useMemo, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { Building2, Check, CheckCircle2, Eye, EyeOff, Lock, Mail, Phone, User } from 'lucide-react';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
-import { useI18n } from '../context/I18nContext';
+import AuthLayout from '../components/auth/AuthLayout';
+import { Button, TextField, ErrorCard } from '../components/ui';
+import { createSignupSchema, normalizeApiErrors, passwordRules } from '../lib/validation';
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const PHONE_RE = /^[+\d\s-]{7,20}$/;
-
-const TRUST_BADGES = [
-  { icon: '✅', label: 'Verified Profiles', sub: '100% Genuine' },
-  { icon: '🔐', label: 'Privacy Protection', sub: 'Your Data is Safe' },
-  { icon: '🤖', label: 'AI Matchmaking', sub: 'Better Compatibility' },
-  { icon: '👨‍👩‍👧', label: 'Family Verified', sub: 'Trusted by Families' },
+const RULES = [
+  { key: 'min8', label: 'At least 8 characters' },
+  { key: 'upper', label: 'One uppercase letter (A-Z)' },
+  { key: 'special', label: 'One special character (!@#$…)' },
 ];
 
-const FLOATS = [
-  { emoji: '💖', top: '6%', right: '8%', size: 26, delay: 0 },
-  { emoji: '🌸', top: '20%', left: '4%', size: 22, delay: 0.5 },
-  { emoji: '💫', bottom: '30%', right: '4%', size: 20, delay: 0.9 },
-  { emoji: '🌺', top: '50%', left: '2%', size: 24, delay: 0.3 },
-  { emoji: '💕', bottom: '12%', right: '10%', size: 20, delay: 0.7 },
-];
-
-const Inp = ({ icon, field, type = 'text', placeholder, hint, right, value, onChange, onBlur, showPw, setShowPw, touched, errors }) => (
-  <div>
-    {hint && <label className="block text-xs font-bold text-slate-600 mb-1.5">{hint}</label>}
-    <div className="relative">
-      {icon && <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-pink-400 text-sm">{icon}</span>}
-      <input
-        type={field === 'password' ? (showPw ? 'text' : 'password') : type}
-        value={value}
-        onChange={onChange}
-        onBlur={onBlur}
-        placeholder={placeholder}
-        className={`w-full ${icon ? 'pl-9' : 'pl-4'} ${right ? 'pr-10' : 'pr-4'} py-3 rounded-xl border text-sm transition-all outline-none
-          ${touched && errors
-            ? 'border-rose-400 bg-rose-50'
-            : 'border-slate-200 bg-slate-50 focus:border-pink-400 focus:bg-white focus:ring-2 focus:ring-pink-100'}`}
-      />
-      {right && (
-        <button type="button" onClick={() => setShowPw(!showPw)}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-pink-500 text-sm">
-          {showPw ? '🙈' : '👁️'}
-        </button>
-      )}
+function PasswordChecklist({ value }) {
+  const rules = passwordRules(value);
+  return (
+    <div className="mt-2.5 grid grid-cols-1 gap-1.5 sm:grid-cols-3 animate-[fade-in-up_0.2s_ease-out_both]">
+      {RULES.map((r) => {
+        const ok = rules[r.key];
+        return (
+          <span key={r.key} className={`pw-rule ${ok ? 'pw-rule-ok' : ''}`}>
+            <span className="pw-rule-icon">{ok && <Check className="w-3 h-3" aria-hidden="true" />}</span>
+            {r.label}
+          </span>
+        );
+      })}
     </div>
-    {touched && errors && (
-      <p className="text-[11px] text-rose-500 mt-1 font-semibold">{errors}</p>
-    )}
-  </div>
-);
+  );
+}
 
 export default function Signup() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const { setUser } = useAuth();
-  const { t } = useI18n();
-
-  const [role, setRole] = useState(params.get('role') === 'broker' ? 'broker' : 'regular');
-  const isBroker = role === 'broker';
+  const [isBroker, setIsBroker] = useState(params.get('role') === 'broker');
   const [showPw, setShowPw] = useState(false);
-  const [form, setForm] = useState({
-    username: '', email: '', password: '', phone_number: '', business_name: '', ui_language: 'en',
-  });
-  const [touched, setTouched] = useState({});
   const [serverError, setServerError] = useState('');
-  const [submitting, setSubmitting] = useState(false);
 
-  const errors = useMemo(() => {
-    const e = {};
-    if (!form.username || form.username.trim().length < 3) {
-      e.username = 'Enter at least 3 characters';
-    }
-    if (!form.email) {
-      e.email = 'Required';
-    } else if (!EMAIL_RE.test(form.email)) {
-      e.email = 'Invalid email format (e.g. name@example.com)';
-    }
-    if (!form.password) {
-      e.password = 'Required';
-    } else if (form.password.length < 6) {
-      e.password = 'Minimum 6 characters required';
-    }
-    if (!form.phone_number) {
-      e.phone_number = 'Required';
-    } else if (!PHONE_RE.test(form.phone_number)) {
-      e.phone_number = 'Enter a valid phone number';
-    }
-    if (role === 'broker' && (!form.business_name || form.business_name.trim().length < 2)) {
-      e.business_name = 'Required. Min 2 characters';
-    }
-    return e;
-  }, [form, role]);
+  const schema = useMemo(() => createSignupSchema(isBroker), [isBroker]);
 
-  const isValid = Object.keys(errors).length === 0;
-  const set = (f) => (ev) => setForm((p) => ({ ...p, [f]: ev.target.value }));
-  const blur = (f) => () => setTouched((p) => ({ ...p, [f]: true }));
+  const {
+    register,
+    handleSubmit,
+    watch,
+    setError,
+    clearErrors,
+    resetField,
+    formState: { errors, isSubmitting, touchedFields },
+  } = useForm({
+    resolver: zodResolver(schema),
+    mode: 'onTouched',
+    defaultValues: {
+      username: '', email: '', password: '', phone_number: '',
+      business_name: '', terms: false,
+    },
+  });
 
-  const handleSubmit = async (ev) => {
-    ev.preventDefault();
-    setTouched({ username: true, email: true, password: true, phone_number: true, business_name: true });
-    
-    // Ensure phone number starts with '+' if missing for API regex compatibility
-    let formattedPhone = form.phone_number.trim();
+  const passwordValue = watch('password');
+  const pwOk = passwordRules(passwordValue).all;
+
+  const showErr = (f) => (touchedFields[f] ? errors[f]?.message : undefined);
+
+  const toggleRole = (broker) => {
+    if (broker === isBroker) return;
+    setIsBroker(broker);
+    clearErrors(['business_name', 'terms']);
+    resetField('business_name');
+    setServerError('');
+  };
+
+  const onSubmit = handleSubmit(async (values) => {
+    setServerError('');
+    if (!values.terms) {
+      setError('terms', { type: 'manual', message: 'Please accept the Terms & Conditions and Privacy Policy' });
+      return;
+    }
+
+    let formattedPhone = values.phone_number.trim();
     if (formattedPhone && !formattedPhone.startsWith('+')) {
       formattedPhone = '+' + formattedPhone.replace(/\D/g, '');
     }
 
-    // Capitalize & ensure password meets backend specs seamlessly
-    let finalPassword = form.password;
-    if (finalPassword && !/[A-Z]/.test(finalPassword)) {
-      finalPassword = finalPassword.charAt(0).toUpperCase() + finalPassword.slice(1);
-    }
-    if (finalPassword && !/[!@#$%^&*(),.?":{}|<>]/.test(finalPassword)) {
-      finalPassword = finalPassword + '!';
-    }
-
     const payload = {
-      ...form,
-      username: form.username.trim().replace(/\s+/g, '_'),
+      username: values.username.trim().replace(/\s+/g, '_'),
+      email: values.email.trim(),
+      password: values.password,
       phone_number: formattedPhone,
-      password: finalPassword,
-      role
+      business_name: isBroker ? values.business_name.trim() : undefined,
+      role: isBroker ? 'broker' : 'regular',
     };
 
-    setSubmitting(true);
-    setServerError('');
     try {
       const res = await api.post('/auth/signup', payload);
       if (res.data.status === 'pending_approval') {
@@ -136,191 +103,167 @@ export default function Signup() {
         navigate('/dashboard');
       }
     } catch (err) {
-      const apiErrors = err.response?.data?.errors;
-      setServerError(apiErrors ? Object.values(apiErrors)[0] : 'Something went wrong. Please try again.');
-    } finally {
-      setSubmitting(false);
+      const fieldErrors = normalizeApiErrors(err.response?.data);
+      if (Object.keys(fieldErrors).length) {
+        for (const [k, msg] of Object.entries(fieldErrors)) setError(k, { message: msg });
+      } else {
+        setServerError(err.response?.data?.error || 'Something went wrong. Please try again.');
+      }
     }
-  };
+  });
 
   return (
-    <div className="min-h-screen relative overflow-hidden flex items-center justify-center py-8 px-4"
-      style={{ background: 'linear-gradient(135deg, #fff0f6 0%, #ffe3ef 35%, #ffd3e6 65%, #ffc2dd 100%)' }}>
-
-      {/* Floats */}
-      {FLOATS.map((f, i) => (
-        <div key={i} className="fixed pointer-events-none select-none z-0"
-          style={{ top: f.top, left: f.left, right: f.right, bottom: f.bottom, fontSize: f.size }}>
-          {f.emoji}
+    <AuthLayout
+      title="Create your account"
+      subtitle="Start your beautiful journey — create your profile in minutes."
+      brand={{ prefix: 'Already have an account?', label: 'Login', to: '/login' }}
+      footer={
+        <p className="text-center text-xs text-[var(--ink-soft)] font-semibold leading-relaxed">
+          By creating an account you agree to our
+          <LinkToTerms />
+        </p>
+      }
+    >
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}>
+        {/* Role switcher */}
+        <div className="flex gap-1.5 p-1.5 rounded-full border border-[var(--border)] bg-[var(--surface-soft)] mb-5" role="tablist" aria-label="Account type">
+          {[
+            { v: false, label: 'Individual', icon: User },
+            { v: true, label: 'Broker / Agency', icon: Building2 },
+          ].map(({ v, label, icon: Icon }) => (
+            <button
+              key={label}
+              type="button"
+              role="tab"
+              aria-selected={isBroker === v}
+              onClick={() => toggleRole(v)}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-full text-xs font-extrabold transition-all ${
+                isBroker === v ? 'grad-primary text-white shadow-md' : 'text-[var(--ink-soft)] hover:text-[var(--primary)]'
+              }`}
+            >
+              <Icon className="w-4 h-4" aria-hidden="true" />
+              {label}
+            </button>
+          ))}
         </div>
-      ))}
 
-      <div className="relative z-10 w-full max-w-5xl">
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="grid md:grid-cols-2 rounded-[2rem] overflow-hidden shadow-2xl"
-          style={{ boxShadow: '0 30px 80px rgba(130,50,200,0.18)' }}
-        >
-          {/* ── LEFT: Colorful Disney Cartoon Illustration Panel ── */}
-          <div className="relative hidden md:flex flex-col overflow-hidden"
-            style={{ background: 'linear-gradient(145deg, #fce4ec 0%, #f3e5f5 40%, #e8eaf6 100%)' }}>
-
-            <div className="absolute top-0 left-0 w-64 h-64 rounded-full opacity-25"
-              style={{ background: 'radial-gradient(circle, #f48fb1, transparent)', transform: 'translate(-30%, -30%)' }} />
-
-            <AnimatePresence mode="wait">
-              <motion.img
-                key={role}
-                src={isBroker ? '/uploads/broker_hero.png' : '/uploads/couple_hero.png'}
-                alt={isBroker ? 'Broker Registration' : 'Tamil Wedding Couple'}
-                className="w-full flex-1 object-cover object-center"
-                style={{ minHeight: 340 }}
-                initial={{ opacity: 0, scale: 1.05 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.96 }}
-                transition={{ duration: 0.4 }}
-              />
-            </AnimatePresence>
-
-            {/* Bottom block: overlay text then trust badges (stacked, no overlap) */}
-            <div className="relative w-full shrink-0">
-              <div className="p-5 pb-4"
-                style={{ background: 'linear-gradient(0deg, rgba(100,30,120,0.7) 0%, transparent 100%)' }}>
-                <p className="text-white font-bold text-base">
-                  {isBroker ? 'Marriage Broker Account Registration' : 'Create Your Account'}
-                </p>
-                <p className="text-pink-100 text-sm mt-0.5">
-                  {isBroker ? 'Connect brides & grooms effortlessly 💼' : 'Start your beautiful journey today! 💕'}
-                </p>
-              </div>
-
-              <div className="grid grid-cols-4">
-                {TRUST_BADGES.map((b) => (
-                  <div key={b.label} className="flex flex-col items-center py-3 text-center"
-                    style={{ background: 'rgba(255,255,255,0.18)', backdropFilter: 'blur(8px)' }}>
-                    <span className="text-base mb-0.5">{b.icon}</span>
-                    <p className="text-slate-800 text-[9px] font-bold leading-tight">{b.label}</p>
-                    <p className="text-slate-500 text-[8px]">{b.sub}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
+        {serverError && (
+          <div className="mb-5">
+            <ErrorCard message={serverError} onDismiss={() => setServerError('')} />
           </div>
+        )}
 
-          {/* ── RIGHT: Form ── */}
-          <div className="bg-white p-7 sm:p-9 flex flex-col justify-center">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-5">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-pink-500 to-rose-400 flex items-center justify-center shadow">
-                  <span className="text-base">💖</span>
-                </div>
-                <span className="font-extrabold text-base text-slate-800">Mukurtham</span>
-              </div>
-              <Link to="/login" className="text-xs font-bold text-pink-600 hover:underline">
-                Already have an account? <span className="underline">Login</span>
-              </Link>
-            </div>
-
-            <h1 className="text-2xl font-extrabold text-slate-800 mb-0.5">
-              Create Your Account <span className="text-pink-400">🤍</span>
-            </h1>
-            <p className="text-xs text-pink-600 font-bold mb-5">Start your beautiful journey today!</p>
-
-            {/* Role switcher */}
-            <div className="flex gap-2 mb-5 p-1 rounded-full border border-pink-100 bg-pink-50/60">
-              {['regular', 'broker'].map((r) => (
-                <motion.button
-                  key={r}
+        <form onSubmit={onSubmit} noValidate className="space-y-4">
+          <TextField
+            label="Full Name"
+            placeholder="e.g. Sutharsan"
+            icon={<User className="w-4 h-4" />}
+            error={showErr('username')}
+            autoComplete="name"
+            {...register('username')}
+          />
+          <TextField
+            label="Email Address"
+            placeholder="name@example.com"
+            icon={<Mail className="w-4 h-4" />}
+            error={showErr('email')}
+            autoComplete="email"
+            inputMode="email"
+            {...register('email')}
+          />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <TextField
+              label="Mobile Number"
+              placeholder="+14165550198"
+              icon={<Phone className="w-4 h-4" />}
+              error={showErr('phone_number')}
+              autoComplete="tel"
+              inputMode="tel"
+              {...register('phone_number')}
+            />
+            <TextField
+              label="Create Password"
+              type={showPw ? 'text' : 'password'}
+              icon={<Lock className="w-4 h-4" />}
+              error={showErr('password')}
+              success={touchedFields.password && !errors.password && passwordValue ? 'Looks strong!' : undefined}
+              autoComplete="new-password"
+              right={
+                <button
                   type="button"
-                  onClick={() => setRole(r)}
-                  whileTap={{ scale: 0.95 }}
-                  className={`flex-1 py-2.5 rounded-full text-xs font-extrabold transition-all ${
-                    role === r
-                      ? 'text-white shadow-md'
-                      : 'text-slate-600 hover:text-pink-600'
-                  }`}
-                  style={role === r ? { background: 'linear-gradient(90deg, #f43f5e, #ec4899)' } : {}}
+                  onClick={() => setShowPw((s) => !s)}
+                  aria-label={showPw ? 'Hide password' : 'Show password'}
+                  className="absolute right-3 top-[0.8rem] text-[var(--ink-faint)] hover:text-[var(--primary)] transition-colors"
                 >
-                  {r === 'regular' ? '👤 ' + t('role_regular_title') : '💼 ' + t('role_broker_title')}
-                </motion.button>
-              ))}
-            </div>
-
-            {/* Error */}
-            <AnimatePresence>
-              {serverError && (
-                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
-                  className="mb-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs font-bold text-rose-600">
-                  ⚠️ {serverError}
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            <form onSubmit={handleSubmit} className="space-y-3.5">
-              <div className="grid grid-cols-2 gap-3">
-                <Inp icon="👤" field="username" hint="Full Name" placeholder="e.g. Sutharsan" value={form.username} onChange={set('username')} onBlur={blur('username')} touched={touched.username} errors={errors.username} />
-                <Inp icon="📧" field="email" type="email" hint="Email Address" placeholder="name@example.com" value={form.email} onChange={set('email')} onBlur={blur('email')} touched={touched.email} errors={errors.email} />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <Inp icon="📱" field="phone_number" hint="Mobile Number" placeholder="+14165550198" value={form.phone_number} onChange={set('phone_number')} onBlur={blur('phone_number')} touched={touched.phone_number} errors={errors.phone_number} />
-                <Inp icon="🔒" field="password" hint="Create Password" placeholder="Create a password" right value={form.password} onChange={set('password')} onBlur={blur('password')} showPw={showPw} setShowPw={setShowPw} touched={touched.password} errors={errors.password} />
-              </div>
-
-              <AnimatePresence>
-                {isBroker && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                  >
-                    <Inp icon="🏢" field="business_name" hint="Business / Agency Name" placeholder="Agency or business name" value={form.business_name} onChange={set('business_name')} onBlur={blur('business_name')} touched={touched.business_name} errors={errors.business_name} />
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              <div className="flex items-start gap-2 pt-1">
-                <input type="checkbox" id="terms" required className="mt-1 accent-pink-500" />
-                <label htmlFor="terms" className="text-[11px] text-slate-500 font-semibold leading-tight">
-                  I agree to the <span className="text-pink-600 cursor-pointer hover:underline">Terms &amp; Conditions</span> and{' '}
-                  <span className="text-pink-600 cursor-pointer hover:underline">Privacy Policy</span>
-                </label>
-              </div>
-
-              <motion.button
-                type="submit"
-                disabled={submitting}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.97 }}
-                className="w-full py-3.5 rounded-xl font-extrabold text-sm text-white shadow-lg mt-1 cursor-pointer"
-                style={{ background: 'linear-gradient(90deg, #f43f5e, #ec4899)' }}
-              >
-                {submitting ? '⏳ Signing Up…' : isBroker ? 'Register as Broker →' : 'Sign Up as User →'}
-              </motion.button>
-            </form>
-
-
-
-            {/* Stats bar */}
-            <div className="mt-5 pt-4 border-t border-slate-100 grid grid-cols-2 gap-3">
-              <div className="flex items-center gap-2">
-                <div className="flex -space-x-1">
-                  {['👩','👨','👩','👨'].map((e, i) => (
-                    <span key={i} className="w-6 h-6 rounded-full bg-pink-100 border-2 border-white flex items-center justify-center text-xs">{e}</span>
-                  ))}
-                </div>
-                <span className="text-[10px] text-slate-500 font-semibold">Trusted by Millions</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="font-extrabold text-pink-600 text-sm">10M+</span>
-                <span className="text-[10px] text-slate-500 font-semibold leading-tight">People have found their perfect match</span>
-              </div>
-            </div>
+                  {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              }
+              {...register('password')}
+            />
           </div>
-        </motion.div>
-      </div>
-    </div>
+
+          {touchedFields.password && passwordValue && (
+            <PasswordChecklist value={passwordValue} />
+          )}
+
+          <AnimatePresence>
+            {isBroker && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                <TextField
+                  label="Business / Agency Name"
+                  placeholder="Agency or business name"
+                  icon={<Building2 className="w-4 h-4" />}
+                  error={showErr('business_name')}
+                  {...register('business_name')}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <label className="flex items-start gap-2.5 pt-1 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              {...register('terms')}
+              className="mt-0.5 w-4 h-4 accent-[var(--primary)]"
+            />
+            <span className={`text-[11px] font-semibold leading-tight ${errors.terms ? 'text-[var(--error)]' : 'text-[var(--ink-soft)]'}`}>
+              I agree to the <span className="text-[var(--primary)] hover:underline cursor-pointer">Terms &amp; Conditions</span> and{' '}
+              <span className="text-[var(--primary)] hover:underline cursor-pointer">Privacy Policy</span>
+            </span>
+          </label>
+          {errors.terms && (
+            <p className="text-xs font-semibold text-[var(--error)] -mt-1" role="alert">{errors.terms.message}</p>
+          )}
+
+          <Button
+            type="submit"
+            fullWidth
+            loading={isSubmitting}
+            success={pwOk && !isSubmitting}
+            className="mt-2"
+          >
+            {isBroker ? 'Register as Broker' : 'Create Account'}
+          </Button>
+
+          <div className="flex items-center justify-center gap-1.5 text-[11px] text-[var(--ink-faint)] font-semibold">
+            <CheckCircle2 className="w-3.5 h-3.5" aria-hidden="true" />
+            Your details are encrypted and never shared without consent
+          </div>
+        </form>
+      </motion.div>
+    </AuthLayout>
+  );
+}
+
+function LinkToTerms() {
+  return (
+    <span className="text-[var(--primary)] font-bold hover:underline cursor-pointer">
+      {' '}Terms &amp; Conditions and Privacy Policy
+    </span>
   );
 }
