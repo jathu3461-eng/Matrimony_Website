@@ -254,7 +254,11 @@ export default function Landing() {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.3, duration: 0.8 }}
             >
-              <DisneyCoupleHeroIllustration />
+              <img
+                src="/uploads/hero_couple.png"
+                alt="Professional Matrimony Couple"
+                className="w-full max-w-md mx-auto rounded-3xl shadow-2xl border-4 border-white object-cover aspect-square"
+              />
             </motion.div>
 
             {/* Success floating badge overlay */}
