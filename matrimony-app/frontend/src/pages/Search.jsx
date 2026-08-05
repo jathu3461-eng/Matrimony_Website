@@ -8,6 +8,8 @@ export default function Search() {
   const { t, lang } = useI18n();
   const [meta, setMeta] = useState(null);
   const [results, setResults] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [searchError, setSearchError] = useState('');
   const [activeFiltersCount, setActiveFiltersCount] = useState(0);
 
   const [filters, setFilters] = useState({
@@ -22,12 +24,20 @@ export default function Search() {
 
   const runSearch = async (f = filters) => {
     const params = Object.fromEntries(Object.entries(f).filter(([, v]) => v !== ''));
-    // Count active filters (excluding default gender)
     const count = Object.entries(params).filter(([k, v]) => k !== 'gender' && v !== '').length;
     setActiveFiltersCount(count);
-
-    const res = await api.get('/profiles/search', { params });
-    setResults(res.data.results);
+    setLoading(true);
+    setSearchError('');
+    try {
+      const res = await api.get('/profiles/search', { params });
+      setResults(res.data.results || []);
+    } catch (err) {
+      console.error('Search failed:', err);
+      setSearchError('Could not load matches. Please check your connection and try again.');
+      setResults([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { runSearch(); }, []); // eslint-disable-line
@@ -202,10 +212,11 @@ export default function Search() {
 
               <button
                 type="button"
-                onClick={() => runSearch()}
-                className="btn-primary w-full py-3.5 text-xs font-extrabold shadow-pink-500/25 mt-2"
+                onClick={() => runSearch(filters)}
+                disabled={loading}
+                className="btn-primary w-full py-3.5 text-xs font-extrabold shadow-pink-500/25 mt-2 disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                Search Matches 🔍
+                {loading ? '🔄 Searching…' : 'Search Matches 🔍'}
               </button>
             </div>
           </div>
@@ -229,9 +240,19 @@ export default function Search() {
             )}
           </div>
 
-          {results === null ? (
-            <div className="flex justify-center py-20">
+          {searchError ? (
+            <div className="glass-card rounded-3xl p-12 text-center border border-rose-200">
+              <div className="text-5xl mb-4">⚠️</div>
+              <h3 className="font-display text-lg font-extrabold text-rose-700 mb-1">Connection Error</h3>
+              <p className="text-xs text-slate-500 font-medium max-w-sm mx-auto leading-relaxed mb-4">{searchError}</p>
+              <button onClick={() => runSearch(filters)} className="btn-primary text-xs font-extrabold">
+                Try Again 🔄
+              </button>
+            </div>
+          ) : results === null || loading ? (
+            <div className="flex flex-col items-center justify-center py-20 gap-3">
               <div className="w-10 h-10 border-4 border-pink-500 border-t-transparent rounded-full animate-spin" />
+              <p className="text-xs text-slate-500 font-semibold">Finding your perfect matches…</p>
             </div>
           ) : results.length === 0 ? (
             <motion.div
