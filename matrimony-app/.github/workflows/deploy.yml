@@ -32,7 +32,7 @@ jobs:
       - name: 🏗️ Build Vite production bundle
         working-directory: matrimony-app/frontend
         env:
-          VITE_API_URL: https://mukurtham.ca/api
+          VITE_API_URL: https://api.mukurtham.ca/api
         run: npm run build
 
       - name: 📁 Add .htaccess for React Router
