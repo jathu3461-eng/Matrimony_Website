@@ -10,4 +10,13 @@ export default defineConfig({
       '/uploads': 'http://localhost:4000',
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        entryFileNames: 'assets/[name].js',
+        chunkFileNames: 'assets/[name].js',
+        assetFileNames: 'assets/[name].[ext]',
+      },
+    },
+  },
 });
