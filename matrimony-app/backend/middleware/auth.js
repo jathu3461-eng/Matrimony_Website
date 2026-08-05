@@ -1,6 +1,12 @@
 const jwt = require('jsonwebtoken');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-in-production';
+const DEFAULT_SECRET = 'dev-secret-change-in-production';
+const JWT_SECRET = process.env.JWT_SECRET || DEFAULT_SECRET;
+
+if (process.env.NODE_ENV === 'production' && JWT_SECRET === DEFAULT_SECRET) {
+  console.error('❌ CRITICAL: JWT_SECRET is not set. Refusing to start in production.');
+  process.exit(1);
+}
 // Long-lived token: per spec, users stay logged in indefinitely until they
 // explicitly log out, so the cookie/token itself is issued with a very long
 // expiry rather than a short session window.

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
@@ -28,10 +28,10 @@ export default function AdminLogin() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#2b0a0a] via-[#3d0000] to-[#1a0505] px-5">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-sm bg-[#fdf6ec]/95 backdrop-blur rounded-2xl p-8 shadow-2xl">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#3d0a2a] via-[#b31255] to-[#3d0a2a] px-5">
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-sm bg-white rounded-2xl p-8 shadow-2xl">
         <h1 className="font-display text-2xl text-burgundy-700 mb-1 text-center">Admin Access</h1>
-        <p className="text-xs text-center text-[#4a2a1a]/60 mb-6">Master Admin Portal</p>
+        <p className="text-xs text-center text-[#4a1230]/60 mb-6">Master Admin Portal</p>
         <form onSubmit={handleSubmit} noValidate>
           <Field label="Admin Email">
             <input className="input-base" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} />
@@ -39,7 +39,7 @@ export default function AdminLogin() {
           <Field label="Password" error={error}>
             <input type="password" className={`input-base ${error ? 'input-error' : ''}`} value={form.password} onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))} />
           </Field>
-          <button type="submit" disabled={submitting} className="btn-primary w-full mt-2">{submitting ? '…' : 'Sign In'}</button>
+          <button type="submit" disabled={submitting} className="btn-primary w-full mt-2">{submitting ? 'â€¦' : 'Sign In'}</button>
         </form>
       </motion.div>
     </div>

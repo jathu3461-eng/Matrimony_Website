@@ -12,8 +12,8 @@ function DisneyCoupleHeroIllustration() {
       {/* Soft glowing ambient background halo */}
       <motion.div
         animate={{ scale: [1, 1.05, 1], opacity: [0.6, 0.8, 0.6] }}
-        transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-        className="absolute inset-0 rounded-full bg-gradient-to-tr from-pink-300 via-purple-300 to-amber-200 blur-2xl opacity-70"
+        transition={{ duration: 4, repeat: 0, ease: 'easeInOut' }}
+        className="absolute inset-0 rounded-full bg-gradient-to-tr from-pink-300 via-pink-200 to-rose-200 blur-2xl opacity-70"
       />
 
       {/* Disney Cartoon SVG Illustration */}
@@ -258,13 +258,17 @@ export default function Landing() {
                 src="/uploads/hero_couple.png"
                 alt="Professional Matrimony Couple"
                 className="w-full max-w-md mx-auto rounded-3xl shadow-2xl border-4 border-white object-cover aspect-square"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = '/uploads/couple_hero.png';
+                }}
               />
             </motion.div>
 
             {/* Success floating badge overlay */}
             <motion.div
               animate={{ y: [0, -6, 0] }}
-              transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+              transition={{ duration: 3, repeat: 0, ease: 'easeInOut' }}
               className="absolute bottom-6 right-2 glass-card px-4 py-2.5 rounded-2xl shadow-xl border border-pink-200 flex items-center gap-3 z-20"
             >
               <div className="w-9 h-9 rounded-full bg-pink-100 flex items-center justify-center text-lg">👩‍❤️‍👨</div>
@@ -332,7 +336,7 @@ export default function Landing() {
           <div className="md:col-span-4">
             <motion.div
               whileHover={{ scale: 1.01 }}
-              className="glass-card rounded-3xl p-6 border-2 border-pink-300/60 bg-gradient-to-br from-pink-50 via-rose-50 to-amber-50 text-left relative overflow-hidden shadow-xl"
+              className="glass-card rounded-3xl p-6 border-2 border-pink-300/60 bg-gradient-to-br from-pink-50 via-rose-50 to-pink-100 text-left relative overflow-hidden shadow-xl"
             >
               <span className="text-xs font-extrabold text-pink-600 uppercase tracking-wider block mb-1">Join Free Today</span>
               <h3 className="font-display text-2xl font-extrabold text-slate-800 mb-3">
@@ -425,7 +429,7 @@ export default function Landing() {
 
       {/* ── 6. Romantic Scooter CTA Banner ── */}
       <section className="max-w-7xl mx-auto px-5 my-12">
-        <div className="bg-gradient-to-r from-pink-500 via-rose-500 to-amber-500 rounded-3xl p-10 text-white text-center relative overflow-hidden shadow-2xl">
+        <div className="bg-gradient-to-r from-pink-500 via-rose-500 to-pink-300 rounded-3xl p-10 text-white text-center relative overflow-hidden shadow-2xl">
           <div className="relative z-10 max-w-2xl mx-auto">
             <h2 className="font-display text-3xl sm:text-4xl font-extrabold mb-3">
               Your Forever Is Just A Click Away 💕

@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
-import api from '../api';
+import api, { uploadsUrl } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { useI18n } from '../context/I18nContext';
 import ProfileCard from '../components/ProfileCard';
@@ -77,8 +77,8 @@ export default function Dashboard() {
 
   const STAT_CARDS = [
     { icon: '👤', label: 'Profiles', value: profiles.length, color: 'from-pink-400 to-rose-500', bg: 'bg-pink-50' },
-    { icon: '💌', label: 'Interests', value: interactions.received.length, color: 'from-purple-400 to-violet-500', bg: 'bg-purple-50' },
-    { icon: '⭐', label: 'Shortlisted', value: interactions.shortlists.length, color: 'from-amber-400 to-orange-500', bg: 'bg-amber-50' },
+    { icon: '💌', label: 'Interests', value: interactions.received.length, color: 'from-pink-400 to-rose-500', bg: 'bg-pink-50' },
+    { icon: '⭐', label: 'Shortlisted', value: interactions.shortlists.length, color: 'from-rose-400 to-pink-600', bg: 'bg-pink-50' },
     { icon: '💬', label: 'Messages', value: interactions.received.filter(r => r.status === 'accepted').length, color: 'from-teal-400 to-cyan-500', bg: 'bg-teal-50' },
   ];
 
@@ -88,7 +88,7 @@ export default function Dashboard() {
 
       {/* ── Hero Banner ── */}
       <div className="relative overflow-hidden"
-        style={{ background: 'linear-gradient(120deg, #f43f5e 0%, #ec4899 40%, #a855f7 100%)' }}>
+        style={{ background: 'linear-gradient(120deg, #e0136a 0%, #ec4899 40%, #ff7eb3 100%)' }}>
         {/* Decorative blobs */}
         <div className="absolute top-0 right-0 w-80 h-80 rounded-full opacity-10 bg-white"
           style={{ transform: 'translate(30%, -40%)' }} />
@@ -267,9 +267,9 @@ export default function Dashboard() {
                             {/* Top header row: Sender info */}
                             <div className="flex items-start gap-3">
                               {/* Photo */}
-                              <div className="w-14 h-14 rounded-2xl overflow-hidden shrink-0 bg-gradient-to-tr from-pink-200 to-purple-200 border border-pink-200 flex items-center justify-center shadow-sm">
+                              <div className="w-14 h-14 rounded-2xl overflow-hidden shrink-0 bg-gradient-to-tr from-pink-200 to-rose-200 border border-pink-200 flex items-center justify-center shadow-sm">
                                 {i.sender_pic ? (
-                                  <img src={`/uploads/${i.sender_pic}`} alt={i.sender_name} className="w-full h-full object-cover" />
+                                  <img src={uploadsUrl(i.sender_pic)} alt={i.sender_name} className="w-full h-full object-cover" />
                                 ) : (
                                   <span className="text-2xl font-bold text-pink-600">{i.sender_name?.[0]?.toUpperCase()}</span>
                                 )}
@@ -283,7 +283,7 @@ export default function Dashboard() {
                                   </Link>
                                   <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider shrink-0 ${
                                     i.status === 'accepted' ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' :
-                                    i.status === 'pending' ? 'bg-amber-100 text-amber-800 border border-amber-200' :
+                                    i.status === 'pending' ? 'bg-pink-100 text-pink-800 border border-pink-200' :
                                     'bg-slate-100 text-slate-500 border border-slate-200'
                                   }`}>
                                     {i.status === 'accepted' ? '✓ Accepted' : i.status === 'pending' ? '⏳ Pending' : '✕ Declined'}
@@ -353,9 +353,9 @@ export default function Dashboard() {
                   </div>
 
                   {/* Sent */}
-                  <div className="bg-white rounded-3xl p-6 border border-purple-100 shadow-sm">
+                  <div className="bg-white rounded-3xl p-6 border border-pink-100 shadow-sm">
                     <h3 className="font-bold text-slate-800 text-base mb-4 flex items-center gap-2">
-                      <span className="w-8 h-8 rounded-xl bg-purple-100 flex items-center justify-center">📤</span>
+                      <span className="w-8 h-8 rounded-xl bg-pink-100 flex items-center justify-center">📤</span>
                       Interests Sent
                     </h3>
                     {interactions.sent.length === 0 ? (
@@ -366,15 +366,15 @@ export default function Dashboard() {
                     ) : (
                       <div className="space-y-3">
                         {interactions.sent.map((i) => (
-                          <div key={i.id} className="flex items-center justify-between p-3 rounded-2xl bg-purple-50/50 border border-purple-100">
+                          <div key={i.id} className="flex items-center justify-between p-3 rounded-2xl bg-pink-50/50 border border-pink-100">
                             <div>
-                              <p className="text-[10px] text-purple-500 font-bold uppercase">From: {i.sender_name}</p>
-                              <Link to={`/profile/${i.receiver_id}`} className="font-bold text-slate-700 text-sm hover:text-purple-600">{i.receiver_name}</Link>
+                              <p className="text-[10px] text-pink-500 font-bold uppercase">From: {i.sender_name}</p>
+                              <Link to={`/profile/${i.receiver_id}`} className="font-bold text-slate-700 text-sm hover:text-pink-600">{i.receiver_name}</Link>
                               <p className="text-[11px] text-slate-400">{new Date(i.created_at).toLocaleDateString()}</p>
                             </div>
                             <span className={`text-[11px] px-2.5 py-1.5 rounded-full font-bold ${
                               i.status === 'accepted' ? 'bg-green-100 text-green-700' :
-                              i.status === 'pending' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-600'}`}>
+                              i.status === 'pending' ? 'bg-pink-100 text-pink-700' : 'bg-red-100 text-red-600'}`}>
                               {i.status === 'accepted' ? '✓ Accepted' : i.status === 'pending' ? '⏳ Pending' : '✕ Declined'}
                             </span>
                           </div>
@@ -388,13 +388,13 @@ export default function Dashboard() {
               {/* Shortlists Tab */}
               {activeTab === 'shortlists' && (
                 interactions.shortlists.length === 0 ? (
-                  <div className="bg-white rounded-3xl p-16 text-center border border-amber-100 shadow-sm">
+                  <div className="bg-white rounded-3xl p-16 text-center border border-pink-100 shadow-sm">
                     <div className="text-6xl mb-4">⭐</div>
                     <h3 className="text-xl font-bold text-slate-700 mb-2">No profiles shortlisted yet</h3>
                     <p className="text-sm text-slate-400 mb-6">Browse matches and star the ones you like</p>
                     <motion.button whileHover={{ scale: 1.03 }} onClick={() => navigate('/search')}
                       className="px-8 py-3 rounded-2xl text-white font-bold text-sm shadow-lg"
-                      style={{ background: 'linear-gradient(90deg,#f59e0b,#f97316)' }}>
+                      style={{ background: 'linear-gradient(90deg,#e64a8f,#ff2a75)' }}>
                       🔍 Browse Matches
                     </motion.button>
                   </div>
@@ -405,7 +405,7 @@ export default function Dashboard() {
                         profile={{ id: s.profile_id, name: s.profile_name, main_profile_picture: s.profile_pic, age: s.age, height_feet: s.height_feet, height_inches: s.height_inches, occupation: s.occupation, city_or_state: s.city_or_state }}
                         actions={
                           <button onClick={() => handleRemoveShortlist(s.profile_id)}
-                            className="w-full text-xs py-2 border border-amber-200 text-amber-700 hover:bg-amber-50 font-bold rounded-xl transition-all">
+                            className="w-full text-xs py-2 border border-pink-200 text-pink-700 hover:bg-pink-50 font-bold rounded-xl transition-all">
                             ✕ Remove from Shortlist
                           </button>
                         }

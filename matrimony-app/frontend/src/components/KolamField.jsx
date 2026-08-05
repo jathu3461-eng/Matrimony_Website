@@ -1,7 +1,7 @@
-import { useEffect, useRef } from 'react';
+﻿import { useEffect, useRef } from 'react';
 
 /**
- * KolamField — a slow-drifting constellation of dots connected by thin
+ * KolamField â€” a slow-drifting constellation of dots connected by thin
  * threads, echoing the geometry of a traditional Tamil kolam floor drawing.
  * Built with plain Canvas2D (no Three.js runtime needed) so it stays light
  * and dependency-free while still giving the "3D depth" ambient feel the
@@ -52,7 +52,7 @@ export default function KolamField({ className = '' }) {
           const dist = Math.sqrt(dx * dx + dy * dy);
           if (dist < maxDist) {
             ctx.globalAlpha = (1 - dist / maxDist) * 0.35;
-            ctx.strokeStyle = '#78350f';
+            ctx.strokeStyle = '#e0136a';
             ctx.lineWidth = 0.6;
             ctx.beginPath();
             ctx.moveTo(a.x, a.y);
@@ -71,7 +71,7 @@ export default function KolamField({ className = '' }) {
         ctx.arc(p.x, p.y, p.r * 4, 0, Math.PI * 2);
         ctx.fill();
 
-        ctx.fillStyle = '#800000';
+        ctx.fillStyle = '#ff2a75';
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
         ctx.fill();

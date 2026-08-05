@@ -151,7 +151,7 @@ export default function Chat() {
   return (
     <div className="min-h-screen flex flex-col" style={{ background: "linear-gradient(150deg,#fff5f8 0%,#fdf0ff 50%,#f0f4ff 100%)" }}>
       {/* Header */}
-      <div className="px-5 py-4 flex items-center gap-3 border-b border-pink-100" style={{ background: "linear-gradient(90deg,#f43f5e,#ec4899,#a855f7)" }}>
+      <div className="px-5 py-4 flex items-center gap-3 border-b border-pink-100" style={{ background: "linear-gradient(90deg,#e0136a,#ec4899,#ff7eb3)" }}>
         <button onClick={() => navigate("/dashboard")} className="text-white/80 hover:text-white text-xl font-bold mr-1">←</button>
         <span className="text-2xl">💬</span>
         <div>
@@ -190,7 +190,7 @@ export default function Chat() {
                     activeThread?.thread_id === thread.thread_id ? "bg-pink-50 border-l-4 border-l-pink-500" : "hover:bg-pink-50/50"
                   }`}
                 >
-                  <div className="w-11 h-11 rounded-full flex items-center justify-center shrink-0 text-lg font-bold text-white shadow-md" style={{ background: "linear-gradient(135deg,#f43f5e,#a855f7)" }}>
+                  <div className="w-11 h-11 rounded-full flex items-center justify-center shrink-0 text-lg font-bold text-white shadow-md" style={{ background: "linear-gradient(135deg,#e0136a,#ff7eb3)" }}>
                     {getOtherName(thread)?.[0]?.toUpperCase() || "?"}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -222,7 +222,7 @@ export default function Chat() {
               {/* Chat Header */}
               <div className="flex items-center gap-3 p-4 border-b border-pink-100 bg-white/90">
                 <button onClick={() => { setActiveThread(null); activeThreadRef.current = null; clearInterval(pollRef.current); }} className="md:hidden text-slate-500 text-xl">←</button>
-                <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold shadow" style={{ background: "linear-gradient(135deg,#f43f5e,#a855f7)" }}>
+                <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold shadow" style={{ background: "linear-gradient(135deg,#e0136a,#ff7eb3)" }}>
                   {getOtherName(activeThread)?.[0]?.toUpperCase()}
                 </div>
                 <div className="flex-1">
@@ -277,8 +277,8 @@ export default function Chat() {
 
               {/* Input */}
               {activeThread && activeThread.status && activeThread.status !== 'accepted' ? (
-                <div className="p-4 border-t border-amber-200 bg-amber-50/90 text-center">
-                  <p className="text-xs font-bold text-amber-800 flex items-center justify-center gap-1.5">
+                <div className="p-4 border-t border-pink-200 bg-pink-50/90 text-center">
+                  <p className="text-xs font-bold text-pink-700 flex items-center justify-center gap-1.5">
                     <span>🔒</span>
                     <span>You can start chatting once your interest request is accepted.</span>
                   </p>

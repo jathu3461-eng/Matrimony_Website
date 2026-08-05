@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { motion, useMotionValue, useSpring } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
-import api from '../api';
+import api, { uploadsUrl } from '../api';
 import { useAuth } from '../context/AuthContext';
 
 export default function ProfileCard({ profile, actions, onShortlistChange }) {
@@ -131,7 +131,7 @@ export default function ProfileCard({ profile, actions, onShortlistChange }) {
         </span>
 
         {profile.is_verified ? (
-          <span className="bg-amber-400 text-slate-900 text-[10px] font-extrabold px-2.5 py-1 rounded-full shadow-md flex items-center gap-1 border border-amber-200">
+          <span className="bg-pink-500 text-white text-[10px] font-extrabold px-2.5 py-1 rounded-full shadow-md flex items-center gap-1 border border-pink-400">
             ✓ Verified
           </span>
         ) : (
@@ -142,10 +142,10 @@ export default function ProfileCard({ profile, actions, onShortlistChange }) {
       </div>
 
       <Link to={`/profile/${profile.id}`} className="block relative z-10">
-        <div className="h-56 bg-gradient-to-br from-pink-100 via-rose-100 to-amber-100 flex items-center justify-center overflow-hidden relative">
+        <div className="h-56 bg-gradient-to-br from-pink-100 via-rose-100 to-pink-100 flex items-center justify-center overflow-hidden relative">
           {profile.main_profile_picture && !profile.blur_photo ? (
             <img
-              src={`/uploads/${profile.main_profile_picture}`}
+              src={uploadsUrl(profile.main_profile_picture)}
               alt={profile.name}
               className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
               onError={(e) => {
@@ -168,7 +168,7 @@ export default function ProfileCard({ profile, actions, onShortlistChange }) {
                   <span className="text-5xl">👧🏽</span>
                 </div>
               ) : (
-                <div className="w-28 h-28 rounded-full bg-gradient-to-tr from-indigo-400 to-sky-300 flex items-center justify-center shadow-lg border-4 border-white">
+                <div className="w-28 h-28 rounded-full bg-gradient-to-tr from-pink-300 to-rose-200 flex items-center justify-center shadow-lg border-4 border-white">
                   <span className="text-5xl">👦🏽</span>
                 </div>
               )}
@@ -180,7 +180,7 @@ export default function ProfileCard({ profile, actions, onShortlistChange }) {
         <div className="p-5 bg-white/90">
           <div className="flex items-center justify-between gap-1 mb-1">
             <h3 className="font-display text-lg font-bold text-slate-800 truncate">{profile.name}</h3>
-            {profile.is_verified && <span className="text-xs text-amber-500 font-bold" title="Verified Profile">✓</span>}
+            {profile.is_verified && <span className="text-xs text-pink-500 font-bold" title="Verified Profile">✓</span>}
           </div>
 
           <p className="text-xs font-semibold text-slate-600 mb-1">
@@ -214,8 +214,8 @@ export default function ProfileCard({ profile, actions, onShortlistChange }) {
             disabled={shortlistLoading}
             className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-1 ${
               isShortlisted
-                ? 'bg-amber-50 border-amber-300 text-amber-700 shadow-sm'
-                : 'bg-white border-slate-200 text-slate-700 hover:border-amber-300 hover:bg-amber-50/50'
+                ? 'bg-pink-50 border-pink-300 text-pink-700 shadow-sm'
+                : 'bg-white border-slate-200 text-slate-700 hover:border-pink-300 hover:bg-pink-50/50'
             }`}
           >
             <span>{isShortlisted ? '⭐' : '☆'}</span>

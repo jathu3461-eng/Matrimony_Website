@@ -19,17 +19,17 @@ export default function Footer() {
   ].filter((s) => footer[s.key]) : [];
 
   return (
-    <footer className="mt-28 bg-gradient-to-b from-slate-900 via-[#1a0933] to-[#0f051e] text-white pt-16 pb-10 border-t border-pink-500/20 relative overflow-hidden">
+    <footer className="mt-28 bg-gradient-to-b from-slate-900 via-[#3d0a2a] to-[#240414] text-white pt-16 pb-10 border-t border-pink-500/20 relative overflow-hidden">
       {/* Decorative ambient glows */}
       <div className="absolute top-0 left-1/4 w-96 h-96 bg-pink-600/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-rose-500/10 rounded-full blur-3xl pointer-events-none" />
 
       <div className="max-w-7xl mx-auto px-5 relative z-10">
         <div className="grid grid-cols-1 md:grid-cols-5 gap-10 pb-12 border-b border-white/10">
           {/* Brand Info */}
           <div className="md:col-span-2">
             <div className="flex items-center gap-2.5 mb-4">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-pink-500 to-amber-400 flex items-center justify-center text-xl shadow-lg">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-pink-500 to-rose-400 flex items-center justify-center text-xl shadow-lg">
                 💖
               </div>
               <span className="font-display text-2xl font-extrabold text-white tracking-tight">

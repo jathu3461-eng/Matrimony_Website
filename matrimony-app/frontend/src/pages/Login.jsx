@@ -70,19 +70,17 @@ export default function Login() {
 
   return (
     <div className="min-h-screen relative overflow-hidden flex items-center justify-center py-8 px-4"
-      style={{ background: 'linear-gradient(135deg, #fff0f6 0%, #fce4ff 35%, #ede0ff 65%, #e0eaff 100%)' }}>
+      style={{ background: 'linear-gradient(135deg, #fff0f6 0%, #ffe3ef 35%, #ffd3e6 65%, #ffc2dd 100%)' }}>
 
       {/* Floating decorative elements */}
       {FLOATS.map((f, i) => (
-        <motion.div
+        <div
           key={i}
           className="fixed pointer-events-none select-none z-0"
           style={{ top: f.top, left: f.left, right: f.right, bottom: f.bottom, fontSize: f.size }}
-          animate={{ y: [0, -14, 0], rotate: [0, 8, -8, 0] }}
-          transition={{ duration: 4 + i * 0.5, repeat: Infinity, delay: f.delay, ease: 'easeInOut' }}
         >
           {f.emoji}
-        </motion.div>
+        </div>
       ))}
 
       <div className="relative z-10 w-full max-w-5xl">
@@ -94,10 +92,10 @@ export default function Login() {
           style={{ boxShadow: '0 30px 80px rgba(220,50,100,0.18)' }}
         >
           {/* ── LEFT: Form Panel ── */}
-          <div className="bg-white/95 backdrop-blur-xl p-8 sm:p-10 flex flex-col justify-center">
+          <div className="bg-white p-8 sm:p-10 flex flex-col justify-center">
             {/* Logo */}
             <div className="flex items-center gap-2 mb-7">
-              <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-pink-500 to-amber-400 flex items-center justify-center shadow-lg">
+              <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-pink-500 to-rose-400 flex items-center justify-center shadow-lg">
                 <span className="text-lg">💖</span>
               </div>
               <span className="font-extrabold text-lg text-slate-800 tracking-tight">Mukurtham</span>
@@ -214,21 +212,21 @@ export default function Login() {
             <img
               src="/uploads/couple_hero.png"
               alt="Tamil Wedding Couple"
-              className="w-full h-full object-cover object-center flex-1"
+              className="w-full flex-1 object-cover object-center"
               style={{ minHeight: 340 }}
+              onError={(e) => { e.target.onerror = null; e.target.style.display = 'none'; }}
             />
 
-            {/* Overlay quote */}
-            <div className="absolute bottom-0 left-0 right-0 p-6"
-              style={{ background: 'linear-gradient(0deg, rgba(180,40,80,0.65) 0%, transparent 100%)' }}>
-              <p className="text-white font-bold text-base leading-snug">
-                Every love story is beautiful,
-              </p>
-              <p className="text-pink-100 text-sm font-semibold mt-0.5">but ours could be my favorite. 💕</p>
-            </div>
+            {/* Bottom block: quote then trust badges (stacked, no overlap) */}
+            <div className="relative w-full shrink-0">
+              <div className="p-5 pb-4"
+                style={{ background: 'linear-gradient(0deg, rgba(180,40,80,0.65) 0%, transparent 100%)' }}>
+                <p className="text-white font-bold text-base leading-snug">
+                  Every love story is beautiful,
+                </p>
+                <p className="text-pink-100 text-sm font-semibold mt-0.5">but ours could be my favorite. 💕</p>
+              </div>
 
-            {/* Trust badges */}
-            <div className="absolute bottom-0 left-0 right-0">
               <div className="grid grid-cols-4 gap-0">
                 {TRUST_BADGES.map((b) => (
                   <div key={b.label} className="flex flex-col items-center py-3 text-center"

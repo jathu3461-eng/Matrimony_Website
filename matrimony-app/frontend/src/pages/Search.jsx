@@ -60,7 +60,7 @@ export default function Search() {
   return (
     <div className="max-w-7xl mx-auto px-5 py-8">
       {/* ── Top Header Panel (Matching mockup 3) ── */}
-      <div className="rounded-3xl overflow-hidden mb-8 bg-gradient-to-r from-pink-100 via-purple-100 to-amber-100 border border-pink-200/50 shadow-md flex flex-col md:flex-row items-center justify-between p-8 md:p-12 relative">
+      <div className="rounded-3xl overflow-hidden mb-8 bg-gradient-to-r from-pink-100 via-pink-50 to-pink-200 border border-pink-200/50 shadow-md flex flex-col md:flex-row items-center justify-between p-8 md:p-12 relative">
         <div className="max-w-lg text-left z-10">
           <span className="text-xs font-extrabold uppercase tracking-wider text-pink-600 mb-2 block">Premium Matchmaking</span>
           <h1 className="font-display text-4xl font-extrabold text-slate-800 leading-tight mb-2">

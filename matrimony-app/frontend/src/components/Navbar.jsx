@@ -33,7 +33,7 @@ export default function Navbar({ siteName }) {
       : 'text-slate-600 hover:text-pink-600 hover:bg-white/70';
 
   return (
-    <header className="sticky top-0 z-50 backdrop-blur-xl bg-white/80 border-b border-pink-100/80 shadow-sm">
+    <header className="sticky top-0 z-50 bg-white border-b border-pink-100/80 shadow-sm">
       <div className="max-w-7xl mx-auto px-5 py-3 flex items-center justify-between gap-4 flex-wrap">
 
         {/* ── Brand Logo ── */}
@@ -41,7 +41,7 @@ export default function Navbar({ siteName }) {
           <motion.div
             whileHover={{ scale: 1.12, rotate: 8 }}
             whileTap={{ scale: 0.95 }}
-            className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-pink-500 via-rose-500 to-amber-400
+            className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-pink-500 via-rose-500 to-pink-400
                        flex items-center justify-center text-white shadow-md shadow-pink-500/30"
           >
             <span className="text-lg">💖</span>
@@ -83,8 +83,8 @@ export default function Navbar({ siteName }) {
             onClick={toggleLang}
             className={`px-4 py-1.5 text-xs font-bold rounded-full transition-all border flex items-center gap-1.5
               ${lang === 'ta'
-                ? 'bg-amber-500 text-white border-amber-400 shadow shadow-amber-400/40'
-                : 'bg-white text-amber-700 border-amber-300 hover:bg-amber-50'}`}
+                ? 'bg-pink-500 text-white border-pink-400 shadow shadow-pink-400/40'
+                : 'bg-white text-pink-600 border-pink-300 hover:bg-pink-50'}`}
             title={lang === 'ta' ? 'Switch to English' : 'தமிழில் காண'}
           >
             <span className="text-sm leading-none">🌐</span>

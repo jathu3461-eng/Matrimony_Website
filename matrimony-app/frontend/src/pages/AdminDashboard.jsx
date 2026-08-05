@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
@@ -27,7 +27,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-[#fafaf9]">
-      <div className="bg-gradient-to-r from-burgundy-700 to-[#5c0000] text-white px-6 py-5 flex items-center justify-between">
+      <div className="bg-gradient-to-r from-burgundy-700 to-[#8a0f45] text-white px-6 py-5 flex items-center justify-between">
         <h1 className="font-display text-2xl">Admin Dashboard</h1>
         <button onClick={handleLogout} className="text-sm bg-white/15 hover:bg-white/25 px-4 py-1.5 rounded-lg transition-colors">Logout</button>
       </div>
@@ -49,7 +49,7 @@ export default function AdminDashboard() {
               key={tName}
               onClick={() => setTab(i)}
               className={`px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap ${
-                tab === i ? 'border-burgundy-600 text-burgundy-700' : 'border-transparent text-[#4a2a1a]/50 hover:text-burgundy-700'
+                tab === i ? 'border-burgundy-600 text-burgundy-700' : 'border-transparent text-[#4a1230]/50 hover:text-burgundy-700'
               }`}
             >
               {tName}
@@ -70,7 +70,7 @@ function StatCard({ label, value }) {
   return (
     <div className="glass-card rounded-xl p-4">
       <p className="text-2xl font-display text-burgundy-700">{value}</p>
-      <p className="text-xs text-[#4a2a1a]/60">{label}</p>
+      <p className="text-xs text-[#4a1230]/60">{label}</p>
     </div>
   );
 }
@@ -84,16 +84,16 @@ function BrokerApprovals() {
   const approve = async (id) => { await api.post(`/admin/brokers/${id}/approve`); load(); };
   const reject = async (id) => { if (confirm('Reject this broker application?')) { await api.post(`/admin/brokers/${id}/reject`); load(); } };
 
-  if (brokers === null) return <p className="text-[#4a2a1a]/50">Loading…</p>;
-  if (brokers.length === 0) return <div className="glass-card rounded-2xl p-8 text-center text-[#4a2a1a]/60">No pending broker applications.</div>;
+  if (brokers === null) return <p className="text-[#4a1230]/50">Loadingâ€¦</p>;
+  if (brokers.length === 0) return <div className="glass-card rounded-2xl p-8 text-center text-[#4a1230]/60">No pending broker applications.</div>;
 
   return (
     <div className="space-y-3 pb-12">
       {brokers.map((b) => (
         <motion.div key={b.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="glass-card rounded-xl p-4 flex items-center justify-between">
           <div>
-            <p className="font-semibold text-[#4a2a1a]">{b.business_name} <span className="text-xs text-[#4a2a1a]/50">@{b.username}</span></p>
-            <p className="text-sm text-[#4a2a1a]/60">{b.email} · {b.phone_number}</p>
+            <p className="font-semibold text-[#4a1230]">{b.business_name} <span className="text-xs text-[#4a1230]/50">@{b.username}</span></p>
+            <p className="text-sm text-[#4a1230]/60">{b.email} Â· {b.phone_number}</p>
           </div>
           <div className="flex gap-2">
             <button onClick={() => approve(b.id)} className="text-sm px-3 py-1.5 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors">Approve</button>
@@ -120,11 +120,11 @@ function ProfilesVerification() {
     load();
   };
 
-  if (profiles === null) return <p className="text-[#4a2a1a]/50">Loading profiles…</p>;
+  if (profiles === null) return <p className="text-[#4a1230]/50">Loading profilesâ€¦</p>;
 
   return (
     <div className="space-y-3 pb-12">
-      <p className="text-xs text-[#4a2a1a]/60 mb-2">Verify government ID and authenticity for platform user profiles.</p>
+      <p className="text-xs text-[#4a1230]/60 mb-2">Verify government ID and authenticity for platform user profiles.</p>
       {profiles.map((p) => (
         <motion.div key={p.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="glass-card rounded-xl p-4 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -133,15 +133,15 @@ function ProfilesVerification() {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <p className="font-semibold text-[#4a2a1a]">{p.name}</p>
+                <p className="font-semibold text-[#4a1230]">{p.name}</p>
                 {p.is_verified === 1 && (
-                  <span className="text-[10px] bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full border border-amber-300">
-                    ✓ ID Verified
+                  <span className="text-[10px] bg-pink-100 text-pink-700 font-bold px-2 py-0.5 rounded-full border border-pink-300">
+                    âœ“ ID Verified
                   </span>
                 )}
               </div>
-              <p className="text-xs text-[#4a2a1a]/60">
-                Owner: {p.username} ({p.role}) · DOB: {p.date_of_birth}
+              <p className="text-xs text-[#4a1230]/60">
+                Owner: {p.username} ({p.role}) Â· DOB: {p.date_of_birth}
               </p>
             </div>
           </div>
@@ -149,11 +149,11 @@ function ProfilesVerification() {
             onClick={() => toggleVerify(p)}
             className={`text-xs px-4 py-2 rounded-lg font-semibold transition-colors ${
               p.is_verified
-                ? 'border border-amber-300 text-amber-800 hover:bg-amber-50'
+                ? 'border border-pink-300 text-pink-700 hover:bg-pink-50'
                 : 'bg-green-600 text-white hover:bg-green-700'
             }`}
           >
-            {p.is_verified ? 'Remove Verification' : 'Verify ID ✓'}
+            {p.is_verified ? 'Remove Verification' : 'Verify ID âœ“'}
           </button>
         </motion.div>
       ))}
@@ -175,7 +175,7 @@ function SiteSettings() {
     setTimeout(() => setSaved(false), 2000);
   };
 
-  if (!settings) return <p className="text-[#4a2a1a]/50">Loading…</p>;
+  if (!settings) return <p className="text-[#4a1230]/50">Loadingâ€¦</p>;
 
   const fields = [
     ['site_name', 'Site Name'], ['contact_number', 'Contact Phone'], ['contact_email', 'Contact Email'],
@@ -188,13 +188,13 @@ function SiteSettings() {
       <div className="grid sm:grid-cols-2 gap-4">
         {fields.map(([key, label]) => (
           <div key={key} className={key === 'meta_description' ? 'sm:col-span-2' : ''}>
-            <label className="block text-xs font-semibold text-[#4a2a1a]/70 mb-1">{label}</label>
+            <label className="block text-xs font-semibold text-[#4a1230]/70 mb-1">{label}</label>
             <input className="input-base" value={settings[key] || ''} onChange={set(key)} />
           </div>
         ))}
       </div>
       <button onClick={save} className="btn-primary mt-6">Save Changes</button>
-      {saved && <span className="ml-3 text-sm text-green-700">Saved ✓</span>}
+      {saved && <span className="ml-3 text-sm text-green-700">Saved âœ“</span>}
     </div>
   );
 }
@@ -220,7 +220,7 @@ function MenuEditor() {
 
   const remove = async (id) => { await api.delete(`/admin/menu-items/${id}`); load(); };
 
-  if (items === null) return <p className="text-[#4a2a1a]/50">Loading…</p>;
+  if (items === null) return <p className="text-[#4a1230]/50">Loadingâ€¦</p>;
 
   return (
     <div className="max-w-2xl pb-12">
@@ -228,8 +228,8 @@ function MenuEditor() {
         {items.map((item) => (
           <div key={item.id} className="flex items-center justify-between border-b border-burgundy/10 py-2 last:border-0">
             <div>
-              <p className="text-sm font-medium text-[#4a2a1a]">{item.title_en} <span className="text-[#4a2a1a]/40">/ {item.title_ta}</span></p>
-              <p className="text-xs text-[#4a2a1a]/50">{item.target_url} · order {item.display_order}</p>
+              <p className="text-sm font-medium text-[#4a1230]">{item.title_en} <span className="text-[#4a1230]/40">/ {item.title_ta}</span></p>
+              <p className="text-xs text-[#4a1230]/50">{item.target_url} Â· order {item.display_order}</p>
             </div>
             <div className="flex gap-2 items-center">
               <button onClick={() => toggleActive(item)} className={`text-xs px-2.5 py-1 rounded-full ${item.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-500'}`}>

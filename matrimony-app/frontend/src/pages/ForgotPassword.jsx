@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../api';
@@ -74,14 +74,14 @@ export default function ForgotPassword() {
     <div className="max-w-md mx-auto px-5 py-16">
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="glass-card rounded-3xl p-8">
         <h1 className="font-display text-2xl text-burgundy-700 mb-1">Reset your password</h1>
-        <p className="text-sm text-[#4a2a1a]/70 mb-6">Step {step} of 3</p>
+        <p className="text-sm text-[#4a1230]/70 mb-6">Step {step} of 3</p>
 
         {step === 1 && (
           <form onSubmit={requestOtp} noValidate>
             <Field label="Email Address" error={errors.email}>
               <input className={`input-base ${errors.email ? 'input-error' : ''}`} value={email} onChange={(e) => setEmail(e.target.value)} />
             </Field>
-            <button type="submit" disabled={submitting} className="btn-primary w-full">{submitting ? '…' : 'Send Code'}</button>
+            <button type="submit" disabled={submitting} className="btn-primary w-full">{submitting ? 'â€¦' : 'Send Code'}</button>
           </form>
         )}
 
@@ -95,7 +95,7 @@ export default function ForgotPassword() {
             <Field label="6-digit Code" error={errors.otp}>
               <input className={`input-base ${errors.otp ? 'input-error' : ''}`} value={otp} onChange={(e) => setOtp(e.target.value)} maxLength={6} />
             </Field>
-            <button type="submit" disabled={submitting} className="btn-primary w-full">{submitting ? '…' : 'Verify Code'}</button>
+            <button type="submit" disabled={submitting} className="btn-primary w-full">{submitting ? 'â€¦' : 'Verify Code'}</button>
           </form>
         )}
 
@@ -107,11 +107,11 @@ export default function ForgotPassword() {
             <Field label="Confirm New Password" error={errors.confirm_password}>
               <input type="password" className={`input-base ${errors.confirm_password ? 'input-error' : ''}`} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
             </Field>
-            <button type="submit" disabled={submitting} className="btn-primary w-full">{submitting ? '…' : 'Reset Password'}</button>
+            <button type="submit" disabled={submitting} className="btn-primary w-full">{submitting ? 'â€¦' : 'Reset Password'}</button>
           </form>
         )}
 
-        <p className="text-center text-sm text-[#4a2a1a]/70 mt-5">
+        <p className="text-center text-sm text-[#4a1230]/70 mt-5">
           <Link to="/login" className="text-burgundy-700 font-semibold hover:underline">Back to login</Link>
         </p>
       </motion.div>

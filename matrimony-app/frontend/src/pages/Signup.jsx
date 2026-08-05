@@ -30,6 +30,7 @@ export default function Signup() {
   const { t } = useI18n();
 
   const [role, setRole] = useState(params.get('role') === 'broker' ? 'broker' : 'regular');
+  const isBroker = role === 'broker';
   const [showPw, setShowPw] = useState(false);
   const [form, setForm] = useState({
     username: '', email: '', password: '', phone_number: '', business_name: '', ui_language: 'en',
@@ -145,16 +146,14 @@ const Inp = ({ icon, field, type = 'text', placeholder, hint, right, value, onCh
 
   return (
     <div className="min-h-screen relative overflow-hidden flex items-center justify-center py-8 px-4"
-      style={{ background: 'linear-gradient(135deg, #fff0f6 0%, #fce4ff 35%, #ede0ff 65%, #e0eaff 100%)' }}>
+      style={{ background: 'linear-gradient(135deg, #fff0f6 0%, #ffe3ef 35%, #ffd3e6 65%, #ffc2dd 100%)' }}>
 
       {/* Floats */}
       {FLOATS.map((f, i) => (
-        <motion.div key={i} className="fixed pointer-events-none select-none z-0"
-          style={{ top: f.top, left: f.left, right: f.right, bottom: f.bottom, fontSize: f.size }}
-          animate={{ y: [0, -12, 0], rotate: [0, 6, -6, 0] }}
-          transition={{ duration: 4 + i * 0.6, repeat: Infinity, delay: f.delay, ease: 'easeInOut' }}>
+        <div key={i} className="fixed pointer-events-none select-none z-0"
+          style={{ top: f.top, left: f.left, right: f.right, bottom: f.bottom, fontSize: f.size }}>
           {f.emoji}
-        </motion.div>
+        </div>
       ))}
 
       <div className="relative z-10 w-full max-w-5xl">
@@ -186,36 +185,37 @@ const Inp = ({ icon, field, type = 'text', placeholder, hint, right, value, onCh
               />
             </AnimatePresence>
 
-            {/* Overlay */}
-            <div className="absolute bottom-0 left-0 right-0 p-5"
-              style={{ background: 'linear-gradient(0deg, rgba(100,30,120,0.7) 0%, transparent 100%)' }}>
-              <p className="text-white font-bold text-base">
-                {isBroker ? 'Marriage Broker Account Registration' : 'Create Your Account'}
-              </p>
-              <p className="text-purple-100 text-sm mt-0.5">
-                {isBroker ? 'Connect brides & grooms effortlessly 💼' : 'Start your beautiful journey today! 💕'}
-              </p>
-            </div>
+            {/* Bottom block: overlay text then trust badges (stacked, no overlap) */}
+            <div className="relative w-full shrink-0">
+              <div className="p-5 pb-4"
+                style={{ background: 'linear-gradient(0deg, rgba(100,30,120,0.7) 0%, transparent 100%)' }}>
+                <p className="text-white font-bold text-base">
+                  {isBroker ? 'Marriage Broker Account Registration' : 'Create Your Account'}
+                </p>
+                <p className="text-pink-100 text-sm mt-0.5">
+                  {isBroker ? 'Connect brides & grooms effortlessly 💼' : 'Start your beautiful journey today! 💕'}
+                </p>
+              </div>
 
-            {/* Trust badges */}
-            <div className="grid grid-cols-4">
-              {TRUST_BADGES.map((b) => (
-                <div key={b.label} className="flex flex-col items-center py-3 text-center"
-                  style={{ background: 'rgba(255,255,255,0.18)', backdropFilter: 'blur(8px)' }}>
-                  <span className="text-base mb-0.5">{b.icon}</span>
-                  <p className="text-slate-800 text-[9px] font-bold leading-tight">{b.label}</p>
-                  <p className="text-slate-500 text-[8px]">{b.sub}</p>
-                </div>
-              ))}
+              <div className="grid grid-cols-4">
+                {TRUST_BADGES.map((b) => (
+                  <div key={b.label} className="flex flex-col items-center py-3 text-center"
+                    style={{ background: 'rgba(255,255,255,0.18)', backdropFilter: 'blur(8px)' }}>
+                    <span className="text-base mb-0.5">{b.icon}</span>
+                    <p className="text-slate-800 text-[9px] font-bold leading-tight">{b.label}</p>
+                    <p className="text-slate-500 text-[8px]">{b.sub}</p>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 
           {/* ── RIGHT: Form ── */}
-          <div className="bg-white/95 backdrop-blur-xl p-7 sm:p-9 flex flex-col justify-center">
+          <div className="bg-white p-7 sm:p-9 flex flex-col justify-center">
             {/* Header */}
             <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-pink-500 to-amber-400 flex items-center justify-center shadow">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-pink-500 to-rose-400 flex items-center justify-center shadow">
                   <span className="text-base">💖</span>
                 </div>
                 <span className="font-extrabold text-base text-slate-800">Mukurtham</span>

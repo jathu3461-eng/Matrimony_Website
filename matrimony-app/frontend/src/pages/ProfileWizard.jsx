@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../api';
@@ -123,31 +123,31 @@ export default function ProfileWizard() {
     }
   };
 
-  const STEP_ICONS = ['👤', '💼', '🙏', '🌍', '📸'];
+  const STEP_ICONS = ['ðŸ‘¤', 'ðŸ’¼', 'ðŸ™', 'ðŸŒ', 'ðŸ“¸'];
 
   if (!meta || loadingProfile) return (
     <div className="min-h-screen flex items-center justify-center"
-      style={{ background: 'linear-gradient(135deg,#fff0f6,#fce4ff,#ede0ff)' }}>
+      style={{ background: 'linear-gradient(135deg,#fff0f6,#ffe3ef,#ffd3e6)' }}>
       <div className="flex flex-col items-center gap-3">
         <div className="w-10 h-10 rounded-full border-4 border-pink-200 border-t-pink-500 animate-spin" />
-        <p className="text-sm text-slate-500 font-semibold">Loading form…</p>
+        <p className="text-sm text-slate-500 font-semibold">Loading formâ€¦</p>
       </div>
     </div>
   );
 
   return (
     <div className="min-h-screen py-8 px-4"
-      style={{ background: 'linear-gradient(135deg,#fff0f6 0%,#fce4ff 40%,#ede0ff 70%,#e0eaff 100%)' }}>
+      style={{ background: 'linear-gradient(135deg,#fff0f6 0%,#ffe3ef 40%,#ffd3e6 70%,#ffc2dd 100%)' }}>
       <div className="max-w-5xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           className="grid md:grid-cols-5 rounded-[2rem] overflow-hidden shadow-2xl"
-          style={{ boxShadow: '0 30px 80px rgba(180,50,200,0.15)' }}
+          style={{ boxShadow: '0 30px 80px rgba(224,19,106,0.2)' }}
         >
-          {/* ── LEFT PANEL ── */}
+          {/* â”€â”€ LEFT PANEL â”€â”€ */}
           <div className="hidden md:flex md:col-span-2 flex-col relative overflow-hidden"
-            style={{ background: 'linear-gradient(160deg,#f43f5e 0%,#ec4899 45%,#a855f7 100%)' }}>
+            style={{ background: 'linear-gradient(160deg,#e0136a 0%,#ec4899 45%,#ff7eb3 100%)' }}>
             <div className="absolute top-0 right-0 w-48 h-48 rounded-full opacity-15 bg-white"
               style={{ transform: 'translate(30%,-30%)' }} />
             <div className="absolute bottom-0 left-0 w-40 h-40 rounded-full opacity-10 bg-white"
@@ -156,7 +156,7 @@ export default function ProfileWizard() {
             {/* Steps sidebar */}
             <div className="relative z-10 p-8 pt-10">
               <div className="flex items-center gap-2 mb-8">
-                <div className="w-9 h-9 rounded-2xl bg-white/25 flex items-center justify-center text-lg">💖</div>
+                <div className="w-9 h-9 rounded-2xl bg-white/25 flex items-center justify-center text-lg">ðŸ’–</div>
                 <span className="text-white font-extrabold text-base">Mukurtham</span>
               </div>
               <h2 className="text-white font-extrabold text-xl mb-1">{isEdit ? 'Edit Profile' : 'Create Profile'}</h2>
@@ -170,7 +170,7 @@ export default function ProfileWizard() {
                     <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-sm font-bold shrink-0 ${
                       i < step ? 'bg-green-400 text-white' : i === step ? 'bg-white text-pink-600' : 'bg-white/20 text-white'
                     }`}>
-                      {i < step ? '✓' : STEP_ICONS[i]}
+                      {i < step ? 'âœ“' : STEP_ICONS[i]}
                     </div>
                     <div>
                       <p className="text-white text-xs font-bold">{s}</p>
@@ -187,8 +187,8 @@ export default function ProfileWizard() {
             </div>
           </div>
 
-          {/* ── RIGHT PANEL: Form ── */}
-          <div className="md:col-span-3 bg-white/95 backdrop-blur-xl p-7 sm:p-9">
+          {/* â”€â”€ RIGHT PANEL: Form â”€â”€ */}
+          <div className="md:col-span-3 bg-white p-7 sm:p-9">
             {/* Mobile progress bar */}
             <div className="flex items-center gap-1.5 mb-6 md:hidden">
               {STEPS.map((s, i) => (
@@ -214,7 +214,7 @@ export default function ProfileWizard() {
 
       <motion.div>
         <AnimatePresence mode="wait">
-          <motion.div key={step} initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -24 }} transition={{ duration: 0.25 }}>
+          <motion.div key={step} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
 
             {step === 0 && (
               <>
@@ -230,7 +230,7 @@ export default function ProfileWizard() {
                   <div className="flex gap-3">
                     {[['M', 'Groom'], ['F', 'Bride']].map(([v, label]) => (
                       <button type="button" key={v} onClick={() => setForm((f) => ({ ...f, gender: v }))}
-                        className={`flex-1 py-2.5 rounded-lg border text-sm font-medium transition-colors ${form.gender === v ? 'bg-burgundy-600 text-white border-burgundy-600' : 'border-burgundy/20 text-[#4a2a1a]/80'}`}>
+                        className={`flex-1 py-2.5 rounded-lg border text-sm font-medium transition-colors ${form.gender === v ? 'bg-burgundy-600 text-white border-burgundy-600' : 'border-burgundy/20 text-[#4a1230]/80'}`}>
                         {label}
                       </button>
                     ))}
@@ -323,13 +323,13 @@ export default function ProfileWizard() {
               <>
                 <Field label="Religion">
                   <select className="input-base" value={form.religion_id} onChange={set('religion_id')}>
-                    <option value="">Select…</option>
+                    <option value="">Selectâ€¦</option>
                     {meta.religions.map((r) => <option key={r.id} value={r.id}>{r.name_en}</option>)}
                   </select>
                 </Field>
                 <Field label="Caste / Saathi">
                   <select className="input-base" value={form.caste_id} onChange={set('caste_id')}>
-                    <option value="">Select…</option>
+                    <option value="">Selectâ€¦</option>
                     {meta.castes.map((c) => <option key={c.id} value={c.id}>{c.name_en}</option>)}
                   </select>
                 </Field>
@@ -339,13 +339,13 @@ export default function ProfileWizard() {
                 <div className="grid grid-cols-2 gap-4">
                   <Field label="Zodiac / Raasi">
                     <select className="input-base" value={form.raasi_id} onChange={set('raasi_id')}>
-                      <option value="">Select…</option>
+                      <option value="">Selectâ€¦</option>
                       {meta.raasis.map((r) => <option key={r.id} value={r.id}>{r.name_en}</option>)}
                     </select>
                   </Field>
                   <Field label="Star / Nakshatram">
                     <select className="input-base" value={form.star_id} onChange={set('star_id')}>
-                      <option value="">Select…</option>
+                      <option value="">Selectâ€¦</option>
                       {meta.stars.map((s) => <option key={s.id} value={s.id}>{s.name_en}</option>)}
                     </select>
                   </Field>
@@ -357,13 +357,13 @@ export default function ProfileWizard() {
               <>
                 <Field label="Country of Birth">
                   <select className="input-base" value={form.born_country_id} onChange={set('born_country_id')}>
-                    <option value="">Select…</option>
+                    <option value="">Selectâ€¦</option>
                     {meta.countries.map((c) => <option key={c.code} value={c.code}>{c.name_en}</option>)}
                   </select>
                 </Field>
                 <Field label="Current Country of Residence">
                   <select className="input-base" value={form.current_country_id} onChange={set('current_country_id')}>
-                    <option value="">Select…</option>
+                    <option value="">Selectâ€¦</option>
                     {meta.countries.map((c) => <option key={c.code} value={c.code}>{c.name_en}</option>)}
                   </select>
                 </Field>
@@ -377,21 +377,21 @@ export default function ProfileWizard() {
               <>
                 <Field label="Main Profile Photo (.jpg, .jpeg, .png)">
                   <input type="file" accept=".jpg,.jpeg,.png" className="input-base" onChange={(e) => setPhotoFile(e.target.files[0])} />
-                  {existingPhoto && !photoFile && <p className="text-xs text-[#4a2a1a]/50 mt-1">Current: {existingPhoto}</p>}
+                  {existingPhoto && !photoFile && <p className="text-xs text-[#4a1230]/50 mt-1">Current: {existingPhoto}</p>}
                 </Field>
                 <Field label="Horoscope Chart (.jpg, .png, .pdf)">
                   <input type="file" accept=".jpg,.jpeg,.png,.pdf" className="input-base" onChange={(e) => setHoroscopeFile(e.target.files[0])} />
-                  {existingHoroscope && !horoscopeFile && <p className="text-xs text-[#4a2a1a]/50 mt-1">Current: {existingHoroscope}</p>}
+                  {existingHoroscope && !horoscopeFile && <p className="text-xs text-[#4a1230]/50 mt-1">Current: {existingHoroscope}</p>}
                 </Field>
-                <div className="flex flex-col gap-2.5 mt-2 mb-4 bg-amber-50/40 p-4 rounded-xl border border-gold/15">
+                <div className="flex flex-col gap-2.5 mt-2 mb-4 bg-pink-50/40 p-4 rounded-xl border border-gold/15">
                   <p className="text-sm font-semibold text-burgundy-700">Privacy & Photo Settings</p>
                   <label className="flex items-start gap-2.5 cursor-pointer">
                     <input type="checkbox" className="mt-1" checked={form.blur_photo === 1} onChange={(e) => setForm(f => ({ ...f, blur_photo: e.target.checked ? 1 : 0 }))} />
-                    <span className="text-sm text-[#4a2a1a]/85">{t('blur_photo_label')}</span>
+                    <span className="text-sm text-[#4a1230]/85">{t('blur_photo_label')}</span>
                   </label>
                   <label className="flex items-start gap-2.5 cursor-pointer">
                     <input type="checkbox" className="mt-1" checked={form.blur_horoscope === 1} onChange={(e) => setForm(f => ({ ...f, blur_horoscope: e.target.checked ? 1 : 0 }))} />
-                    <span className="text-sm text-[#4a2a1a]/85">{t('blur_horoscope_label')}</span>
+                    <span className="text-sm text-[#4a1230]/85">{t('blur_horoscope_label')}</span>
                   </label>
                 </div>
                 <Field label={`About Me (${t('about_me_min')})`} error={touched.about_me && errors.about_me} formatHint="Detailed description (Min 50 characters)">
@@ -401,9 +401,9 @@ export default function ProfileWizard() {
                     value={form.about_me}
                     onChange={set('about_me')}
                     onBlur={blur('about_me')}
-                    placeholder="Hello, looking for an understanding partner who values family traditions…"
+                    placeholder="Hello, looking for an understanding partner who values family traditionsâ€¦"
                   />
-                  <p className="text-xs text-[#4a2a1a]/50 mt-1">{form.about_me.trim().length} / 50 characters minimum</p>
+                  <p className="text-xs text-[#4a1230]/50 mt-1">{form.about_me.trim().length} / 50 characters minimum</p>
                 </Field>
               </>
             )}
@@ -413,7 +413,7 @@ export default function ProfileWizard() {
 
         {serverError && (
           <div className="mt-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs font-bold text-rose-600">
-            ⚠️ {serverError}
+            âš ï¸ {serverError}
           </div>
         )}
 
@@ -426,7 +426,7 @@ export default function ProfileWizard() {
             whileTap={{ scale: 0.97 }}
             className="flex-1 py-3 rounded-xl border border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-50 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
           >
-            ← Back
+            â† Back
           </motion.button>
           {step < STEPS.length - 1 ? (
             <motion.button
@@ -437,7 +437,7 @@ export default function ProfileWizard() {
               className="flex-1 py-3 rounded-xl font-bold text-sm text-white shadow-lg"
               style={{ background: 'linear-gradient(90deg,#f43f5e,#ec4899)' }}
             >
-              Continue →
+              Continue â†’
             </motion.button>
           ) : (
             <motion.button
@@ -447,9 +447,9 @@ export default function ProfileWizard() {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.97 }}
               className="flex-1 py-3 rounded-xl font-bold text-sm text-white shadow-lg disabled:opacity-70"
-              style={{ background: 'linear-gradient(90deg,#a855f7,#ec4899)' }}
+              style={{ background: 'linear-gradient(90deg,#e0136a,#ec4899)' }}
             >
-              {submitting ? '⏳ Saving…' : isEdit ? '✓ Update Profile' : '🚀 Create Profile'}
+              {submitting ? 'â³ Savingâ€¦' : isEdit ? 'âœ“ Update Profile' : 'ðŸš€ Create Profile'}
             </motion.button>
           )}
         </div>
