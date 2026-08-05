@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, Navigate } from 'react-router-dom';
 import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
 import { motion } from 'framer-motion';
 import api from '../api';
@@ -12,7 +12,7 @@ import { loginSchema, normalizeApiErrors } from '../lib/validation';
 
 export default function Login() {
   const navigate = useNavigate();
-  const { setUser } = useAuth();
+  const { setUser, user, loading: authLoading } = useAuth();
   const [showPw, setShowPw] = useState(false);
   const [serverError, setServerError] = useState('');
 
@@ -48,6 +48,9 @@ export default function Login() {
       }
     }
   });
+
+  if (authLoading) return null;
+  if (user) return <Navigate to="/dashboard" replace />;
 
   return (
     <AuthLayout

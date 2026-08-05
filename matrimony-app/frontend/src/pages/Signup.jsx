@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, Navigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Building2, Check, CheckCircle2, Eye, EyeOff, Lock, Mail, Phone, User } from 'lucide-react';
 import api from '../api';
@@ -36,7 +36,7 @@ function PasswordChecklist({ value }) {
 export default function Signup() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
-  const { setUser } = useAuth();
+  const { setUser, user, loading: authLoading } = useAuth();
   const [isBroker, setIsBroker] = useState(params.get('role') === 'broker');
   const [showPw, setShowPw] = useState(false);
   const [serverError, setServerError] = useState('');
@@ -111,6 +111,9 @@ export default function Signup() {
       }
     }
   });
+
+  if (authLoading) return null;
+  if (user) return <Navigate to="/dashboard" replace />;
 
   return (
     <AuthLayout

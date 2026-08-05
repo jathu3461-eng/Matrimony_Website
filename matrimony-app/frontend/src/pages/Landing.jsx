@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Search, ArrowRight, ShieldCheck, Lock, Sparkles, Headphones, Gift, Check } from 'lucide-react';
 import api from '../api';
 import { useI18n } from '../context/I18nContext';
+import { useAuth } from '../context/AuthContext';
 import ProfileCard from '../components/ProfileCard';
 import { Button, Badge } from '../components/ui';
 
@@ -116,6 +117,7 @@ function DisneyCoupleHeroIllustration() {
 export default function Landing() {
   const { t } = useI18n();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [recommendedProfiles, setRecommendedProfiles] = useState([]);
   const [searchFilter, setSearchFilter] = useState({ gender: 'F', age: '22-35', religion: 'Hindu', language: 'Tamil' });
 
@@ -131,6 +133,8 @@ export default function Landing() {
     if (searchFilter.gender) params.set('gender', searchFilter.gender);
     navigate(`/search?${params.toString()}`);
   };
+
+  const goRegister = () => navigate(user ? '/dashboard' : '/signup');
 
   const featureCards = [
     { icon: <ShieldCheck className="w-6 h-6" aria-hidden="true" />, title: 'Verified Profiles', desc: '100% Genuine & Manually Verified Profiles' },
@@ -357,7 +361,7 @@ export default function Landing() {
                 </li>
               </ul>
 
-              <Button fullWidth onClick={() => navigate('/signup')}>
+              <Button fullWidth onClick={goRegister}>
                 Create Profile Now <ArrowRight className="w-4 h-4" aria-hidden="true" />
               </Button>
             </motion.div>
@@ -436,7 +440,7 @@ export default function Landing() {
               Join millions of happy individuals and find your perfect life partner today.
             </p>
             <Button
-              onClick={() => navigate('/signup')}
+              onClick={goRegister}
               size="lg"
               className="!bg-white !text-[var(--primary-strong)] !shadow-[0_10px_30px_-6px_rgba(255,255,255,0.5)]"
             >

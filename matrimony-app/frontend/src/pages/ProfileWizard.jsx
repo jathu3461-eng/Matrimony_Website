@@ -6,6 +6,7 @@ import {
   MapPin, Ruler, Star, User, Users, Wallet, X, Save, ImagePlus,
 } from 'lucide-react';
 import api from '../api';
+import { useAuth } from '../context/AuthContext';
 import { Button, Stepper, ProgressBar, Badge, ErrorCard, TextField, SelectField, TextareaField, useToast } from '../components/ui';
 import { profileSteps, validateStep, POSTED_BY } from '../lib/validation';
 
@@ -118,6 +119,8 @@ export default function ProfileWizard() {
 
   const [meta, setMeta] = useState(null);
   const [loadingProfile, setLoadingProfile] = useState(isEdit);
+  const [checkingExisting, setCheckingExisting] = useState(!isEdit);
+  const { user } = useAuth();
   const [step, setStep] = useState(0);
   const [form, setForm] = useState(EMPTY_FORM);
   const [touched, setTouched] = useState({});
@@ -154,7 +157,24 @@ export default function ProfileWizard() {
   }, []);
 
   useEffect(() => {
+    if (isEdit) { setCheckingExisting(false); return; }
+    if (!user) return;
+    if (user.role !== 'regular') { setCheckingExisting(false); return; }
+    api.get('/profiles/mine')
+      .then((res) => {
+        const list = res.data.profiles || res.data || [];
+        if (list.length > 0) {
+          navigate(`/profile/${list[0].id}/edit`, { replace: true });
+        } else {
+          setCheckingExisting(false);
+        }
+      })
+      .catch(() => setCheckingExisting(false));
+  }, [id, isEdit, user]);
+
+  useEffect(() => {
     if (!isEdit) return;
+    setLoadingProfile(true);
     api.get(`/profiles/${id}`).then((res) => {
       const p = res.data.profile;
       setForm({
@@ -293,7 +313,7 @@ export default function ProfileWizard() {
     }
   };
 
-  const loading = !meta || loadingProfile;
+  const loading = !meta || loadingProfile || checkingExisting;
 
   const StepIcon = STEP_ICONS[profileSteps[step].icon] || User;
   const stepperSteps = profileSteps.map((s) => ({ label: s.title, hint: s.hint }));

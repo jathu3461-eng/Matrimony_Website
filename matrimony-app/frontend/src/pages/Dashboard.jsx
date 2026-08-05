@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import {
-  Users, Heart, Star, MessagesSquare, Plus, Search, Trash2, Pencil,
+  Users, Heart, Star, MessagesSquare, Plus, Search, Trash2, Pencil, PencilLine,
   Mail, Check, X, Clock, Briefcase, Sparkles,
 } from 'lucide-react';
 import api, { uploadsUrl } from '../api';
@@ -157,9 +157,15 @@ export default function Dashboard() {
           </div>
 
           <div className="flex gap-3 flex-wrap justify-center">
-            <Button onClick={() => navigate('/profile/new')} className="!bg-white !text-[var(--primary-strong)] !shadow-[0_10px_30px_-6px_rgba(255,255,255,0.5)]">
-              <Plus className="w-4 h-4" aria-hidden="true" /> {t('create_new_profile')}
-            </Button>
+            {!isBroker && profiles.length > 0 ? (
+              <Button onClick={() => navigate(`/profile/${profiles[0].id}/edit`)} className="!bg-white !text-[var(--primary-strong)] !shadow-[0_10px_30px_-6px_rgba(255,255,255,0.5)]">
+                <PencilLine className="w-4 h-4" aria-hidden="true" /> Edit Profile
+              </Button>
+            ) : (
+              <Button onClick={() => navigate('/profile/new')} className="!bg-white !text-[var(--primary-strong)] !shadow-[0_10px_30px_-6px_rgba(255,255,255,0.5)]">
+                <Plus className="w-4 h-4" aria-hidden="true" /> {t('create_new_profile')}
+              </Button>
+            )}
             <Button variant="secondary" onClick={() => navigate('/search')} className="!border-white/60 !text-white !bg-white/10 hover:!bg-white/20">
               <Search className="w-4 h-4" aria-hidden="true" /> Browse Matches
             </Button>

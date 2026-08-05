@@ -251,12 +251,14 @@ router.post('/', requireAuth, upload.fields([
     const errors = validateProfile(req.body);
     if (Object.keys(errors).length) return res.status(400).json({ errors });
 
+    const countRow = await db.get('SELECT COUNT(*) c FROM profiles WHERE owner_user_id = ?', [req.user.id]);
     if (req.user.role === 'broker') {
       if (!req.user.is_approved) return res.status(403).json({ error: 'Broker account pending admin approval' });
       const dbUser = await db.get('SELECT broker_profile_limit FROM users WHERE id = ?', [req.user.id]);
-      const countRow = await db.get('SELECT COUNT(*) c FROM profiles WHERE owner_user_id = ?', [req.user.id]);
       if (countRow.c >= dbUser.broker_profile_limit)
         return res.status(403).json({ error: `Broker profile limit reached (${dbUser.broker_profile_limit}). Contact admin to increase your quota.` });
+    } else if (req.user.role === 'regular' && countRow.c >= 1) {
+      return res.status(403).json({ error: 'You can only create one profile per account. Edit your existing profile instead.' });
     }
 
     const b = req.body;
