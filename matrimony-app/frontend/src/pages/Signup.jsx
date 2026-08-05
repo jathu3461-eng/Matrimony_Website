@@ -23,6 +23,35 @@ const FLOATS = [
   { emoji: '💕', bottom: '12%', right: '10%', size: 20, delay: 0.7 },
 ];
 
+const Inp = ({ icon, field, type = 'text', placeholder, hint, right, value, onChange, onBlur, showPw, setShowPw, touched, errors }) => (
+  <div>
+    {hint && <label className="block text-xs font-bold text-slate-600 mb-1.5">{hint}</label>}
+    <div className="relative">
+      {icon && <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-pink-400 text-sm">{icon}</span>}
+      <input
+        type={field === 'password' ? (showPw ? 'text' : 'password') : type}
+        value={value}
+        onChange={onChange}
+        onBlur={onBlur}
+        placeholder={placeholder}
+        className={`w-full ${icon ? 'pl-9' : 'pl-4'} ${right ? 'pr-10' : 'pr-4'} py-3 rounded-xl border text-sm transition-all outline-none
+          ${touched && errors
+            ? 'border-rose-400 bg-rose-50'
+            : 'border-slate-200 bg-slate-50 focus:border-pink-400 focus:bg-white focus:ring-2 focus:ring-pink-100'}`}
+      />
+      {right && (
+        <button type="button" onClick={() => setShowPw(!showPw)}
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-pink-500 text-sm">
+          {showPw ? '🙈' : '👁️'}
+        </button>
+      )}
+    </div>
+    {touched && errors && (
+      <p className="text-[11px] text-rose-500 mt-1 font-semibold">{errors}</p>
+    )}
+  </div>
+);
+
 export default function Signup() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
@@ -113,36 +142,6 @@ export default function Signup() {
       setSubmitting(false);
     }
   };
-
-const Inp = ({ icon, field, type = 'text', placeholder, hint, right, value, onChange, onBlur, showPw, setShowPw, touched, errors }) => (
-  <div>
-    {hint && <label className="block text-xs font-bold text-slate-600 mb-1.5">{hint}</label>}
-    <div className="relative">
-      {icon && <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-pink-400 text-sm">{icon}</span>}
-      <input
-        type={field === 'password' ? (showPw ? 'text' : 'password') : type}
-        value={value}
-        onChange={onChange}
-        onBlur={onBlur}
-        placeholder={placeholder}
-        className={`w-full ${icon ? 'pl-9' : 'pl-4'} ${right ? 'pr-10' : 'pr-4'} py-3 rounded-xl border text-sm transition-all outline-none
-          ${touched && errors
-            ? 'border-rose-400 bg-rose-50'
-            : 'border-slate-200 bg-slate-50 focus:border-pink-400 focus:bg-white focus:ring-2 focus:ring-pink-100'}`}
-      />
-      {right && (
-        <button type="button" onClick={() => setShowPw(!showPw)}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-pink-500 text-sm">
-          {showPw ? '🙈' : '👁️'}
-        </button>
-      )}
-    </div>
-    {touched && errors && (
-      <p className="text-[11px] text-rose-500 mt-1 font-semibold">{errors}</p>
-    )}
-  </div>
-);
-
 
   return (
     <div className="min-h-screen relative overflow-hidden flex items-center justify-center py-8 px-4"
