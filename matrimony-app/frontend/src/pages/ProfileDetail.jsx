@@ -1,9 +1,13 @@
 ﻿import { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useParams, Link, useNavigate } from 'react-router-dom';
+import {
+  Star, Heart, MessagesSquare, Lock, ShieldCheck, Sparkles, ChevronDown, ArrowLeft,
+} from 'lucide-react';
 import api, { uploadsUrl } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { useI18n } from '../context/I18nContext';
+import { Button, Badge, Spinner, ErrorCard } from '../components/ui';
 
 export default function ProfileDetail() {
   const { id } = useParams();
@@ -12,6 +16,7 @@ export default function ProfileDetail() {
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [meta, setMeta] = useState(null);
+  const [loadError, setLoadError] = useState('');
   const [shortlisted, setShortlisted] = useState(false);
   const [interestStatus, setInterestStatus] = useState(null);
   const [interestDirection, setInterestDirection] = useState(null);
@@ -27,17 +32,23 @@ export default function ProfileDetail() {
   const [selectedSenderProfileId, setSelectedSenderProfileId] = useState(null);
 
   const load = useCallback(async () => {
-    const [profileRes, metaRes] = await Promise.all([
-      api.get(`/profiles/${id}`),
-      api.get('/profiles/meta'),
-    ]);
-    const p = profileRes.data.profile;
-    setProfile(p);
-    setMeta(metaRes.data);
-    setShortlisted(!!p.is_shortlisted);
-    setInterestStatus(p.interest_status);
-    setInterestDirection(p.interest_direction);
-    setInterestId(p.interest_id);
+    setLoadError('');
+    try {
+      const [profileRes, metaRes] = await Promise.all([
+        api.get(`/profiles/${id}`),
+        api.get('/profiles/meta'),
+      ]);
+      const p = profileRes.data.profile;
+      setProfile(p);
+      setMeta(metaRes.data);
+      setShortlisted(!!p.is_shortlisted);
+      setInterestStatus(p.interest_status);
+      setInterestDirection(p.interest_direction);
+      setInterestId(p.interest_id);
+    } catch (err) {
+      console.error(err);
+      setLoadError('Could not load this profile. Please try again.');
+    }
   }, [id]);
 
   useEffect(() => {
@@ -45,8 +56,10 @@ export default function ProfileDetail() {
     if (user) {
       api.get('/profiles/mine').then((res) => {
         setMyProfiles(res.data.profiles);
-        if (res.data.profiles.length > 0) setSelectedSenderProfileId(res.data.profiles[0].id);
-        if (res.data.profiles.length > 0) setMatchProfileId(res.data.profiles[0].id);
+        if (res.data.profiles.length > 0) {
+          setSelectedSenderProfileId(res.data.profiles[0].id);
+          setMatchProfileId(res.data.profiles[0].id);
+        }
       }).catch(() => {});
     }
   }, [id, user, load]);
@@ -120,14 +133,23 @@ export default function ProfileDetail() {
     } finally { setMatchLoading(false); }
   };
 
-  if (!profile || !meta) return (
-    <div className="flex items-center justify-center min-h-[60vh]">
-      <div className="text-center">
-        <div className="w-12 h-12 border-4 border-burgundy-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-        <p className="text-burgundy-700/70 text-sm">Loading profileâ€¦</p>
+  if (!profile || !meta) {
+    if (loadError) {
+      return (
+        <div className="max-w-4xl mx-auto px-5 py-12">
+          <ErrorCard title="Profile failed to load" message={loadError} onRetry={load} />
+        </div>
+      );
+    }
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-[var(--border-strong)] border-t-[var(--primary)] rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-[var(--ink-faint)] text-sm">Loading profile…</p>
+        </div>
       </div>
-    </div>
-  );
+    );
+  }
 
   const religion = meta.religions.find((r) => r.id === profile.religion_id)?.name_en;
   const caste = meta.castes.find((c) => c.id === profile.caste_id)?.name_en;
@@ -153,11 +175,11 @@ export default function ProfileDetail() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="glass-card rounded-3xl overflow-hidden shadow-2xl"
+        className="glass-card rounded-3xl overflow-hidden shadow-[var(--shadow-elevated)]"
       >
         <div className="grid md:grid-cols-[300px_1fr]">
           {/* Photo Column */}
-          <div className="relative h-80 md:h-full bg-gradient-to-br from-burgundy-100 to-gold/20 flex items-center justify-center overflow-hidden">
+          <div className="relative h-80 md:h-full bg-gradient-to-br from-pink-100 to-pink-200 flex items-center justify-center overflow-hidden">
             {profile.main_profile_picture && !profile.photo_blurred ? (
               <img
                 src={uploadsUrl(profile.main_profile_picture)}
@@ -165,24 +187,19 @@ export default function ProfileDetail() {
                 className="w-full h-full object-cover"
               />
             ) : profile.photo_blurred ? (
-              <div className="w-full h-full flex flex-col items-center justify-center bg-burgundy-50/60">
-                <div className="text-5xl mb-2">ðŸ”’</div>
-                <p className="text-xs text-burgundy-700/60 text-center px-4">{t('photo_locked')}</p>
+              <div className="w-full h-full flex flex-col items-center justify-center bg-pink-50/60">
+                <Lock className="w-10 h-10 text-[var(--primary-strong)] mb-2" aria-hidden="true" />
+                <p className="text-xs text-[var(--primary-strong)]/60 text-center px-4">{t('photo_locked')}</p>
               </div>
             ) : (
-              <span className="font-display text-8xl text-burgundy-700/30">{profile.name?.[0]}</span>
+              <span className="font-display text-8xl text-[var(--primary)]/30">{profile.name?.[0]}</span>
             )}
 
-            {/* Verification Badge â€” conditional on is_verified */}
-            <div className={`absolute top-4 right-4 backdrop-blur-sm text-xs font-semibold px-2.5 py-1 rounded-full shadow-sm flex items-center gap-1.5 border ${
-              profile.is_verified
-                ? 'bg-gold/90 border-gold text-white'
-                : 'bg-white/80 border-green-300/50 text-green-700'
-            }`}>
-              {profile.is_verified ? (
-                <><span>âœ“</span> {t('verified_badge')}</>
-              ) : (
-                <><span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" /> Active</>              )}
+            {/* Verification Badge */}
+            <div className="absolute top-4 right-4">
+              <Badge variant={profile.is_verified ? 'primary' : 'neutral'} icon={profile.is_verified ? <ShieldCheck className="w-3 h-3" aria-hidden="true" /> : <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />}>
+                {profile.is_verified ? t('verified_badge') : 'Active'}
+              </Badge>
             </div>
           </div>
 
@@ -190,38 +207,34 @@ export default function ProfileDetail() {
           <div className="p-8">
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
               <div>
-                <h1 className="font-display text-3xl text-burgundy-700 mb-1">{profile.name}</h1>
-                <p className="text-[#4a1230]/70">
-                  {profile.age} yrs Â· {profile.height_feet}'{profile.height_inches}" Â· {profile.gender === 'M' ? 'Groom' : 'Bride'}
+                <h1 className="font-display text-3xl text-[var(--ink)] font-extrabold mb-1">{profile.name}</h1>
+                <p className="text-[var(--ink-soft)]">
+                  {profile.age} yrs · {profile.height_feet}'{profile.height_inches}" · {profile.gender === 'M' ? 'Groom' : 'Bride'}
                 </p>
               </div>
 
               {/* Action Buttons */}
               {user && !isOwner && (
                 <div className="flex flex-col gap-2">
-                  <button
+                  <Button
+                    size="sm"
+                    variant={shortlisted ? 'soft' : 'secondary'}
+                    loading={shortlistLoading}
                     onClick={handleShortlist}
-                    disabled={shortlistLoading}
-                    className={`text-xs px-4 py-2 rounded-lg border font-semibold transition-all ${
-                      shortlisted
-                        ? 'bg-gold/15 border-gold/40 text-pink-700'
-                        : 'border-gold/30 text-pink-700 hover:bg-gold/10'
-                    }`}
                   >
+                    {shortlisted ? <Star className="w-3.5 h-3.5 fill-current" aria-hidden="true" /> : <Star className="w-3.5 h-3.5" aria-hidden="true" />}
                     {shortlisted ? t('shortlist_remove') : t('shortlist_add')}
-                  </button>
-                {/* Chat button: shown when interest is accepted */}
+                  </Button>
                   {interestStatus === 'accepted' && (
-                    <button
+                    <Button
+                      size="sm"
                       onClick={() => {
                         const tid = getChatThreadId();
                         navigate(tid ? `/chat/${tid}` : '/chat');
                       }}
-                      className="text-xs px-4 py-2 rounded-lg font-semibold text-white shadow transition-all"
-                      style={{ background: 'linear-gradient(90deg,#f43f5e,#ec4899)' }}
                     >
-                      ðŸ’¬ Message
-                    </button>
+                      <MessagesSquare className="w-3.5 h-3.5" aria-hidden="true" /> Message
+                    </Button>
                   )}
                 </div>
               )}
@@ -238,66 +251,69 @@ export default function ProfileDetail() {
               <InfoRow label="Residing In" value={currentCountry ? `${currentCountry}${profile.city_or_state ? ', ' + profile.city_or_state : ''}` : profile.city_or_state} />
             </div>
 
-            <h2 className="font-display text-lg text-burgundy-700 mb-2">About</h2>
-            <p className="text-[#4a1230]/80 leading-relaxed mb-6">{profile.about_me}</p>
+            <h2 className="font-display text-lg text-[var(--ink)] font-bold mb-2">About</h2>
+            <p className="text-[var(--ink-soft)] leading-relaxed mb-6">{profile.about_me}</p>
 
             {/* Horoscope Access */}
             {profile.horoscope_chart ? (
               profile.horoscope_blurred ? (
-                <div className="flex items-center gap-2 p-3 bg-pink-50 rounded-xl border border-gold/20 text-sm text-pink-700 mb-4">
-                  <span>ðŸ”’</span> {t('horoscope_locked')}
+                <div className="flex items-center gap-2 p-3 bg-[var(--primary-soft)] rounded-xl border border-[var(--border)] text-sm text-[var(--primary-strong)] mb-4">
+                  <Lock className="w-4 h-4" aria-hidden="true" /> {t('horoscope_locked')}
                 </div>
               ) : (
-                <a href={uploadsUrl(profile.horoscope_chart)} target="_blank" rel="noreferrer" className="btn-secondary inline-block text-sm mb-4">
-                  View Horoscope Chart â†’
+                <a href={uploadsUrl(profile.horoscope_chart)} target="_blank" rel="noreferrer" className="inline-block">
+                  <Button size="sm" variant="secondary">View Horoscope Chart →</Button>
                 </a>
               )
             ) : null}
 
             {/* Express Interest Section */}
             {user && !isOwner && (
-              <div className="mt-4 pt-4 border-t border-burgundy/10">
+              <div className="mt-4 pt-4 border-t border-[var(--border)]">
                 {canExpressInterest && (
                   <div className="flex flex-col gap-1.5 items-start">
-                  <button
-                    onClick={handleDirectExpressInterest}
-                    disabled={interestLoading}
-                    className="btn-primary text-sm shadow-md"
-                  >
-                    {interestLoading ? 'Sendingâ€¦' : `ðŸ’Œ ${t('interest_send')}`}
-                  </button>
-                    <p className="text-[11px] text-[#4a1230]/60">
+                    <Button loading={interestLoading} onClick={handleDirectExpressInterest}>
+                      <Heart className="w-4 h-4" aria-hidden="true" /> {t('interest_send')}
+                    </Button>
+                    <p className="text-[11px] text-[var(--ink-faint)]">
                       They'll see your request and can accept or decline it.
                     </p>
                   </div>
                 )}
 
                 {user && myProfiles.length === 0 && !interestStatus && (
-                  <div className="rounded-xl bg-pink-50 border border-pink-200 p-4 text-center">
-                    <p className="text-xs font-bold text-pink-700 mb-2">
+                  <div className="rounded-xl bg-[var(--primary-soft)] border border-[var(--border)] p-4 text-center">
+                    <p className="text-xs font-bold text-[var(--primary-strong)] mb-2">
                       Create your profile first to send an interest request.
                     </p>
-                    <Link to="/profile/new" className="btn-primary text-xs px-4 py-2 inline-block">
-                      Create Profile →
+                    <Link to="/profile/new">
+                      <Button size="sm">Create Profile →</Button>
                     </Link>
                   </div>
                 )}
 
                 {interestStatus && !canExpressInterest && !canRespond && (
-                  <span className={`inline-block text-xs px-3 py-1.5 rounded-full font-semibold ${
-                    interestStatus === 'accepted' ? 'bg-green-100 text-green-800' :
-                    interestStatus === 'pending' ? 'bg-pink-100 text-pink-700' :
-                    'bg-gray-100 text-gray-600'
-                  }`}>
+                  <Badge
+                    variant={interestStatus === 'accepted' ? 'success' : interestStatus === 'pending' ? 'warning' : 'neutral'}
+                  >
                     {interestButtonLabel()}
-                  </span>
+                  </Badge>
                 )}
 
                 {canRespond && (
-                  <div className="flex items-center gap-3">
-                    <p className="text-sm text-[#4a1230]/70">This profile sent you an interest request:</p>
-                    <button onClick={() => handleRespondInterest('accepted')} disabled={interestLoading} className="text-xs px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors">Accept</button>
-                    <button onClick={() => handleRespondInterest('rejected')} disabled={interestLoading} className="text-xs px-3 py-1.5 border border-red-200 text-red-600 hover:bg-red-50 font-semibold rounded-lg transition-colors">Decline</button>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <p className="text-sm text-[var(--ink-soft)]">This profile sent you an interest request:</p>
+                    <Button
+                      size="sm"
+                      loading={interestLoading}
+                      onClick={() => handleRespondInterest('accepted')}
+                      className="!bg-[linear-gradient(135deg,#10b981,#059669)]"
+                    >
+                      Accept
+                    </Button>
+                    <Button size="sm" variant="danger" disabled={interestLoading} onClick={() => handleRespondInterest('rejected')}>
+                      Decline
+                    </Button>
                   </div>
                 )}
               </div>
@@ -312,17 +328,22 @@ export default function ProfileDetail() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3, duration: 0.5 }}
-          className="mt-8 glass-card rounded-3xl p-8 border border-gold/20"
+          className="mt-8 glass-card rounded-3xl p-8"
         >
           <div
             className="flex items-center justify-between cursor-pointer"
             onClick={() => setShowMatchPanel(!showMatchPanel)}
           >
             <div className="flex items-center gap-3">
-              <span className="text-2xl">ðŸŒ™</span>
-              <h2 className="font-display text-2xl text-burgundy-700">{t('check_astrology_match')}</h2>
+              <Sparkles className="w-6 h-6 text-[var(--primary)]" aria-hidden="true" />
+              <h2 className="font-display text-2xl text-[var(--ink)] font-extrabold">{t('check_astrology_match')}</h2>
             </div>
-            <span className="text-burgundy-700/60 text-xl">{showMatchPanel ? 'â–²' : 'â–¼'}</span>
+            <motion.span
+              animate={{ rotate: showMatchPanel ? 180 : 0 }}
+              className="text-[var(--ink-faint)]"
+            >
+              <ChevronDown className="w-6 h-6" aria-hidden="true" />
+            </motion.span>
           </div>
 
           <AnimatePresence>
@@ -334,10 +355,10 @@ export default function ProfileDetail() {
                 transition={{ duration: 0.3 }}
                 className="overflow-hidden"
               >
-                <div className="mt-6 border-t border-gold/15 pt-6">
-                  <p className="text-sm text-[#4a1230]/70 mb-4">{t('select_profile_for_match')}</p>
+                <div className="mt-6 border-t border-[var(--border)] pt-6">
+                  <p className="text-sm text-[var(--ink-soft)] mb-4">{t('select_profile_for_match')}</p>
                   <div className="flex flex-col sm:flex-row gap-3 items-end mb-6">
-                    <div className="flex-1">
+                    <div className="flex-1 w-full">
                       <select
                         className="input-base"
                         value={matchProfileId}
@@ -348,22 +369,18 @@ export default function ProfileDetail() {
                         ))}
                       </select>
                     </div>
-                    <button
-                      onClick={handleCalculateMatch}
-                      disabled={matchLoading}
-                      className="btn-primary"
-                    >
-                      {matchLoading ? 'â€¦' : t('calculate_matching_score')}
-                    </button>
+                    <Button loading={matchLoading} onClick={handleCalculateMatch}>
+                      {t('calculate_matching_score')}
+                    </Button>
                   </div>
 
                   {matchResult && (
                     <div>
                       {/* Score Dial */}
-                      <div className="flex items-center gap-6 mb-8 p-6 rounded-2xl bg-gradient-to-r from-burgundy-50 to-gold/10 border border-gold/15">
+                      <div className="flex flex-col sm:flex-row items-center gap-6 mb-8 p-6 rounded-2xl bg-[var(--primary-soft)]/70 border border-[var(--border)]">
                         <div className="relative">
                           <svg viewBox="0 0 120 120" className="w-32 h-32 -rotate-90">
-                            <circle cx="60" cy="60" r="50" fill="none" stroke="#e5d6c8" strokeWidth="10" />
+                            <circle cx="60" cy="60" r="50" fill="none" stroke="var(--border-strong)" strokeWidth="10" />
                             <circle
                               cx="60" cy="60" r="50" fill="none"
                               stroke={matchResult.score >= 7 ? '#15803d' : matchResult.score >= 5 ? '#d97706' : '#b91c1c'}
@@ -373,16 +390,16 @@ export default function ProfileDetail() {
                             />
                           </svg>
                           <div className="absolute inset-0 flex flex-col items-center justify-center rotate-90">
-                            <span className="font-display text-4xl text-burgundy-700 font-bold leading-none">{matchResult.score}</span>
-                            <span className="text-xs text-[#4a1230]/60">out of 10</span>
+                            <span className="font-display text-4xl text-[var(--ink)] font-bold leading-none">{matchResult.score}</span>
+                            <span className="text-xs text-[var(--ink-faint)]">out of 10</span>
                           </div>
                         </div>
                         <div>
-                          <p className="font-display text-2xl text-burgundy-700 mb-1">{t('matching_score_out_of')}</p>
-                          <p className={`text-sm font-semibold ${matchResult.score >= 7 ? 'text-green-700' : matchResult.score >= 5 ? 'text-pink-600' : 'text-red-700'}`}>
-                            {matchResult.score >= 7 ? 'âœ¨ Excellent Match' : matchResult.score >= 5 ? 'âš¡ Good Match' : 'âš ï¸ Low Compatibility'}
+                          <p className="font-display text-2xl text-[var(--ink)] font-extrabold mb-1">{t('matching_score_out_of')}</p>
+                          <p className={`text-sm font-semibold ${matchResult.score >= 7 ? 'text-green-700' : matchResult.score >= 5 ? 'text-[var(--primary)]' : 'text-red-700'}`}>
+                            {matchResult.score >= 7 ? '✨ Excellent Match' : matchResult.score >= 5 ? '⚡ Good Match' : '⚠️ Low Compatibility'}
                           </p>
-                          <p className="text-xs text-[#4a1230]/60 mt-1">{matchResult.score} of 10 Poruthams compatible</p>
+                          <p className="text-xs text-[var(--ink-faint)] mt-1">{matchResult.score} of 10 Poruthams compatible</p>
                         </div>
                       </div>
 
@@ -392,12 +409,12 @@ export default function ProfileDetail() {
                       {/* Detailed Breakdown */}
                       <div className="grid sm:grid-cols-2 gap-3 mt-6">
                         {Object.entries(matchResult.details).map(([key, val]) => (
-                          <div key={key} className={`p-4 rounded-xl border ${val.matched ? 'bg-green-50/60 border-green-200/50' : 'bg-red-50/40 border-red-200/40'}`}>
+                          <div key={key} className={`p-4 rounded-xl border ${val.matched ? 'bg-[var(--success-soft)] border-[var(--success)]/30' : 'bg-[var(--error-soft)]/60 border-[var(--error)]/30'}`}>
                             <div className="flex items-center gap-2 mb-1">
-                              <span className={`text-sm ${val.matched ? 'âœ…' : 'âŒ'}`}>{val.matched ? 'âœ…' : 'âŒ'}</span>
-                              <p className="text-sm font-semibold text-[#4a1230] capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</p>
+                              <span className="text-sm">{val.matched ? '✅' : '❌'}</span>
+                              <p className="text-sm font-semibold text-[var(--ink)] capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</p>
                             </div>
-                            <p className="text-xs text-[#4a1230]/70 leading-relaxed">{val.desc}</p>
+                            <p className="text-xs text-[var(--ink-soft)] leading-relaxed">{val.desc}</p>
                           </div>
                         ))}
                       </div>
@@ -410,8 +427,9 @@ export default function ProfileDetail() {
         </motion.div>
       )}
 
-      <Link to="/search" className="inline-block mt-6 text-sm text-burgundy-700 hover:underline">â† Back to Browse</Link>
-
+      <Link to="/search" className="inline-flex items-center gap-1.5 mt-6 text-sm text-[var(--primary)] hover:underline font-semibold">
+        <ArrowLeft className="w-4 h-4" aria-hidden="true" /> Back to Browse
+      </Link>
     </div>
   );
 }
@@ -420,49 +438,49 @@ function InfoRow({ label, value }) {
   if (!value) return null;
   return (
     <div>
-      <p className="text-xs uppercase tracking-wide text-gold/80 font-semibold">{label}</p>
-      <p className="text-[#4a1230]/85">{value}</p>
+      <p className="text-xs uppercase tracking-wide text-[var(--primary)]/80 font-semibold">{label}</p>
+      <p className="text-[var(--ink)]">{value}</p>
     </div>
   );
 }
 
 // Traditional South-Indian/Sri Lankan horoscope grid layout
 function HoroscopeGrid({ profile, raasi, star }) {
-  const raasiName = raasi?.name_en || 'â€”';
-  const starName = star?.name_en || 'â€”';
+  const raasiName = raasi?.name_en || '—';
+  const starName = star?.name_en || '—';
   const raasiId = profile.raasi_id;
 
   // 12 houses placed in 4x4 grid (3 per row with corners empty)
   // Standard South-Indian Kodam layout (fixed house positions)
   const GRID_POSITIONS = [
     { house: 12, row: 0, col: 0 }, { house: 1, row: 0, col: 1 }, { house: 2, row: 0, col: 2 }, { house: 3, row: 0, col: 3 },
-    { house: 11, row: 1, col: 0 },                                                                 { house: 4, row: 1, col: 3 },
-    { house: 10, row: 2, col: 0 },                                                                 { house: 5, row: 2, col: 3 },
+    { house: 11, row: 1, col: 0 }, { house: 4, row: 1, col: 3 },
+    { house: 10, row: 2, col: 0 }, { house: 5, row: 2, col: 3 },
     { house: 9, row: 3, col: 0 }, { house: 8, row: 3, col: 1 }, { house: 7, row: 3, col: 2 }, { house: 6, row: 3, col: 3 },
   ];
 
   const RAASI_NAMES = ['', 'Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
 
   const gridMap = {};
-  GRID_POSITIONS.forEach(pos => {
+  GRID_POSITIONS.forEach((pos) => {
     gridMap[`${pos.row}-${pos.col}`] = pos.house;
   });
 
   return (
     <div className="mt-4">
-      <p className="text-sm font-semibold text-burgundy-700 mb-3">South-Indian Horoscope Chart (Rasi: {raasiName} Â· Star: {starName})</p>
+      <p className="text-sm font-semibold text-[var(--ink)] mb-3">South-Indian Horoscope Chart (Rasi: {raasiName} · Star: {starName})</p>
       <div className="grid grid-cols-4 gap-1 w-full max-w-xs mx-auto">
         {Array.from({ length: 4 }, (_, row) =>
           Array.from({ length: 4 }, (_, col) => {
             const key = `${row}-${col}`;
             const houseNum = gridMap[key];
-            // Center cells (rows 1-2, cols 1-2) are empty â€” show site name
+            // Center cells (rows 1-2, cols 1-2) are empty — show site name
             const isCenter = row >= 1 && row <= 2 && col >= 1 && col <= 2;
             if (isCenter) {
               if (row === 1 && col === 1) {
                 return (
-                  <div key={key} className="col-span-2 row-span-2 flex items-center justify-center bg-burgundy-700/5 border border-burgundy-200/40 rounded-lg p-2 text-center aspect-square" style={{ gridRow: '2 / 4', gridColumn: '2 / 4' }}>
-                    <p className="font-display text-burgundy-700/50 text-sm">à®®à¯à®•à¯‚à®°à¯à®¤à¯à®¤à®®à¯</p>
+                  <div key={key} className="col-span-2 row-span-2 flex items-center justify-center bg-[var(--primary)]/5 border border-[var(--border-strong)]/40 rounded-lg p-2 text-center aspect-square" style={{ gridRow: '2 / 4', gridColumn: '2 / 4' }}>
+                    <p className="font-display text-[var(--primary)]/50 text-sm">முகூர்த்தம்</p>
                   </div>
                 );
               }
@@ -476,12 +494,12 @@ function HoroscopeGrid({ profile, raasi, star }) {
                 whileHover={{ scale: 1.05 }}
                 className={`border rounded-lg p-2 flex flex-col items-center justify-center aspect-square text-center cursor-default transition-all ${
                   isHighlighted
-                    ? 'bg-burgundy-700 border-burgundy-600 text-white shadow-glow'
-                    : 'bg-white/50 border-burgundy-200/30 text-[#4a1230]'
+                    ? 'grad-primary text-white shadow-[var(--shadow-pop)]'
+                    : 'bg-white/50 border-[var(--border-strong)]/30 text-[var(--ink)]'
                 }`}
               >
                 <p className="text-[9px] font-semibold opacity-60">{houseNum}</p>
-                <p className={`text-[9px] leading-tight ${isHighlighted ? 'text-white' : 'text-burgundy-700'}`}>
+                <p className={`text-[9px] leading-tight ${isHighlighted ? 'text-white' : 'text-[var(--primary-strong)]'}`}>
                   {RAASI_NAMES[raasiNumForCell]}
                 </p>
                 {isHighlighted && <p className="text-[8px] opacity-80 mt-0.5">Lagna</p>}

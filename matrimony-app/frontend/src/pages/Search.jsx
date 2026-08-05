@@ -1,25 +1,52 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
+import { useSearchParams } from 'react-router-dom';
+import { Search as SearchIcon, SlidersHorizontal, RotateCcw, Users, Sparkles } from 'lucide-react';
 import api from '../api';
 import { useI18n } from '../context/I18nContext';
 import ProfileCard from '../components/ProfileCard';
+import { Button, Badge, Skeleton, ErrorCard, SelectField, TextField } from '../components/ui';
+
+const DEFAULT_FILTERS = {
+  gender: 'F', religion_id: '', caste_id: '', current_country_id: '',
+  min_age: '', max_age: '', raasi_id: '', star_id: '',
+  income_range: '', manglik_status: '', q: '',
+};
+
+function ResultsSkeleton() {
+  return (
+    <div className="grid sm:grid-cols-2 gap-6">
+      {[0, 1, 2, 3].map((i) => (
+        <div key={i} className="glass-card rounded-3xl overflow-hidden p-0">
+          <Skeleton className="h-56 w-full rounded-none" />
+          <div className="p-5 space-y-3">
+            <Skeleton className="h-5 w-2/3" />
+            <Skeleton className="h-4 w-1/2" />
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-9 w-full" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default function Search() {
   const { t, lang } = useI18n();
+  const [searchParams] = useSearchParams();
   const [meta, setMeta] = useState(null);
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(false);
   const [searchError, setSearchError] = useState('');
   const [activeFiltersCount, setActiveFiltersCount] = useState(0);
 
-  const [filters, setFilters] = useState({
-    gender: 'F', religion_id: '', caste_id: '', current_country_id: '',
-    min_age: '', max_age: '', raasi_id: '', star_id: '',
-    income_range: '', manglik_status: '', q: '',
-  });
+  const [filters, setFilters] = useState(() => ({
+    ...DEFAULT_FILTERS,
+    gender: searchParams.get('gender') || 'F',
+  }));
 
   useEffect(() => {
-    api.get('/profiles/meta').then((res) => setMeta(res.data));
+    api.get('/profiles/meta').then((res) => setMeta(res.data)).catch((err) => console.error(err));
   }, []);
 
   const runSearch = async (f = filters) => {
@@ -43,30 +70,33 @@ export default function Search() {
   useEffect(() => { runSearch(); }, []); // eslint-disable-line
 
   const set = (field) => (ev) => {
-    const val = ev.target.value;
-    setFilters((f) => ({ ...f, [field]: val }));
+    setFilters((f) => ({ ...f, [field]: ev.target.value }));
   };
 
   const handleClearFilters = () => {
-    const cleared = {
-      gender: 'F', religion_id: '', caste_id: '', current_country_id: '',
-      min_age: '', max_age: '', raasi_id: '', star_id: '',
-      income_range: '', manglik_status: '', q: '',
-    };
+    const cleared = { ...DEFAULT_FILTERS, gender: filters.gender };
     setFilters(cleared);
     runSearch(cleared);
   };
 
+  const sectionLabel = (icon, text) => (
+    <p className="flex items-center gap-1.5 text-[10px] uppercase font-extrabold text-[var(--primary)] tracking-wider mb-2">
+      <span>{icon}</span> {text}
+    </p>
+  );
+
   return (
     <div className="max-w-7xl mx-auto px-5 py-8">
-      {/* ── Top Header Panel (Matching mockup 3) ── */}
-      <div className="rounded-3xl overflow-hidden mb-8 bg-gradient-to-r from-pink-100 via-pink-50 to-pink-200 border border-pink-200/50 shadow-md flex flex-col md:flex-row items-center justify-between p-8 md:p-12 relative">
+      {/* ── Top Header Panel ── */}
+      <div className="rounded-3xl overflow-hidden mb-8 grad-hero border border-[var(--border)] shadow-[var(--shadow-elevated)] flex flex-col md:flex-row items-center justify-between p-8 md:p-12 relative">
         <div className="max-w-lg text-left z-10">
-          <span className="text-xs font-extrabold uppercase tracking-wider text-pink-600 mb-2 block">Premium Matchmaking</span>
-          <h1 className="font-display text-4xl font-extrabold text-slate-800 leading-tight mb-2">
-            Search Your <span className="text-pink-600">Perfect Match</span>
+          <Badge variant="primary" icon={<Sparkles className="w-3 h-3" aria-hidden="true" />} className="mb-3">
+            Premium Matchmaking
+          </Badge>
+          <h1 className="font-display text-4xl font-extrabold text-[var(--ink)] leading-tight mb-2">
+            Search Your <span className="text-gradient">Perfect Match</span>
           </h1>
-          <p className="text-sm font-semibold text-slate-600">Your happy story begins here. Discover verified profiles matching your criteria. 💕</p>
+          <p className="text-sm font-semibold text-[var(--ink-soft)]">Your happy story begins here. Discover verified profiles matching your criteria. 💕</p>
         </div>
         <div className="w-full md:w-80 h-48 mt-6 md:mt-0 relative rounded-2xl overflow-hidden shadow-lg border-2 border-white">
           <img
@@ -79,198 +109,198 @@ export default function Search() {
       </div>
 
       <div className="grid md:grid-cols-12 gap-8 items-start">
-        {/* ── Left Column: Find Matches Form (Mockup 3 Left Panel) ── */}
+        {/* ── Left Column: Filters ── */}
         <div className="md:col-span-4">
-          <div className="glass-card rounded-3xl p-6 border border-pink-200/60 shadow-xl">
-            <div className="flex items-center justify-between mb-6 pb-4 border-b border-pink-100">
-              <h3 className="font-display text-lg font-extrabold text-slate-800 flex items-center gap-2">
-                <span>🔍</span> Find Matches
+          <div className="glass-card rounded-3xl p-6 shadow-[var(--shadow-elevated)]">
+            <div className="flex items-center justify-between mb-6 pb-4 border-b border-[var(--border)]">
+              <h3 className="font-display text-lg font-extrabold text-[var(--ink)] flex items-center gap-2">
+                <SlidersHorizontal className="w-4 h-4 text-[var(--primary)]" aria-hidden="true" /> Find Matches
               </h3>
               <button
                 type="button"
                 onClick={handleClearFilters}
-                className="text-xs font-bold text-slate-400 hover:text-pink-600 transition-colors"
+                className="flex items-center gap-1 text-xs font-bold text-[var(--ink-faint)] hover:text-[var(--primary)] transition-colors"
               >
-                Clear All
+                <RotateCcw className="w-3 h-3" aria-hidden="true" /> Clear All
               </button>
             </div>
 
             <div className="space-y-5 text-left">
-              {/* Basics Section */}
               <div>
-                <p className="text-[10px] uppercase font-extrabold text-pink-600 tracking-wider mb-2">👤 Basics</p>
+                {sectionLabel('👤', 'Basics')}
                 <div className="space-y-3">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-600 mb-1">I am looking for</label>
-                    <select className="input-base text-xs py-2" value={filters.gender} onChange={set('gender')}>
-                      <option value="F">Bride (மணப்பெண்)</option>
-                      <option value="M">Groom (மணமகன்)</option>
-                    </select>
-                  </div>
+                  <SelectField
+                    label="I am looking for"
+                    value={filters.gender}
+                    onChange={set('gender')}
+                    options={[
+                      { value: 'F', label: 'Bride (மணப்பெண்)' },
+                      { value: 'M', label: 'Groom (மணமகன்)' },
+                    ]}
+                  />
                   <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="block text-xs font-bold text-slate-600 mb-1">Min Age</label>
-                      <input className="input-base text-xs py-2" type="number" placeholder="18" value={filters.min_age} onChange={set('min_age')} />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-slate-600 mb-1">Max Age</label>
-                      <input className="input-base text-xs py-2" type="number" placeholder="50" value={filters.max_age} onChange={set('max_age')} />
-                    </div>
+                    <TextField
+                      label="Min Age"
+                      type="number"
+                      placeholder="18"
+                      value={filters.min_age}
+                      onChange={set('min_age')}
+                    />
+                    <TextField
+                      label="Max Age"
+                      type="number"
+                      placeholder="50"
+                      value={filters.max_age}
+                      onChange={set('max_age')}
+                    />
                   </div>
                 </div>
               </div>
 
-              {/* Religion & Caste */}
               <div>
-                <p className="text-[10px] uppercase font-extrabold text-pink-600 tracking-wider mb-2">🕌 Religion &amp; Caste</p>
+                {sectionLabel('🕌', 'Religion & Caste')}
                 <div className="space-y-3">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-600 mb-1">Religion</label>
-                    <select className="input-base text-xs py-2" value={filters.religion_id} onChange={set('religion_id')}>
-                      <option value="">Any Religion</option>
-                      {meta?.religions.map((r) => <option key={r.id} value={r.id}>{lang === 'ta' ? r.name_ta : r.name_en}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-600 mb-1">Caste / Saathi</label>
-                    <select className="input-base text-xs py-2" value={filters.caste_id} onChange={set('caste_id')}>
-                      <option value="">Any Caste</option>
-                      {meta?.castes.map((c) => <option key={c.id} value={c.id}>{lang === 'ta' ? c.name_ta : c.name_en}</option>)}
-                    </select>
-                  </div>
+                  <SelectField
+                    label="Religion"
+                    value={filters.religion_id}
+                    onChange={set('religion_id')}
+                    placeholder="Any Religion"
+                    options={(meta?.religions || []).map((r) => ({ value: String(r.id), label: lang === 'ta' ? r.name_ta : r.name_en }))}
+                  />
+                  <SelectField
+                    label="Caste / Saathi"
+                    value={filters.caste_id}
+                    onChange={set('caste_id')}
+                    placeholder="Any Caste"
+                    options={(meta?.castes || []).map((c) => ({ value: String(c.id), label: lang === 'ta' ? c.name_ta : c.name_en }))}
+                  />
                 </div>
               </div>
 
-              {/* Location */}
               <div>
-                <p className="text-[10px] uppercase font-extrabold text-pink-600 tracking-wider mb-2">📍 Location</p>
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-1">Residing Country</label>
-                  <select className="input-base text-xs py-2" value={filters.current_country_id} onChange={set('current_country_id')}>
-                    <option value="">Any Country</option>
-                    {meta?.countries.map((c) => (
-                      <option key={c.code} value={c.code}>
-                        {c.priority ? `★ ${c.name_en}` : c.name_en}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* Astrology & Financials */}
-              <div>
-                <p className="text-[10px] uppercase font-extrabold text-pink-600 tracking-wider mb-2">✨ Astrology &amp; Lifestyle</p>
-                <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="block text-xs font-bold text-slate-600 mb-1">Zodiac / Raasi</label>
-                      <select className="input-base text-xs py-2" value={filters.raasi_id} onChange={set('raasi_id')}>
-                        <option value="">Any</option>
-                        {meta?.raasis.map((r) => <option key={r.id} value={r.id}>{lang === 'ta' ? r.name_ta : r.name_en}</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-slate-600 mb-1">Star / Nakshatram</label>
-                      <select className="input-base text-xs py-2" value={filters.star_id} onChange={set('star_id')}>
-                        <option value="">Any</option>
-                        {meta?.stars.map((s) => <option key={s.id} value={s.id}>{lang === 'ta' ? s.name_ta : s.name_en}</option>)}
-                      </select>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-600 mb-1">Annual Income</label>
-                    <select className="input-base text-xs py-2" value={filters.income_range} onChange={set('income_range')}>
-                      <option value="">Any</option>
-                      <option value="Under $50k">Under $50k</option>
-                      <option value="$50k - $100k">$50k - $100k</option>
-                      <option value="$100k - $150k">$100k - $150k</option>
-                      <option value="$150k+">$150k+</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-600 mb-1">Manglik / Chevvai Dosham</label>
-                    <select className="input-base text-xs py-2" value={filters.manglik_status} onChange={set('manglik_status')}>
-                      <option value="">Any</option>
-                      <option value="no">No Dosham / Non-Manglik</option>
-                      <option value="yes">Chevvai Dosham / Manglik</option>
-                      <option value="dont_know">Don't Know</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-
-              {/* Keyword Search */}
-              <div>
-                <p className="text-[10px] uppercase font-extrabold text-pink-600 tracking-wider mb-2">🔍 Keyword Search</p>
-                <input
-                  className="input-base text-xs py-2"
-                  placeholder="Search job, city, or name…"
-                  value={filters.q}
-                  onChange={set('q')}
+                {sectionLabel('📍', 'Location')}
+                <SelectField
+                  label="Residing Country"
+                  value={filters.current_country_id}
+                  onChange={set('current_country_id')}
+                  placeholder="Any Country"
+                  options={(meta?.countries || []).map((c) => ({
+                    value: String(c.code),
+                    label: c.priority ? `★ ${c.name_en}` : c.name_en,
+                  }))}
                 />
               </div>
 
-              <button
-                type="button"
+              <div>
+                {sectionLabel('✨', 'Astrology & Lifestyle')}
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-2">
+                    <SelectField
+                      label="Raasi"
+                      value={filters.raasi_id}
+                      onChange={set('raasi_id')}
+                      placeholder="Any"
+                      options={(meta?.raasis || []).map((r) => ({ value: String(r.id), label: lang === 'ta' ? r.name_ta : r.name_en }))}
+                    />
+                    <SelectField
+                      label="Star"
+                      value={filters.star_id}
+                      onChange={set('star_id')}
+                      placeholder="Any"
+                      options={(meta?.stars || []).map((s) => ({ value: String(s.id), label: lang === 'ta' ? s.name_ta : s.name_en }))}
+                    />
+                  </div>
+                  <SelectField
+                    label="Annual Income"
+                    value={filters.income_range}
+                    onChange={set('income_range')}
+                    placeholder="Any"
+                    options={[
+                      { value: 'Under $50k', label: 'Under $50k' },
+                      { value: '$50k - $100k', label: '$50k - $100k' },
+                      { value: '$100k - $150k', label: '$100k - $150k' },
+                      { value: '$150k+', label: '$150k+' },
+                    ]}
+                  />
+                  <SelectField
+                    label="Manglik / Chevvai Dosham"
+                    value={filters.manglik_status}
+                    onChange={set('manglik_status')}
+                    placeholder="Any"
+                    options={[
+                      { value: 'no', label: 'No Dosham / Non-Manglik' },
+                      { value: 'yes', label: 'Chevvai Dosham / Manglik' },
+                      { value: 'dont_know', label: "Don't Know" },
+                    ]}
+                  />
+                </div>
+              </div>
+
+              <div>
+                {sectionLabel('🔍', 'Keyword Search')}
+                <TextField
+                  label="Search job, city, or name…"
+                  value={filters.q}
+                  onChange={set('q')}
+                  icon={<SearchIcon className="w-4 h-4" aria-hidden="true" />}
+                />
+              </div>
+
+              <Button
+                fullWidth
+                size="lg"
+                loading={loading}
                 onClick={() => runSearch(filters)}
-                disabled={loading}
-                className="btn-primary w-full py-3.5 text-xs font-extrabold shadow-pink-500/25 mt-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                className="mt-2"
               >
-                {loading ? '🔄 Searching…' : 'Search Matches 🔍'}
-              </button>
+                <SearchIcon className="w-4 h-4" aria-hidden="true" /> Search Matches
+              </Button>
             </div>
           </div>
         </div>
 
-        {/* ── Right Column: Search Results (Mockup 3 Right Panel) ── */}
+        {/* ── Right Column: Results ── */}
         <div className="md:col-span-8">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="font-display text-2xl font-extrabold text-slate-800">Search Results</h2>
+              <h2 className="font-display text-2xl font-extrabold text-[var(--ink)]">Search Results</h2>
               {results && (
-                <p className="text-xs text-slate-400 font-bold mt-0.5">
-                  We found <span className="text-pink-600">{results.length}</span> matches for you
+                <p className="text-xs text-[var(--ink-faint)] font-bold mt-0.5">
+                  We found <span className="text-[var(--primary)]">{results.length}</span> matches for you
                 </p>
               )}
             </div>
             {activeFiltersCount > 0 && (
-              <span className="text-[10px] font-bold px-3 py-1.5 rounded-full bg-pink-50 text-pink-700 border border-pink-200">
+              <Badge variant="primary" icon={<SlidersHorizontal className="w-3 h-3" aria-hidden="true" />}>
                 {activeFiltersCount} Filters Active
-              </span>
+              </Badge>
             )}
           </div>
 
           {searchError ? (
-            <div className="glass-card rounded-3xl p-12 text-center border border-rose-200">
-              <div className="text-5xl mb-4">⚠️</div>
-              <h3 className="font-display text-lg font-extrabold text-rose-700 mb-1">Connection Error</h3>
-              <p className="text-xs text-slate-500 font-medium max-w-sm mx-auto leading-relaxed mb-4">{searchError}</p>
-              <button onClick={() => runSearch(filters)} className="btn-primary text-xs font-extrabold">
-                Try Again 🔄
-              </button>
-            </div>
+            <ErrorCard
+              title="Connection Error"
+              message={searchError}
+              onRetry={() => runSearch(filters)}
+            />
           ) : results === null || loading ? (
-            <div className="flex flex-col items-center justify-center py-20 gap-3">
-              <div className="w-10 h-10 border-4 border-pink-500 border-t-transparent rounded-full animate-spin" />
-              <p className="text-xs text-slate-500 font-semibold">Finding your perfect matches…</p>
-            </div>
+            <ResultsSkeleton />
           ) : results.length === 0 ? (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="glass-card rounded-3xl p-12 text-center border border-pink-100"
+              className="glass-card rounded-3xl p-12 text-center"
             >
-              <div className="text-5xl mb-4">🔍</div>
-              <h3 className="font-display text-lg font-extrabold text-slate-800 mb-1">No Matches Found</h3>
-              <p className="text-xs text-slate-500 font-medium max-w-sm mx-auto leading-relaxed">
+              <div className="flex items-center justify-center w-16 h-16 rounded-2xl mx-auto bg-[var(--primary-soft)] mb-4">
+                <Users className="w-8 h-8 text-[var(--primary)]" aria-hidden="true" />
+              </div>
+              <h3 className="font-display text-lg font-extrabold text-[var(--ink)] mb-1">No Matches Found</h3>
+              <p className="text-xs text-[var(--ink-faint)] font-medium max-w-sm mx-auto leading-relaxed">
                 Try widening your age, location, or astrology parameters to find more matches.
               </p>
-              <button
-                onClick={handleClearFilters}
-                className="btn-secondary text-xs mt-6 font-extrabold"
-              >
-                Reset Search Filters
-              </button>
+              <Button variant="secondary" size="sm" className="mt-6" onClick={handleClearFilters}>
+                <RotateCcw className="w-3.5 h-3.5" aria-hidden="true" /> Reset Search Filters
+              </Button>
             </motion.div>
           ) : (
             <div className="grid sm:grid-cols-2 gap-6">

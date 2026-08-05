@@ -1,14 +1,16 @@
 import { useRef, useState } from 'react';
 import { motion, useMotionValue, useSpring } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
+import { Star, Heart, MessagesSquare, Lock, ShieldCheck } from 'lucide-react';
 import api, { uploadsUrl } from '../api';
 import { useAuth } from '../context/AuthContext';
+import { Button, Badge } from './ui';
 
 export default function ProfileCard({ profile, actions, onShortlistChange }) {
   const cardRef = useRef(null);
   const navigate = useNavigate();
   const { user } = useAuth();
-  
+
   const [isShortlisted, setIsShortlisted] = useState(Boolean(profile.is_shortlisted));
   const [shortlistLoading, setShortlistLoading] = useState(false);
 
@@ -79,9 +81,9 @@ export default function ProfileCard({ profile, actions, onShortlistChange }) {
 
     setInterestLoading(true);
     try {
-      const res = await api.post('/interests/send', { 
-        receiver_id: receiverId, 
-        receiver_profile_id: receiverId 
+      const res = await api.post('/interests/send', {
+        receiver_id: receiverId,
+        receiver_profile_id: receiverId,
       });
       if (res.data.alreadySent) {
         setInterestStatus(res.data.status || 'pending');
@@ -121,7 +123,7 @@ export default function ProfileCard({ profile, actions, onShortlistChange }) {
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
       whileHover={{ y: -6 }}
-      className="glass-card rounded-3xl overflow-hidden flex flex-col cursor-pointer relative group border border-pink-200/50 shadow-lg shadow-pink-500/5"
+      className="glass-card rounded-3xl overflow-hidden flex flex-col cursor-pointer relative group shadow-[var(--shadow-elevated)]"
     >
       {/* 3D Verification & Status Badge */}
       <div className="absolute top-3 left-3 right-3 z-20 flex items-center justify-between pointer-events-none">
@@ -131,11 +133,11 @@ export default function ProfileCard({ profile, actions, onShortlistChange }) {
         </span>
 
         {profile.is_verified ? (
-          <span className="bg-pink-500 text-white text-[10px] font-extrabold px-2.5 py-1 rounded-full shadow-md flex items-center gap-1 border border-pink-400">
-            ✓ Verified
+          <span className="bg-[var(--primary)] text-white text-[10px] font-extrabold px-2.5 py-1 rounded-full shadow-md flex items-center gap-1">
+            <ShieldCheck className="w-3 h-3" aria-hidden="true" /> Verified
           </span>
         ) : (
-          <span className="bg-white/80 backdrop-blur text-slate-700 text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">
+          <span className="bg-white/80 backdrop-blur text-[var(--ink-soft)] text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">
             ID Pending
           </span>
         )}
@@ -158,8 +160,8 @@ export default function ProfileCard({ profile, actions, onShortlistChange }) {
             />
           ) : profile.blur_photo ? (
             <div className="flex flex-col items-center justify-center w-full h-full bg-pink-50/80 p-4">
-              <span className="text-4xl mb-1">🔒</span>
-              <p className="text-[10px] font-bold text-pink-700 text-center">Photo blurred until mutual match</p>
+              <Lock className="w-8 h-8 text-[var(--primary-strong)] mb-1" aria-hidden="true" />
+              <p className="text-[10px] font-bold text-[var(--primary-strong)] text-center">Photo blurred until mutual match</p>
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center">
@@ -177,24 +179,24 @@ export default function ProfileCard({ profile, actions, onShortlistChange }) {
         </div>
 
         {/* Card Details */}
-        <div className="p-5 bg-white/90">
+        <div className="p-5 bg-[var(--surface-glass)]">
           <div className="flex items-center justify-between gap-1 mb-1">
-            <h3 className="font-display text-lg font-bold text-slate-800 truncate">{profile.name}</h3>
-            {profile.is_verified && <span className="text-xs text-pink-500 font-bold" title="Verified Profile">✓</span>}
+            <h3 className="font-display text-lg font-bold text-[var(--ink)] truncate">{profile.name}</h3>
+            {profile.is_verified && <ShieldCheck className="w-4 h-4 text-[var(--primary)] shrink-0" aria-label="Verified Profile" />}
           </div>
 
-          <p className="text-xs font-semibold text-slate-600 mb-1">
+          <p className="text-xs font-semibold text-[var(--ink-soft)] mb-1">
             {profile.age ? `${profile.age} yrs` : 'Age N/A'} · {profile.height_feet}'{profile.height_inches}" · {profile.city_or_state || 'Diaspora'}
           </p>
 
-          <p className="text-xs text-pink-600 font-bold mb-3 truncate">{profile.occupation}</p>
+          <p className="text-xs text-[var(--primary)] font-bold mb-3 truncate">{profile.occupation}</p>
 
           {/* Interest Chips */}
           <div className="flex flex-wrap gap-1.5 mb-2">
             {tags.map((tag) => (
-              <span key={tag} className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-pink-50 text-pink-700 border border-pink-100">
+              <Badge key={tag} variant="primary" className="!bg-[var(--primary-soft)]">
                 {tag}
-              </span>
+              </Badge>
             ))}
           </div>
         </div>
@@ -202,57 +204,55 @@ export default function ProfileCard({ profile, actions, onShortlistChange }) {
 
       {/* Action Buttons: Shortlist & Express Interest */}
       {actions ? (
-        <div className="px-4 pb-4 flex gap-2 z-10 relative bg-white/90">
+        <div className="px-4 pb-4 flex gap-2 z-10 relative bg-[var(--surface-glass)]">
           {actions}
         </div>
       ) : (
-        <div className="px-4 pb-4 flex gap-2 z-10 relative bg-white/90">
-          <motion.button
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.95 }}
+        <div className="px-4 pb-4 flex gap-2 z-10 relative bg-[var(--surface-glass)]">
+          <Button
+            size="sm"
+            fullWidth
+            variant={isShortlisted ? 'soft' : 'secondary'}
+            loading={shortlistLoading}
             onClick={handleToggleShortlist}
-            disabled={shortlistLoading}
-            className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-1 ${
-              isShortlisted
-                ? 'bg-pink-50 border-pink-300 text-pink-700 shadow-sm'
-                : 'bg-white border-slate-200 text-slate-700 hover:border-pink-300 hover:bg-pink-50/50'
-            }`}
           >
-            <span>{isShortlisted ? '⭐' : '☆'}</span>
-            <span>{isShortlisted ? 'Shortlisted' : 'Shortlist'}</span>
-          </motion.button>
+            {isShortlisted ? <Star className="w-3.5 h-3.5 fill-current" aria-hidden="true" /> : <Star className="w-3.5 h-3.5" aria-hidden="true" />}
+            {isShortlisted ? 'Shortlisted' : 'Shortlist'}
+          </Button>
 
-          <motion.button
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.95 }}
+          <Button
+            size="sm"
+            fullWidth
+            loading={interestLoading}
+            disabled={interestStatus === 'pending' || interestStatus === 'declined' || interestStatus === 'rejected'}
             onClick={handleExpressInterest}
-            disabled={interestLoading || interestStatus === 'pending' || interestStatus === 'declined' || interestStatus === 'rejected'}
-            className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold shadow-md flex items-center justify-center gap-1 transition-all ${
+            className={
               interestStatus === 'accepted'
-                ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white'
+                ? '!bg-[linear-gradient(135deg,#10b981,#059669)] !shadow-[0_8px_25px_-4px_rgba(16,185,129,0.45)]'
                 : interestStatus === 'pending'
-                ? 'bg-pink-100 text-pink-700 border border-pink-200 cursor-not-allowed'
+                ? '!bg-[var(--primary-soft)] !text-[var(--primary-strong)]'
                 : interestStatus === 'declined' || interestStatus === 'rejected'
-                ? 'bg-slate-100 text-slate-500 border border-slate-200 cursor-not-allowed'
-                : 'text-white'
-            }`}
-            style={!interestStatus ? { background: 'linear-gradient(90deg, #f43f5e, #ec4899)' } : {}}
+                ? '!bg-[var(--surface-muted)] !text-[var(--ink-faint)]'
+                : ''
+            }
           >
-            <span>
-              {interestStatus === 'accepted' ? '💬' : interestStatus === 'pending' ? '⏳' : interestStatus === 'declined' || interestStatus === 'rejected' ? '✕' : '💖'}
-            </span>
-            <span>
-              {interestLoading
-                ? 'Sending…'
-                : interestStatus === 'accepted'
-                ? 'Send Message'
-                : interestStatus === 'pending'
-                ? 'Sent (Pending)'
-                : interestStatus === 'declined' || interestStatus === 'rejected'
-                ? 'Declined'
-                : 'Interest'}
-            </span>
-          </motion.button>
+            {interestStatus === 'accepted' ? (
+              <MessagesSquare className="w-3.5 h-3.5" aria-hidden="true" />
+            ) : interestStatus === 'pending' || interestStatus === 'declined' || interestStatus === 'rejected' ? (
+              <Heart className="w-3.5 h-3.5" aria-hidden="true" />
+            ) : (
+              <Heart className="w-3.5 h-3.5" aria-hidden="true" />
+            )}
+            {interestLoading
+              ? 'Sending…'
+              : interestStatus === 'accepted'
+              ? 'Send Message'
+              : interestStatus === 'pending'
+              ? 'Sent (Pending)'
+              : interestStatus === 'declined' || interestStatus === 'rejected'
+              ? 'Declined'
+              : 'Interest'}
+          </Button>
         </div>
       )}
     </motion.div>
