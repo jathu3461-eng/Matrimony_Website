@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useState } from 'react';
 import { Loader2, Check } from 'lucide-react';
 
 const VARIANTS = {
@@ -30,28 +30,30 @@ export default function Button({
   ariaLabel,
   ...rest
 }) {
-  const ref = useRef(null);
+  const [ripples, setRipples] = useState([]);
 
   const spawnRipple = (e) => {
-    const el = ref.current;
-    if (!el || e.button !== 0 || e.pointerType === 'touch' && e.type !== 'pointerdown') return;
+    const el = e.currentTarget;
+    if (!el || e.button !== 0) return;
     const rect = el.getBoundingClientRect();
     const d = Math.max(rect.width, rect.height) * 1.2;
-    const span = document.createElement('span');
-    span.className = 'ripple-ink';
-    span.style.width = `${d}px`;
-    span.style.height = `${d}px`;
-    span.style.left = `${e.clientX - rect.left - d / 2}px`;
-    span.style.top = `${e.clientY - rect.top - d / 2}px`;
-    el.appendChild(span);
-    setTimeout(() => span.remove(), 650);
+    const key = `${Date.now()}-${Math.random()}`;
+    const ripple = {
+      key,
+      left: e.clientX - rect.left - d / 2,
+      top: e.clientY - rect.top - d / 2,
+      size: d,
+    };
+    setRipples((prev) => [...prev, ripple]);
+    window.setTimeout(() => {
+      setRipples((prev) => prev.filter((r) => r.key !== key));
+    }, 650);
   };
 
   const isDisabled = disabled || loading;
 
   return (
     <button
-      ref={ref}
       type={type}
       onPointerDown={spawnRipple}
       onClick={onClick}
@@ -61,6 +63,14 @@ export default function Button({
       className={`btn ${VARIANTS[variant]} ${SIZES[size]} ${fullWidth ? 'w-full' : ''} ${className}`}
       {...rest}
     >
+      {ripples.map((r) => (
+        <span
+          key={r.key}
+          className="ripple-ink"
+          style={{ width: r.size, height: r.size, left: r.left, top: r.top }}
+          aria-hidden="true"
+        />
+      ))}
       {loading ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : null}
       {!loading && success ? <Check className="w-4 h-4" aria-hidden="true" /> : null}
       <span className="relative z-10 inline-flex items-center gap-2">

@@ -51,7 +51,7 @@ const TextField = forwardRef(function TextField(
         <input
           {...base}
           placeholder=" "
-          className={`fl-input ${icon ? 'fl-has-icon' : ''} ${stateClass} ${inputClassName}`}
+          className={`fl-input ${icon ? 'fl-has-icon' : ''} ${right ? 'fl-has-right' : ''} ${stateClass} ${inputClassName}`}
         />
         <label className="fl-label" htmlFor={inputId}>
           {label}

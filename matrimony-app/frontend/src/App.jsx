@@ -31,10 +31,6 @@ export default function App() {
 
       <Route element={<Layout />}>
         <Route path="/" element={<Landing />} />
-        <Route path="/signup" element={<Signup />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/broker-pending" element={<BrokerPending />} />
         <Route path="/search" element={<Search />} />
         <Route path="/profile/:id" element={<ProfileDetail />} />
 
@@ -83,6 +79,12 @@ export default function App() {
         />
         <Route path="*" element={<Landing />} />
       </Route>
+
+      {/* Full-screen auth pages (no navbar/footer) */}
+      <Route path="/signup" element={<Signup />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/broker-pending" element={<BrokerPending />} />
     </Routes>
   );
 }

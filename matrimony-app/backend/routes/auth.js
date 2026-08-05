@@ -70,7 +70,8 @@ router.post('/login', async (req, res) => {
     const { email, password } = req.body;
     if (!email || !password) return res.status(400).json({ errors: { email: 'Email and password are required' } });
 
-    const user = await db.get('SELECT * FROM users WHERE email = ?', [email]);
+    const identifier = email.trim();
+    const user = await db.get('SELECT * FROM users WHERE email = ? OR phone_number = ?', [identifier, identifier]);
     if (!user || !bcrypt.compareSync(password, user.password_hash)) {
       return res.status(401).json({ errors: { password: 'Incorrect email or password' } });
     }

@@ -76,7 +76,15 @@ export function createSignupSchema(isBroker = false) {
     phone_number: phone,
   };
   if (isBroker) shape.business_name = businessName;
-  return z.object(shape);
+  return z
+    .object({
+      ...shape,
+      confirm_password: z.string().min(1, 'Confirm your password'),
+    })
+    .refine((v) => v.password === v.confirm_password, {
+      message: 'Passwords do not match',
+      path: ['confirm_password'],
+    });
 }
 
 export const signupSchema = createSignupSchema(false);

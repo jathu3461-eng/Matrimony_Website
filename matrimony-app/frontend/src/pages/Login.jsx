@@ -2,17 +2,26 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate, Link, Navigate } from 'react-router-dom';
-import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { Eye, EyeOff, Lock, Mail, ShieldCheck } from 'lucide-react';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
+import { useI18n } from '../context/I18nContext';
 import AuthLayout from '../components/auth/AuthLayout';
 import { Button, TextField, ErrorCard } from '../components/ui';
 import { loginSchema, normalizeApiErrors } from '../lib/validation';
 
+/** Map zod's English messages to i18n keys (auth fields only). */
+const VAL_MSG_KEYS = {
+  Required: 'err_required',
+  'Enter a valid email or mobile number': 'err_email_or_mobile',
+  'Invalid email format (e.g. name@example.com)': 'err_email_format',
+};
+
 export default function Login() {
   const navigate = useNavigate();
   const { setUser, user, loading: authLoading } = useAuth();
+  const { t } = useI18n();
   const [showPw, setShowPw] = useState(false);
   const [serverError, setServerError] = useState('');
 
@@ -20,6 +29,7 @@ export default function Login() {
     register,
     handleSubmit,
     setError,
+    watch,
     formState: { errors, isSubmitting, touchedFields },
   } = useForm({
     resolver: zodResolver(loginSchema),
@@ -27,7 +37,13 @@ export default function Login() {
     defaultValues: { email: '', password: '' },
   });
 
-  const showErr = (f) => (touchedFields[f] ? errors[f]?.message : undefined);
+  const emailValue = watch('email');
+  const pwValue = watch('password');
+
+  const localize = (msg) => (msg && VAL_MSG_KEYS[msg] ? t(VAL_MSG_KEYS[msg]) : msg);
+
+  const showErr = (f) => localize(touchedFields[f] ? errors[f]?.message : undefined);
+  const showSuccess = (f, value) => (touchedFields[f] && !errors[f] && value ? true : false);
 
   const onSubmit = handleSubmit(async (values) => {
     setServerError('');
@@ -54,32 +70,9 @@ export default function Login() {
 
   return (
     <AuthLayout
-      title="Welcome back!"
-      subtitle={
-        <>
-          Glad to see you again. Login to continue your journey
-          <br className="hidden sm:block" /> to find your perfect life partner.
-        </>
-      }
-      brand={{ prefix: 'New to Mukurtham?', label: 'Create an account', to: '/signup' }}
-      footer={
-        <div className="grid grid-cols-2 gap-3">
-          <div className="flex items-center gap-2">
-            <div className="flex -space-x-1.5">
-              {['bg-[#ffd3e6]', 'bg-[#ffc9de]', 'bg-[#ffb6d9]', 'bg-[#ff9ec9]'].map((c, i) => (
-                <span key={i} className={`w-6 h-6 rounded-full ${c} border-2 border-[var(--surface)]`} />
-              ))}
-            </div>
-            <span className="text-[10px] text-[var(--ink-soft)] font-semibold leading-tight">
-              Trusted by the Tamil community worldwide
-            </span>
-          </div>
-          <div className="flex items-center gap-1.5 justify-end">
-            <span className="font-extrabold text-[var(--primary)] text-sm">10M+</span>
-            <span className="text-[10px] text-[var(--ink-soft)] font-semibold leading-tight">happy matches made</span>
-          </div>
-        </div>
-      }
+      title="login_title"
+      subtitle="login_sub"
+      brand={{ prefixKey: 'auth_new_to', labelKey: 'auth_create_account', to: '/signup' }}
     >
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}>
         {serverError && (
@@ -90,17 +83,19 @@ export default function Login() {
 
         <form onSubmit={onSubmit} noValidate className="space-y-4">
           <TextField
-            label="Email or Mobile Number"
-            placeholder="name@example.com"
+            label={t('auth_email_or_mobile')}
+            placeholder={t('auth_email_placeholder')}
             icon={<Mail className="w-4 h-4" />}
             error={showErr('email')}
+            success={showSuccess('email', emailValue) ? t('auth_valid') : undefined}
             autoComplete="email"
             inputMode="email"
             {...register('email')}
           />
 
           <TextField
-            label="Password"
+            label={t('auth_password_label')}
+            placeholder={t('auth_password_placeholder')}
             type={showPw ? 'text' : 'password'}
             icon={<Lock className="w-4 h-4" />}
             error={showErr('password')}
@@ -109,7 +104,7 @@ export default function Login() {
               <button
                 type="button"
                 onClick={() => setShowPw((s) => !s)}
-                aria-label={showPw ? 'Hide password' : 'Show password'}
+                aria-label={showPw ? t('auth_hide_password') : t('auth_show_password')}
                 className="absolute right-3 top-[0.8rem] text-[var(--ink-faint)] hover:text-[var(--primary)] transition-colors"
               >
                 {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -118,16 +113,21 @@ export default function Login() {
             {...register('password')}
           />
 
-          <div className="text-right -mt-1">
+          <div className="flex items-center justify-between -mt-1">
             <Link to="/forgot-password" className="text-xs font-bold text-[var(--primary)] hover:text-[var(--primary-strong)] hover:underline">
-              Forgot Password?
+              {t('forgot_password')}
             </Link>
           </div>
 
           <Button type="submit" fullWidth loading={isSubmitting} className="mt-2">
-            Login
+            {t('auth_login_button')}
           </Button>
         </form>
+
+        <div className="mt-6 flex items-center justify-center gap-1.5 text-[11px] text-[var(--ink-faint)] font-semibold">
+          <ShieldCheck className="w-3.5 h-3.5 text-[var(--success)]" aria-hidden="true" />
+          {t('auth_secure_private')}
+        </div>
       </motion.div>
     </AuthLayout>
   );

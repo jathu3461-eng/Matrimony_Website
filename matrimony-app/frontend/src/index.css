@@ -318,6 +318,9 @@ button {
 .fl-input.fl-has-icon:not(:placeholder-shown) ~ .fl-label {
   left: 2.6rem;
 }
+.fl-input.fl-has-right {
+  padding-right: 2.6rem;
+}
 
 /* ═══════════════════════════════════════════════════════════
    ERROR / HELP / SUCCESS MESSAGES  (modern cards, below field)

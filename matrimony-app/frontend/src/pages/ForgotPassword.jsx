@@ -5,14 +5,27 @@ import { useNavigate, Link } from 'react-router-dom';
 import { KeyRound, Lock, Mail } from 'lucide-react';
 import { motion } from 'framer-motion';
 import api from '../api';
+import { useI18n } from '../context/I18nContext';
 import AuthLayout from '../components/auth/AuthLayout';
 import { Button, TextField, Badge, ErrorCard } from '../components/ui';
 import { forgotPasswordSchema, resetPasswordSchema, normalizeApiErrors } from '../lib/validation';
 
 const PASSWORD_RE = /^(?=.*[A-Z])(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/;
 
+const VAL_MSG_KEYS = {
+  Required: 'err_required',
+  'Invalid email format (e.g. name@example.com)': 'err_email_format',
+  'Minimum 8 characters': 'err_pw_min',
+  'Needs at least 1 uppercase letter and 1 special character': 'err_pw_rules',
+  'Confirm your password': 'err_confirm_required',
+  'Passwords do not match': 'err_confirm_match',
+  'Enter the 6-digit code': 'fp_enter_code',
+  'Expected a 6 digit code': 'fp_invalid_code',
+};
+
 export default function ForgotPassword() {
   const navigate = useNavigate();
+  const { t } = useI18n();
   const [step, setStep] = useState(1);
   const [email, setEmail] = useState('');
   const [demoOtp, setDemoOtp] = useState('');
@@ -33,7 +46,8 @@ export default function ForgotPassword() {
     defaultValues: { password: '', confirm_password: '' },
   });
 
-  const showErr = (form, f) => (form.formState.touchedFields[f] ? form.formState.errors[f]?.message : undefined);
+  const localize = (msg) => (msg && VAL_MSG_KEYS[msg] ? t(VAL_MSG_KEYS[msg]) : msg);
+  const showErr = (form, f) => localize(form.formState.touchedFields[f] ? form.formState.errors[f]?.message : undefined);
 
   const requestOtp = requestForm.handleSubmit(async ({ email: em }) => {
     setServerError('');
@@ -60,7 +74,7 @@ export default function ForgotPassword() {
   const resetPassword = resetForm.handleSubmit(async ({ password }) => {
     setServerError('');
     if (!PASSWORD_RE.test(password)) {
-      resetForm.setError('password', { message: 'Password too weak. Required: Min 8 chars, 1 uppercase, 1 special character' });
+      resetForm.setError('password', { message: t('fp_pw_weak') });
       return;
     }
     try {
@@ -69,7 +83,7 @@ export default function ForgotPassword() {
     } catch (err) {
       const fe = normalizeApiErrors(err.response?.data);
       if (Object.keys(fe).length) {
-        for (const [k, msg] of Object.entries(fe)) resetForm.setError(k, { message: msg });
+        for (const [k, msg] of Object.entries(fe)) resetForm.setError(k, { message: localize(msg) });
       } else {
         setServerError(err.response?.data?.error || 'Reset failed');
       }
@@ -77,13 +91,13 @@ export default function ForgotPassword() {
   });
 
   const titles = {
-    1: 'Reset your password',
-    2: 'Enter the verification code',
-    3: 'Choose a new password',
+    1: 'fp_title_step1',
+    2: 'fp_title_step2',
+    3: 'fp_title_step3',
   };
 
   return (
-    <AuthLayout title={titles[step]} subtitle="We’ll help you get back in securely." brand={undefined}>
+    <AuthLayout title={titles[step]} subtitle="fp_subtitle" brand={undefined}>
       <div className="mb-5 flex items-center gap-2">
         {[1, 2, 3].map((n) => (
           <div key={n} className="flex items-center gap-2">
@@ -91,12 +105,14 @@ export default function ForgotPassword() {
             <Badge variant={n === step ? 'primary' : n < step ? 'success' : 'neutral'}>{n}</Badge>
           </div>
         ))}
-        <span className="ml-auto text-xs font-bold text-[var(--ink-faint)]">Step {step} of 3</span>
+        <span className="ml-auto text-xs font-bold text-[var(--ink-faint)]">
+          {t('step')} {step} {t('of')} 3
+        </span>
       </div>
 
       {demoOtp && step === 2 && (
         <div className="mb-5 p-3.5 rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] text-[13px] font-semibold text-[var(--ink-soft)]">
-          Demo mode (no email service configured): your code is{' '}
+          {t('fp_demo_note_prefix')}{' '}
           <strong className="text-[var(--primary)] font-extrabold tracking-widest">{demoOtp}</strong>
         </div>
       )}
@@ -111,15 +127,15 @@ export default function ForgotPassword() {
         {step === 1 && (
           <form onSubmit={requestOtp} noValidate className="space-y-4">
             <TextField
-              label="Email Address"
-              placeholder="name@example.com"
+              label={t('auth_email_label')}
+              placeholder={t('auth_email_placeholder')}
               icon={<Mail className="w-4 h-4" />}
               error={showErr(requestForm, 'email')}
               autoComplete="email"
               {...requestForm.register('email')}
             />
             <Button type="submit" fullWidth loading={requestForm.formState.isSubmitting}>
-              Send Reset Code
+              {t('fp_send_code')}
             </Button>
           </form>
         )}
@@ -127,7 +143,7 @@ export default function ForgotPassword() {
         {step === 2 && (
           <form onSubmit={verifyOtp} noValidate className="space-y-4">
             <TextField
-              label="6-digit Code"
+              label={t('fp_code_label')}
               placeholder="000000"
               icon={<KeyRound className="w-4 h-4" />}
               error={showErr(otpForm, 'otp')}
@@ -139,7 +155,7 @@ export default function ForgotPassword() {
               })}
             />
             <Button type="submit" fullWidth loading={otpForm.formState.isSubmitting}>
-              Verify Code
+              {t('fp_verify_code')}
             </Button>
           </form>
         )}
@@ -147,7 +163,7 @@ export default function ForgotPassword() {
         {step === 3 && (
           <form onSubmit={resetPassword} noValidate className="space-y-4">
             <TextField
-              label="New Password"
+              label={t('fp_new_password')}
               type="password"
               icon={<Lock className="w-4 h-4" />}
               error={showErr(resetForm, 'password')}
@@ -155,7 +171,7 @@ export default function ForgotPassword() {
               {...resetForm.register('password')}
             />
             <TextField
-              label="Confirm New Password"
+              label={t('fp_confirm_new_password')}
               type="password"
               icon={<Lock className="w-4 h-4" />}
               error={showErr(resetForm, 'confirm_password')}
@@ -163,14 +179,14 @@ export default function ForgotPassword() {
               {...resetForm.register('confirm_password')}
             />
             <Button type="submit" fullWidth loading={resetForm.formState.isSubmitting}>
-              Reset Password
+              {t('fp_reset_password')}
             </Button>
           </form>
         )}
 
         <p className="text-center mt-6">
           <Link to="/login" className="text-sm font-bold text-[var(--primary)] hover:underline">
-            Back to login
+            {t('auth_back_to_login')}
           </Link>
         </p>
       </motion.div>
