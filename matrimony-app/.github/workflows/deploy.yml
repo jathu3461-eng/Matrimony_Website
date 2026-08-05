@@ -42,6 +42,7 @@ jobs:
           RewriteEngine On
           RewriteCond %{REQUEST_FILENAME} !-f
           RewriteRule ^ index.html [QSA,L]
+          Header set Cache-Control "no-cache, no-store, must-revalidate" "expr:%{REQUEST_URI} =~ /index\.html$/"
           EOF
 
       - name: 🚀 FTP Deploy dist/ → public_html/
