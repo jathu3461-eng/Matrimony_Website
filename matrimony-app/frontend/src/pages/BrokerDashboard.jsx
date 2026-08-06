@@ -75,19 +75,23 @@ export default function BrokerDashboard() {
     setLoading(true);
     setLoadError('');
     try {
-      const [profilesRes, interactionsRes, requestsRes] = await Promise.all([
+      const [profilesRes, interactionsRes] = await Promise.all([
         api.get('/profiles/mine'),
         api.get('/interests/my-interactions'),
-        api.get('/brokers/requests'),
       ]);
       setProfiles(profilesRes.data.profiles);
       setInteractions(interactionsRes.data);
-      setClientRequests(requestsRes.data.requests);
     } catch (err) {
       console.error(err);
       setLoadError('Could not load your broker dashboard. Please check your connection and try again.');
     } finally {
       setLoading(false);
+    }
+    try {
+      const requestsRes = await api.get('/brokers/requests');
+      setClientRequests(requestsRes.data.requests);
+    } catch (err) {
+      console.error('Could not load client requests:', err);
     }
   }, []);
 
@@ -275,6 +279,7 @@ export default function BrokerDashboard() {
                     usedPct={usedPct}
                     pendingCount={pendingCount}
                     acceptedCount={acceptedCount}
+                    clientRequests={clientRequests}
                     navigate={navigate}
                     setSection={(s) => navigate(SECTION_META[s].path)}
                   />
@@ -468,8 +473,8 @@ function DashboardSkeleton() {
   return (
     <div className="space-y-6">
       <Skeleton className="h-40 w-full rounded-3xl" />
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-        {[0, 1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-32 rounded-2xl" />)}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+        {[0, 1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-32 rounded-2xl" />)}
       </div>
       <Skeleton className="h-64 w-full rounded-3xl" />
     </div>
@@ -478,12 +483,14 @@ function DashboardSkeleton() {
 
 /* ── Overview ─────────────────────────────────────────────────────────────── */
 
-function Overview({ user, profiles, interactions, quota, usedPct, pendingCount, acceptedCount, navigate, setSection }) {
+function Overview({ user, profiles, interactions, quota, usedPct, pendingCount, acceptedCount, clientRequests, navigate, setSection }) {
   const received = [...interactions.received].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 4);
+  const pendingBrokerRequests = clientRequests.filter((r) => r.status === 'pending').length;
 
   const STATS = [
     { icon: Users, label: 'Client Profiles', value: profiles.length, accent: 'bg-gradient-to-tr from-pink-500 to-rose-500', onClick: () => setSection('profiles') },
     { icon: Gauge, label: 'Quota Used', value: `${usedPct}%`, badge: quota ? `${profiles.length} of ${quota}` : null, accent: 'bg-gradient-to-tr from-amber-500 to-orange-500', onClick: () => setSection('profiles') },
+    { icon: UserPlus, label: 'Client Requests', value: clientRequests.length, badge: pendingBrokerRequests > 0 ? `${pendingBrokerRequests} new` : null, accent: 'bg-gradient-to-tr from-blue-500 to-indigo-500', onClick: () => setSection('clients') },
     { icon: Heart, label: 'Interests', value: interactions.received.length, badge: pendingCount > 0 ? `${pendingCount} pending` : null, accent: 'bg-gradient-to-tr from-fuchsia-500 to-pink-500', onClick: () => setSection('interests') },
     { icon: Star, label: 'Shortlisted', value: interactions.shortlists.length, accent: 'bg-gradient-to-tr from-violet-500 to-purple-500', onClick: () => setSection('shortlist') },
     { icon: UserCheck, label: 'Accepted', value: acceptedCount, accent: 'bg-gradient-to-tr from-emerald-500 to-teal-500', onClick: () => setSection('interests') },
@@ -491,9 +498,9 @@ function Overview({ user, profiles, interactions, quota, usedPct, pendingCount, 
 
   const QUICK_ACTIONS = [
     { icon: Plus, label: 'New Client Profile', desc: 'Register a new profile for a client', accent: 'from-pink-500 to-rose-500', onClick: () => navigate('/profile/new') },
+    { icon: UserPlus, label: 'Client Requests', desc: pendingBrokerRequests > 0 ? `${pendingBrokerRequests} new request${pendingBrokerRequests > 1 ? 's' : ''} waiting` : 'View and manage client connections', accent: 'from-blue-500 to-indigo-500', onClick: () => setSection('clients') },
     { icon: Search, label: 'Browse Matches', desc: 'Find matches across the community', accent: 'from-violet-500 to-purple-500', onClick: () => navigate('/search') },
     { icon: MessagesSquare, label: 'Open Messages', desc: 'Chat with accepted matches', accent: 'from-emerald-500 to-teal-500', onClick: () => navigate('/chat') },
-    { icon: Star, label: 'View Shortlist', desc: 'Review saved profiles', accent: 'from-amber-500 to-orange-500', onClick: () => setSection('shortlist') },
   ];
 
   return (
@@ -536,7 +543,7 @@ function Overview({ user, profiles, interactions, quota, usedPct, pendingCount, 
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
         {STATS.map((s, i) => (
           <StatCard key={s.label} {...s} delay={i * 0.06} />
         ))}
@@ -612,6 +619,56 @@ function Overview({ user, profiles, interactions, quota, usedPct, pendingCount, 
                   </div>
                   <p className="text-xs text-[var(--ink-faint)] font-medium mt-0.5 truncate">
                     For: {i.receiver_name} · {new Date(i.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Recent client requests */}
+      <div className="glass-card rounded-3xl p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-extrabold text-[var(--ink)] text-lg flex items-center gap-2">
+            <span className="w-9 h-9 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center shadow-md">
+              <UserPlus className="w-4 h-4 text-white" aria-hidden="true" />
+            </span>
+            Recent Client Requests
+          </h3>
+          {clientRequests.length > 0 && (
+            <button
+              onClick={() => setSection('clients')}
+              className="text-xs font-bold text-[var(--primary)] hover:text-[var(--primary-strong)] flex items-center gap-1 transition-colors"
+            >
+              View all <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
+            </button>
+          )}
+        </div>
+        {clientRequests.length === 0 ? (
+          <div className="py-10 text-center">
+            <div className="text-5xl mb-3">🤝</div>
+            <p className="text-sm text-[var(--ink-faint)] font-medium">No client requests yet. When members connect with you, their requests will appear here.</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-[var(--border)]">
+            {clientRequests.slice(0, 4).map((r) => (
+              <div key={r.id} className="flex items-center gap-4 py-3.5">
+                <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center text-white font-display font-extrabold text-sm shrink-0 shadow-sm">
+                  {r.user_username?.[0]?.toUpperCase()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="font-bold text-[var(--ink)] text-sm truncate">{r.user_username}</p>
+                    <Badge
+                      variant={r.status === 'accepted' ? 'success' : r.status === 'pending' ? 'warning' : 'error'}
+                      className="!text-[10px] !px-2 !py-0.5 shrink-0"
+                    >
+                      {r.status === 'accepted' ? 'Connected' : r.status === 'pending' ? 'Pending' : 'Declined'}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-[var(--ink-faint)] font-medium mt-0.5 truncate">
+                    {r.email} · {new Date(r.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' })}
                   </p>
                 </div>
               </div>
