@@ -16,4 +16,13 @@ export const uploadsUrl = (name) => {
   return `${origin}/uploads/${name}`;
 };
 
+// Socket.IO server lives on the same origin as the REST API.
+// e.g. VITE_API_URL=https://api.mukurtham.ca/api -> https://api.mukurtham.ca
+export const socketUrl = () => {
+  if (apiBase.startsWith('http')) {
+    return apiBase.endsWith('/api') ? apiBase.slice(0, -4) : apiBase.replace(/\/$/, '');
+  }
+  return window.location.origin;
+};
+
 export default api;

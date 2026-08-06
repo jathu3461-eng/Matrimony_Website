@@ -66,6 +66,15 @@ router.post('/send', async (req, res) => {
         "INSERT INTO notifications (user_id, sender_id, type, message) VALUES (?, ?, 'interest_received', ?)",
         [receiver.owner_user_id, req.user.id, `${senderName} sent you an Interest Request.`]
       );
+      // Real-time toast for the receiver (best-effort).
+      const { getIO } = require('../socket');
+      getIO()?.to(`user:${receiver.owner_user_id}`).emit('chat:interest', {
+        type: 'interest_received',
+        fromName: senderName,
+        fromProfileId: activeSenderId,
+        profileId: receiver_profile_id,
+        message: `${senderName} sent you an Interest Request.`,
+      });
     } catch (_) {}
 
     const interest = await db.get('SELECT * FROM interests WHERE id = ?', [info.lastInsertRowid]);
@@ -130,12 +139,29 @@ router.put('/respond', async (req, res) => {
     if (newStatus === 'accepted') {
       try {
         const senderProf = await db.get('SELECT owner_user_id FROM profiles WHERE id = ?', [interest.sender_profile_id]);
-        const receiverProf = await db.get('SELECT name FROM profiles WHERE id = ?', [interest.receiver_profile_id]);
+        const receiverProf = await db.get('SELECT name, owner_user_id FROM profiles WHERE id = ?', [interest.receiver_profile_id]);
         if (senderProf && receiverProf) {
           await db.run(
             "INSERT INTO notifications (user_id, sender_id, type, message) VALUES (?, ?, 'interest_accepted', ?)",
             [senderProf.owner_user_id, req.user.id, `${receiverProf.name} accepted your interest request! You can now send direct messages.`]
           );
+        }
+        // Real-time: both users get the new chat thread instantly (best-effort).
+        const { getIO } = require('../socket');
+        const chatService = require('../services/chatService');
+        const io = getIO();
+        if (io) {
+          chatService.emitThreadUpdate(io, interest.sender_profile_id, interest.receiver_profile_id);
+          io.to(`user:${senderProf.owner_user_id}`).emit('chat:interest', {
+            type: 'interest_accepted',
+            fromName: receiverProf.name,
+            message: `${receiverProf.name} accepted your interest! You can now chat.`,
+          });
+          io.to(`user:${receiverProf.owner_user_id}`).emit('chat:interest', {
+            type: 'interest_accepted',
+            fromName: receiverProf.name,
+            message: `You are now connected with ${receiverProf.name}.`,
+          });
         }
       } catch (_) {}
     }

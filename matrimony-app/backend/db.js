@@ -56,6 +56,7 @@ async function initDB() {
         ui_language ENUM('en','ta') NOT NULL DEFAULT 'en',
         reset_otp VARCHAR(10),
         reset_otp_expires BIGINT,
+        last_seen_at TIMESTAMP NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
 
@@ -191,6 +192,8 @@ async function initDB() {
         sender_profile_id INT NOT NULL,
         receiver_profile_id INT NOT NULL,
         message TEXT NOT NULL,
+        client_id VARCHAR(64) NULL,
+        delivered_at TIMESTAMP NULL,
         read_at TIMESTAMP NULL,
         sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (sender_profile_id) REFERENCES profiles(id) ON DELETE CASCADE,
@@ -224,6 +227,32 @@ async function initDB() {
 
     // Index for chat thread lookups
     await conn.query(`CREATE INDEX IF NOT EXISTS idx_chat_thread ON chat_messages(thread_id, sent_at)`).catch(() => {});
+
+    // ─── Migrations for existing databases (MySQL lacks ADD COLUMN IF NOT EXISTS) ───
+    async function ensureColumn(table, column, ddl) {
+      const [[row]] = await conn.query(
+        `SELECT COUNT(*) AS c FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?`,
+        [table, column]
+      );
+      if (row.c === 0) {
+        await conn.query(`ALTER TABLE ${table} ADD COLUMN ${ddl}`);
+      }
+    }
+    async function ensureIndex(table, indexName, ddl) {
+      const [[row]] = await conn.query(
+        `SELECT COUNT(*) AS c FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND INDEX_NAME = ?`,
+        [table, indexName]
+      );
+      if (row.c === 0) {
+        await conn.query(`CREATE ${ddl}`);
+      }
+    }
+
+    await ensureColumn('chat_messages', 'client_id', 'client_id VARCHAR(64) NULL');
+    await ensureColumn('chat_messages', 'delivered_at', 'delivered_at TIMESTAMP NULL');
+    await ensureColumn('users', 'last_seen_at', 'last_seen_at TIMESTAMP NULL');
+    await ensureIndex('chat_messages', 'uq_chat_client_id', 'UNIQUE INDEX uq_chat_client_id ON chat_messages(client_id)');
+    await ensureIndex('chat_messages', 'idx_chat_thread_id', 'INDEX idx_chat_thread_id ON chat_messages(thread_id, id)');
 
     await seed(conn);
     console.log('✅ MySQL DB initialized');

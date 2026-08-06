@@ -1,10 +1,12 @@
 require('dotenv').config();
 const express = require('express');
+const http = require('http');
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const path = require('path');
 
 const { dbReady } = require('./db');
+const { initSocket } = require('./socket');
 
 const authRoutes = require('./routes/auth');
 const profileRoutes = require('./routes/profiles');
@@ -49,7 +51,9 @@ app.use((err, req, res, next) => {
 
 // Wait for DB to be ready before accepting requests
 dbReady.then(() => {
-  app.listen(PORT, () => {
+  const server = http.createServer(app);
+  initSocket(server);
+  server.listen(PORT, () => {
     console.log(`✅ Matrimony API server running on http://localhost:${PORT}`);
   });
 });
