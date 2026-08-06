@@ -163,7 +163,7 @@ function AuthIllustration() {
       <motion.div
         animate={{ y: [0, -12, 0], rotate: [-3, 3, -3] }}
         transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
-        className="absolute bottom-6 left-6 bg-white/20 backdrop-blur-md border border-white/25 rounded-2xl px-4 py-2.5 flex items-center gap-2 shadow-lg"
+        className="absolute bottom-6 left-6 z-20 bg-white/20 backdrop-blur-md border border-white/25 rounded-2xl px-4 py-2.5 flex items-center gap-2 shadow-lg"
       >
         <div className="w-8 h-8 rounded-full bg-white/25 flex items-center justify-center">
           <ShieldCheck className="w-4 h-4 text-white" />
@@ -178,7 +178,7 @@ function AuthIllustration() {
       <motion.div
         animate={{ y: [0, 10, 0], rotate: [3, -3, 3] }}
         transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }}
-        className="absolute top-10 right-2 bg-white/20 backdrop-blur-md border border-white/25 rounded-2xl px-4 py-2.5 flex items-center gap-2 shadow-lg"
+        className="absolute top-10 right-2 z-20 bg-white/20 backdrop-blur-md border border-white/25 rounded-2xl px-4 py-2.5 flex items-center gap-2 shadow-lg"
       >
         <div className="w-8 h-8 rounded-full bg-white/25 flex items-center justify-center">
           <Sparkles className="w-4 h-4 text-amber-200" />
