@@ -18,7 +18,13 @@ export function AuthProvider({ children }) {
   }, []);
 
   const logout = useCallback(async () => {
-    await api.post('/auth/logout');
+    try {
+      // Bodyless POST requests are blocked by the host's WAF, so send `{}`.
+      await api.post('/auth/logout', {});
+    } catch {
+      // Always clear local state. The HttpOnly cookie is cleared server-side;
+      // if that call failed, the next /auth/me will 401 and drop the session.
+    }
     setUser(null);
   }, []);
 

@@ -1,9 +1,15 @@
 const express = require('express');
 const { db } = require('../db');
-const { requireAuth, requireRole } = require('../middleware/auth');
+const { requireAuth, requireRole, refreshAdminSession } = require('../middleware/auth');
 
 const router = express.Router();
-router.use(requireAuth, requireRole('admin'));
+// Every admin endpoint requires an authenticated administrator. The sliding
+// refresh re-issues the admin cookie on each request so the 12h inactivity
+// window resets, then expires if the admin goes idle.
+router.use(requireAuth, requireRole('admin'), (req, res, next) => {
+  refreshAdminSession(req, res);
+  next();
+});
 
 // ── Broker approval queue ─────────────────────────────────────────────────────
 

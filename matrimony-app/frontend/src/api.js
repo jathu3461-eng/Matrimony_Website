@@ -7,6 +7,17 @@ const api = axios.create({
   withCredentials: true,
 });
 
+// The host's WAF (LiteSpeed/ModSecurity) blocks POST/PUT/PATCH requests that
+// carry no body. Inject an empty JSON body whenever none was provided so
+// requests like logout, broker approve/reject, and profile verify pass through.
+api.interceptors.request.use((config) => {
+  const method = (config.method || 'get').toLowerCase();
+  if (['post', 'put', 'patch'].includes(method) && config.data === undefined) {
+    config.data = {};
+  }
+  return config;
+});
+
 // Builds a full URL for files stored on the backend (uploads folder).
 // e.g. VITE_API_URL=https://api.mukurtham.ca/api -> https://api.mukurtham.ca/uploads/photo.jpg
 export const uploadsUrl = (name) => {

@@ -2,46 +2,18 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const { db } = require('../db');
-const { setAuthCookie, clearAuthCookie, requireAuth } = require('../middleware/auth');
+const { setAuthCookie, setAdminAuthCookie, clearAuthCookie, requireAuth } = require('../middleware/auth');
+const { rateLimit, clientIp } = require('../middleware/rateLimit');
+const { logAdminLogin } = require('../utils/adminLogger');
 
 const router = express.Router();
 
-// ── Built-in rate limiter (no external packages needed) ───────────────────────
-const rateLimitStore = new Map(); // ip -> [timestamps]
-
-function createRateLimit({ windowMs, max, message }) {
-  return (req, res, next) => {
-    const ip = req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'unknown';
-    const now = Date.now();
-    const windowStart = now - windowMs;
-
-    // Get or init attempts array, prune old entries
-    let attempts = (rateLimitStore.get(ip) || []).filter(t => t > windowStart);
-
-    if (attempts.length >= max) {
-      const retryAfter = Math.ceil((attempts[0] + windowMs - now) / 1000);
-      res.set('Retry-After', retryAfter);
-      return res.status(429).json({ error: message });
-    }
-
-    attempts.push(now);
-    rateLimitStore.set(ip, attempts);
-
-    // Clean up old entries every 1000 requests
-    if (rateLimitStore.size > 1000) {
-      for (const [key, times] of rateLimitStore.entries()) {
-        if (times.filter(t => t > windowStart).length === 0) rateLimitStore.delete(key);
-      }
-    }
-    next();
-  };
-}
-
-// Admin login: max 5 attempts per 15 minutes per IP
-const adminLoginLimiter = createRateLimit({
+// Brute-force protection for the admin login endpoint: max 10 attempts per
+// IP + email within a 15-minute window, then a 429 with Retry-After.
+const adminLoginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 5,
-  message: 'Too many login attempts. Please wait 15 minutes and try again.',
+  max: 10,
+  message: 'Too many login attempts. Please wait a few minutes and try again.',
 });
 
 const USERNAME_RE = /^[a-zA-Z0-9_]{4,30}$/;
@@ -130,40 +102,41 @@ router.post('/login', async (req, res) => {
 // POST /api/auth/admin-login
 router.post('/admin-login', adminLoginLimiter, async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password } = req.body || {};
+    const ip = clientIp(req);
+    const ua = req.headers['user-agent'] || '';
 
-    // Input validation
+    // Validate input — both fields are mandatory.
     if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password are required' });
+      logAdminLogin({ ok: false, email, ip, reason: 'missing_fields', userAgent: ua });
+      return res.status(400).json({ errors: { general: 'Email and password are required' } });
     }
     if (typeof email !== 'string' || email.length > 255) {
-      return res.status(400).json({ error: 'Invalid email format' });
+      return res.status(400).json({ errors: { general: 'Invalid email format' } });
     }
 
-    const ip = req.ip || req.connection.remoteAddress;
-
-    // Fetch admin user (don't reveal whether email exists)
+    // Fetch admin user (don't reveal whether the email exists).
     const user = await db.get('SELECT * FROM users WHERE email = ? AND role = ?', [email.trim().toLowerCase(), 'admin']);
 
-    // Always run bcrypt compare (even on fake hash) to prevent timing attacks
+    // Always run bcrypt compare (even against a fake hash) to prevent timing attacks.
     const fakeHash = '$2b$12$invalidhashfortimingprotectiononly000000000000000000';
     const hashToCompare = user ? user.password_hash : fakeHash;
     const passwordOk = bcrypt.compareSync(String(password), hashToCompare);
 
+    // Single generic message: never reveal which credential was wrong.
     if (!user || !passwordOk) {
-      // Log failed attempt for security monitoring
-      console.warn(`[ADMIN-AUTH] ❌ Failed login attempt | IP: ${ip} | Email: ${email} | Time: ${new Date().toISOString()}`);
-      return res.status(401).json({ error: 'Invalid email or password' });
+      logAdminLogin({ ok: false, email: email.trim(), ip, reason: 'bad_credentials', userAgent: ua });
+      return res.status(401).json({ errors: { general: 'Invalid email or password' } });
     }
 
     if (user.is_approved !== 1) {
-      console.warn(`[ADMIN-AUTH] ❌ Unapproved admin login attempt | IP: ${ip} | Email: ${email}`);
+      logAdminLogin({ ok: false, email: email.trim(), ip, reason: 'not_approved', userAgent: ua });
       return res.status(403).json({ error: 'Account not authorized' });
     }
 
-    // Success
-    console.info(`[ADMIN-AUTH] ✅ Successful admin login | IP: ${ip} | Email: ${email} | Time: ${new Date().toISOString()}`);
-    setAuthCookie(res, user);
+    // Success — short-lived, sliding admin session.
+    setAdminAuthCookie(res, user);
+    logAdminLogin({ ok: true, email: email.trim(), ip, userAgent: ua });
     res.json({ user: sanitize(user) });
   } catch (err) {
     console.error('[ADMIN-AUTH] Server error:', err);

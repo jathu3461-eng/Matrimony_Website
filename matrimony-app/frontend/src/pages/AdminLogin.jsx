@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, Navigate } from 'react-router-dom';
 import { Eye, EyeOff, Lock, Mail, ShieldCheck, ArrowLeft, KeyRound } from 'lucide-react';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
@@ -16,70 +16,71 @@ const fadeUp = {
   show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } },
 };
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function validate(form) {
+  const errors = {};
+  const email = form.email.trim();
+  if (!email) errors.email = 'Admin email is required';
+  else if (!EMAIL_RE.test(email)) errors.email = 'Enter a valid email address';
+  if (!form.password) errors.password = 'Password is required';
+  return errors;
+}
+
 export default function AdminLogin() {
   const [form, setForm] = useState({ email: '', password: '' });
-  const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
+  const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [showPw, setShowPw] = useState(false);
-  const { user, setUser, loading } = useAuth();
+  const { user, loading, setUser } = useAuth();
   const navigate = useNavigate();
 
-  // If already logged in as admin, redirect to dashboard
+  // Already signed in as admin? Skip the login page.
   useEffect(() => {
-    if (!loading && user && user.role === 'admin') {
+    if (!loading && user?.role === 'admin') {
       navigate('/admin/dashboard', { replace: true });
     }
-  }, [user, loading, navigate]);
+  }, [loading, user, navigate]);
 
-  const validate = () => {
-    const errs = {};
-    if (!form.email.trim()) errs.email = 'Email is required';
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errs.email = 'Enter a valid email address';
-    if (!form.password) errs.password = 'Password is required';
-    return errs;
+  if (!loading && user?.role === 'admin') {
+    return <Navigate to="/admin/dashboard" replace />;
+  }
+
+  const handleChange = (field) => (e) => {
+    setForm((f) => ({ ...f, [field]: e.target.value }));
+    setFieldErrors((prev) => ({ ...prev, [field]: undefined }));
+    setError('');
   };
 
   const handleSubmit = async (ev) => {
     ev.preventDefault();
     setError('');
-    setFieldErrors({});
 
-    const errs = validate();
-    if (Object.keys(errs).length > 0) {
-      setFieldErrors(errs);
-      return;
-    }
+    // Client-side validation — prevent empty submissions before hitting the API.
+    const errors = validate(form);
+    setFieldErrors(errors);
+    if (Object.keys(errors).length) return;
 
     setSubmitting(true);
     try {
       const res = await api.post('/auth/admin-login', {
-        email: form.email.trim().toLowerCase(),
+        email: form.email.trim(),
         password: form.password,
       });
       setUser(res.data.user);
-      navigate('/admin/dashboard', { replace: true });
+      navigate('/admin/dashboard');
     } catch (err) {
-      const data = err.response?.data;
-      if (err.response?.status === 429) {
-        setError('Too many login attempts. Please wait 15 minutes and try again.');
+      const status = err.response?.status;
+      if (status === 429) {
+        setError('Too many login attempts. Please wait a few minutes and try again.');
       } else {
-        // Use generic message to avoid revealing credential details
-        setError(data?.error || 'Invalid email or password. Please check your credentials.');
+        setError(err.response?.data?.errors?.general || err.response?.data?.error || 'Invalid email or password');
       }
     } finally {
       setSubmitting(false);
     }
   };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center"
-        style={{ background: 'linear-gradient(135deg, #fff0f6, #fce7f3)' }}>
-        <div className="w-8 h-8 rounded-full border-4 border-pink-200 border-t-pink-500 animate-spin" />
-      </div>
-    );
-  }
 
   return (
     <AuthLayout
@@ -103,9 +104,9 @@ export default function AdminLogin() {
               icon={<Mail className="w-4 h-4" />}
               type="email"
               autoComplete="email"
-              value={form.email}
-              onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
               error={fieldErrors.email}
+              value={form.email}
+              onChange={handleChange('email')}
             />
           </motion.div>
 
@@ -116,9 +117,9 @@ export default function AdminLogin() {
               type={showPw ? 'text' : 'password'}
               icon={<Lock className="w-4 h-4" />}
               autoComplete="current-password"
-              value={form.password}
-              onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
               error={fieldErrors.password}
+              value={form.password}
+              onChange={handleChange('password')}
               right={
                 <button
                   type="button"

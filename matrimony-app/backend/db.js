@@ -269,7 +269,7 @@ async function seed(conn) {
 
   // ── Admin user (create or repair password) ──────────────────────────────────
   const ADMIN_EMAIL    = process.env.ADMIN_EMAIL    || 'matrimony2026@gmail.com';
-  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'Matrimony2026@';
+  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'Matrimony2026';
   const adminHash = bcrypt.hashSync(ADMIN_PASSWORD, 12);
 
   const [[adminRow]] = await conn.query('SELECT id FROM users WHERE email = ?', [ADMIN_EMAIL]);
