@@ -188,7 +188,7 @@ export default function Dashboard() {
                 <Plus className="w-4 h-4" aria-hidden="true" /> {t('create_new_profile')}
               </Button>
             )}
-            <Button variant="secondary" onClick={() => navigate('/search')} className="!border-white/60 !text-white !bg-white/10 hover:!bg-white/20">
+            <Button onClick={() => navigate('/search')} style={{ background: 'white' }} className="!text-[var(--primary-strong)] !shadow-[0_10px_30px_-6px_rgba(255,255,255,0.5)]">
               <Search className="w-4 h-4" aria-hidden="true" /> Browse Matches
             </Button>
           </div>
