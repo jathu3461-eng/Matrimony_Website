@@ -171,7 +171,7 @@ router.post('/forgot-password/request', async (req, res) => {
     if (!user) return res.status(404).json({ errors: { email: 'No account found with this email' } });
 
     const otp = crypto.randomInt(100000, 999999).toString();
-    const expires = String(Date.now() + 10 * 60 * 1000);
+    const expires = String(Date.now() + 30 * 60 * 1000);
     await db.run('UPDATE users SET reset_otp = ?, reset_otp_expires = ? WHERE id = ?', [otp, expires, user.id]);
 
     const emailSent = await sendMail({
@@ -195,8 +195,14 @@ router.post('/forgot-password/verify', async (req, res) => {
   try {
     const { email, otp } = req.body;
     const user = await db.get('SELECT * FROM users WHERE email = ?', [email]);
-    if (!user || user.reset_otp !== otp || Date.now() > Number(user.reset_otp_expires)) {
-      return res.status(400).json({ errors: { otp: 'Invalid or expired code. Required format: 6 digits' } });
+    if (!user) {
+      return res.status(400).json({ errors: { otp: 'Invalid or expired code' } });
+    }
+    if (String(user.reset_otp) !== String(otp)) {
+      return res.status(400).json({ errors: { otp: 'Invalid code. Please check and try again' } });
+    }
+    if (Date.now() > Number(user.reset_otp_expires)) {
+      return res.status(400).json({ errors: { otp: 'Code expired. Please request a new one' } });
     }
     res.json({ verified: true });
   } catch (err) {
@@ -210,7 +216,7 @@ router.post('/forgot-password/reset', async (req, res) => {
   try {
     const { email, otp, new_password } = req.body;
     const user = await db.get('SELECT * FROM users WHERE email = ?', [email]);
-    if (!user || user.reset_otp !== otp || Date.now() > Number(user.reset_otp_expires)) {
+    if (!user || String(user.reset_otp) !== String(otp) || Date.now() > Number(user.reset_otp_expires)) {
       return res.status(400).json({ errors: { otp: 'Invalid or expired code' } });
     }
     if (!PASSWORD_RE.test(new_password || '')) {

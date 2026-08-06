@@ -1,8 +1,8 @@
-﻿import { useState } from 'react';
+﻿import { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate, Link } from 'react-router-dom';
-import { KeyRound, Lock, Mail, ArrowRight, CheckCircle2, ShieldCheck } from 'lucide-react';
+import { KeyRound, Lock, Mail, ArrowRight, CheckCircle2, ShieldCheck, RotateCcw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../api';
 import { useI18n } from '../context/I18nContext';
@@ -38,6 +38,8 @@ export default function ForgotPassword() {
   const [step, setStep] = useState(1);
   const [email, setEmail] = useState('');
   const [serverError, setServerError] = useState('');
+  const [resending, setResending] = useState(false);
+  const [countdown, setCountdown] = useState(0);
 
   const requestForm = useForm({
     resolver: zodResolver(forgotPasswordSchema),
@@ -57,16 +59,44 @@ export default function ForgotPassword() {
   const localize = (msg) => (msg && VAL_MSG_KEYS[msg] ? t(VAL_MSG_KEYS[msg]) : msg);
   const showErr = (form, f) => localize(form.formState.touchedFields[f] ? form.formState.errors[f]?.message : undefined);
 
-  const requestOtp = requestForm.handleSubmit(async ({ email: em }) => {
+  const extractError = (err) => {
+    const data = err.response?.data;
+    if (!data) return 'Something went wrong. Please try again.';
+    if (data.errors?.otp) return data.errors.otp;
+    if (data.errors?.email) return data.errors.email;
+    if (data.error) return data.error;
+    return 'Something went wrong. Please try again.';
+  };
+
+  useEffect(() => {
+    if (countdown <= 0) return;
+    const timer = setInterval(() => setCountdown((c) => c - 1), 1000);
+    return () => clearInterval(timer);
+  }, [countdown]);
+
+  const sendOtp = useCallback(async (em) => {
     setServerError('');
     try {
-      const res = await api.post('/auth/forgot-password/request', { email: em });
+      await api.post('/auth/forgot-password/request', { email: em });
       setEmail(em);
       setStep(2);
+      setCountdown(120);
     } catch (err) {
-      setServerError(err.response?.data?.error || 'Could not send reset code');
+      setServerError(extractError(err));
     }
+  }, []);
+
+  const requestOtp = requestForm.handleSubmit(async ({ email: em }) => {
+    await sendOtp(em);
   });
+
+  const resendOtp = async () => {
+    if (countdown > 0 || resending) return;
+    setResending(true);
+    await sendOtp(email);
+    setResending(false);
+    otpForm.reset();
+  };
 
   const verifyOtp = otpForm.handleSubmit(async ({ otp }) => {
     setServerError('');
@@ -74,7 +104,7 @@ export default function ForgotPassword() {
       await api.post('/auth/forgot-password/verify', { email, otp });
       setStep(3);
     } catch (err) {
-      setServerError(err.response?.data?.error || 'Invalid or expired code');
+      setServerError(extractError(err));
     }
   });
 
@@ -86,13 +116,13 @@ export default function ForgotPassword() {
     }
     try {
       await api.post('/auth/forgot-password/reset', { email, otp: otpForm.getValues('otp'), new_password: password });
-      navigate('/login');
+      navigate('/login', { state: { flash: 'Password reset successful. Please log in with your new password.' } });
     } catch (err) {
       const fe = normalizeApiErrors(err.response?.data);
       if (Object.keys(fe).length) {
         for (const [k, msg] of Object.entries(fe)) resetForm.setError(k, { message: localize(msg) });
       } else {
-        setServerError(err.response?.data?.error || 'Reset failed');
+        setServerError(extractError(err));
       }
     }
   });
@@ -152,9 +182,16 @@ export default function ForgotPassword() {
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="mb-5 p-3.5 rounded-xl border border-emerald-200 bg-emerald-50 text-[13px] font-semibold text-emerald-700"
+          className="mb-5 p-3.5 rounded-xl border border-emerald-200 bg-emerald-50 text-[13px] font-semibold text-emerald-700 flex items-start justify-between gap-2"
         >
-          ✅ A verification code has been sent to <strong>{email}</strong>. Check your inbox and enter the 6-digit code below.
+          <span>✅ Code sent to <strong>{email}</strong>. Check your inbox (and spam folder).</span>
+          <button
+            type="button"
+            onClick={() => { setStep(1); setServerError(''); otpForm.reset(); }}
+            className="text-[var(--primary)] hover:underline whitespace-nowrap text-xs font-bold cursor-pointer"
+          >
+            Change email
+          </button>
         </motion.div>
       )}
 
@@ -205,6 +242,7 @@ export default function ForgotPassword() {
                   error={showErr(otpForm, 'otp')}
                   inputMode="numeric"
                   maxLength={6}
+                  autoFocus
                   {...otpForm.register('otp', {
                     required: 'Enter the 6-digit code',
                     pattern: { value: /^\d{6}$/, message: 'Expected a 6 digit code' },
@@ -218,6 +256,27 @@ export default function ForgotPassword() {
                     <ArrowRight className="w-4 h-4" />
                   </span>
                 </Button>
+              </motion.div>
+              <motion.div variants={fadeUp} initial="hidden" animate="show" transition={{ delay: 0.15 }}>
+                <button
+                  type="button"
+                  onClick={resendOtp}
+                  disabled={countdown > 0 || resending}
+                  className={`w-full text-center text-sm font-semibold py-2 rounded-lg transition-all ${
+                    countdown > 0
+                      ? 'text-gray-400 cursor-not-allowed'
+                      : 'text-[var(--primary)] hover:bg-pink-50 cursor-pointer'
+                  }`}
+                >
+                  <span className="flex items-center justify-center gap-2">
+                    <RotateCcw className={`w-3.5 h-3.5 ${resending ? 'animate-spin' : ''}`} />
+                    {countdown > 0
+                      ? `Resend code in ${Math.floor(countdown / 60)}:${String(countdown % 60).padStart(2, '0')}`
+                      : resending
+                      ? 'Sending...'
+                      : "Didn't receive the code? Resend"}
+                  </span>
+                </button>
               </motion.div>
             </form>
           )}
