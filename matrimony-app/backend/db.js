@@ -53,6 +53,7 @@ async function initDB() {
         business_name TEXT,
         broker_profile_limit INT DEFAULT 50,
         is_approved TINYINT NOT NULL DEFAULT 0,
+        is_banned TINYINT NOT NULL DEFAULT 0,
         ui_language ENUM('en','ta') NOT NULL DEFAULT 'en',
         reset_otp VARCHAR(10),
         reset_otp_expires BIGINT,
@@ -264,6 +265,7 @@ async function initDB() {
     await ensureColumn('chat_messages', 'client_id', 'client_id VARCHAR(64) NULL');
     await ensureColumn('chat_messages', 'delivered_at', 'delivered_at TIMESTAMP NULL');
     await ensureColumn('users', 'last_seen_at', 'last_seen_at TIMESTAMP NULL');
+    await ensureColumn('users', 'is_banned', 'is_banned TINYINT NOT NULL DEFAULT 0');
     await ensureIndex('chat_messages', 'uq_chat_client_id', 'UNIQUE INDEX uq_chat_client_id ON chat_messages(client_id)');
     await ensureIndex('chat_messages', 'idx_chat_thread_id', 'INDEX idx_chat_thread_id ON chat_messages(thread_id, id)');
 

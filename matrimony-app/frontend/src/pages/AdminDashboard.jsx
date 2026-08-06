@@ -24,12 +24,16 @@ import {
   RefreshCw,
   Star,
   Crown,
+  Ban,
+  ShieldOff,
+  Search,
 } from 'lucide-react';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
 
 const NAV_ITEMS = [
   { key: 'overview', path: '/admin/dashboard', label: 'Overview', icon: LayoutDashboard, desc: 'Platform snapshot' },
+  { key: 'users', path: '/admin/users', label: 'User Management', icon: Users, desc: 'Ban or reinstate accounts' },
   { key: 'brokers', path: '/admin/brokers', label: 'Broker Approvals', icon: Building2, desc: 'Approve broker accounts' },
   { key: 'profiles', path: '/admin/profiles', label: 'Profile Verification', icon: BadgeCheck, desc: 'Verify member profiles' },
   { key: 'settings', path: '/admin/settings', label: 'Site Settings', icon: Settings, desc: 'Brand & contact details' },
@@ -152,6 +156,7 @@ export default function AdminDashboard() {
               transition={{ duration: 0.25, ease: 'easeOut' }}
             >
               {section === 'overview' && <Overview stats={stats} />}
+              {section === 'users' && <UsersManagement />}
               {section === 'brokers' && <BrokerApprovals />}
               {section === 'profiles' && <ProfilesVerification />}
               {section === 'settings' && <SiteSettings />}
@@ -292,6 +297,7 @@ function Overview({ stats }) {
         { icon: Clock, label: 'Pending Approvals', value: stats.pendingBrokers, accent: 'from-amber-400 to-orange-500' },
         { icon: Heart, label: 'Member Profiles', value: stats.totalProfiles, accent: 'from-rose-500 to-red-400' },
         { icon: BadgeCheck, label: 'Verified Profiles', value: stats.verifiedProfiles || 0, accent: 'from-emerald-500 to-teal-500' },
+        { icon: Ban, label: 'Banned Accounts', value: stats.bannedUsers || 0, accent: 'from-slate-600 to-slate-800' },
       ]
     : [];
 
@@ -633,6 +639,140 @@ function ProfilesVerification() {
                 }`}
               >
                 {p.is_verified ? <><RefreshCw className="w-4 h-4" /> Remove Verification</> : <><BadgeCheck className="w-4 h-4" /> Verify ID</>}
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── User Management (ban / unban) ───────────────────────────────────────── */
+
+function UsersManagement() {
+  const [users, setUsers] = useState(null);
+  const [query, setQuery] = useState('');
+  const [busy, setBusy] = useState(null);
+  const [flash, setFlash] = useState('');
+
+  const load = () => api.get('/admin/users').then((res) => setUsers(res.data.users)).catch(() => setUsers([]));
+  useEffect(() => { load(); }, []);
+
+  const toggleBan = async (u) => {
+    if (busy) return;
+    const action = u.is_banned ? 'unban' : 'ban';
+    const confirmed = u.is_banned
+      ? confirm(`Reinstate ${u.email}? They will be able to log in again.`)
+      : confirm(`Ban ${u.email}? They will no longer be able to log in or sign up, and a ban notification will be emailed to them.`);
+    if (!confirmed) return;
+
+    setBusy(u.id);
+    try {
+      await api.post(`/admin/users/${u.id}/${action}`);
+      setFlash(u.is_banned ? 'Account reinstated and notified by email.' : 'Account banned and notified by email.');
+      setTimeout(() => setFlash(''), 3000);
+      load();
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const filtered = users?.filter((u) => {
+    if (!query.trim()) return true;
+    const q = query.trim().toLowerCase();
+    return (u.email || '').toLowerCase().includes(q) || (u.username || '').toLowerCase().includes(q);
+  });
+
+  const roleLabel = (r) => (r === 'broker' ? 'Broker' : r === 'admin' ? 'Admin' : 'Member');
+
+  return (
+    <div className="rounded-2xl bg-white border border-pink-100/80 shadow-card overflow-hidden pb-12">
+      <div className="px-5 py-4 border-b border-pink-100/80 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h3 className="font-display text-base font-extrabold text-slate-800">User Management</h3>
+          <p className="text-[11px] text-slate-400 font-medium">
+            Ban or reinstate member and broker accounts. Banned users are emailed and cannot log in or sign up again.
+          </p>
+        </div>
+        <div className="relative">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search by name or email…"
+            className="w-full sm:w-64 pl-9 pr-3 py-2 rounded-xl border border-pink-200 bg-white text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-pink-300 focus:border-pink-300 transition-shadow"
+          />
+        </div>
+      </div>
+
+      {flash && (
+        <div className="px-5 py-3 bg-emerald-50 border-b border-emerald-100 text-[12px] font-bold text-emerald-600">
+          <CheckCircle2 className="w-3.5 h-3.5 inline mr-1.5" /> {flash}
+        </div>
+      )}
+
+      {users === null ? (
+        <div className="p-10 text-center text-slate-400 text-sm font-medium">Loading users…</div>
+      ) : filtered.length === 0 ? (
+        <div className="p-10 text-center text-slate-400 text-sm font-medium">
+          {users.length === 0 ? 'No users found.' : 'No users match your search.'}
+        </div>
+      ) : (
+        <div className="divide-y divide-pink-50">
+          {filtered.map((u) => (
+            <div key={u.id} className="p-5 flex flex-col sm:flex-row sm:items-center gap-4">
+              <div className="flex items-center gap-3 flex-1 min-w-0">
+                <div className={`w-11 h-11 rounded-full bg-gradient-to-br flex items-center justify-center font-display font-extrabold text-white shrink-0 ${
+                  u.is_banned ? 'from-slate-500 to-slate-700' : 'from-pink-500 to-rose-500'
+                }`}>
+                  {(u.username || '?')[0].toUpperCase()}
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="font-bold text-slate-700">{u.username}</p>
+                    <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                      u.is_banned
+                        ? 'bg-slate-100 text-slate-600 border-slate-200'
+                        : 'bg-pink-50 text-pink-600 border-pink-200'
+                    }`}>
+                      {roleLabel(u.role)}
+                    </span>
+                    {u.is_banned === 1 && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-50 text-rose-600 border border-rose-200">
+                        <Ban className="w-3 h-3" /> Banned
+                      </span>
+                    )}
+                    {u.role === 'broker' && u.is_banned !== 1 && (
+                      <span className={`inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                        u.is_approved ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-amber-50 text-amber-600 border-amber-200'
+                      }`}>
+                        {u.is_approved ? 'Approved' : 'Pending'}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-400 font-medium mt-0.5 truncate">{u.email}</p>
+                  <p className="text-[10px] text-slate-300 font-medium">
+                    {u.phone_number} · Joined {u.created_at ? new Date(u.created_at).toLocaleDateString() : '—'}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => toggleBan(u)}
+                disabled={busy === u.id}
+                className={`shrink-0 inline-flex items-center justify-center gap-1.5 text-xs font-bold px-4 py-2 rounded-xl transition-all disabled:opacity-50 ${
+                  u.is_banned
+                    ? 'border border-emerald-300 text-emerald-600 hover:bg-emerald-50'
+                    : 'border border-rose-300 text-rose-600 hover:bg-rose-50'
+                }`}
+              >
+                {busy === u.id ? (
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                ) : u.is_banned ? (
+                  <><ShieldOff className="w-4 h-4" /> Unban</>
+                ) : (
+                  <><Ban className="w-4 h-4" /> Ban</>
+                )}
               </button>
             </div>
           ))}

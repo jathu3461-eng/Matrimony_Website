@@ -49,6 +49,11 @@ router.post('/signup', async (req, res) => {
 
     const { username, email, password, phone_number, role, business_name, ui_language } = req.body;
 
+    const bannedUser = await db.get('SELECT id FROM users WHERE email = ? AND is_banned = 1', [email]);
+    if (bannedUser) {
+      return res.status(403).json({ errors: { email: 'Your account has been banned. You are not allowed to create a new account.' } });
+    }
+
     const existing = await db.get('SELECT id FROM users WHERE username = ? OR email = ?', [username, email]);
     if (existing) {
       return res.status(409).json({ errors: { email: 'An account with this email or username already exists' } });
@@ -85,6 +90,9 @@ router.post('/login', async (req, res) => {
     const user = await db.get('SELECT * FROM users WHERE email = ? OR phone_number = ?', [identifier, identifier]);
     if (!user || !bcrypt.compareSync(password, user.password_hash)) {
       return res.status(401).json({ errors: { password: 'Incorrect email or password' } });
+    }
+    if (user.is_banned) {
+      return res.status(403).json({ error: 'Your account has been banned. Please contact support.' });
     }
     if (user.role === 'broker' && !user.is_approved) {
       return res.status(403).json({ status: 'pending_approval', message: 'Account Created. Waiting for Email Verification & Admin Approval' });
@@ -156,6 +164,10 @@ router.get('/me', requireAuth, async (req, res) => {
   try {
     const user = await db.get('SELECT * FROM users WHERE id = ?', [req.user.id]);
     if (!user) return res.status(401).json({ error: 'Not authenticated' });
+    if (user.is_banned) {
+      clearAuthCookie(res);
+      return res.status(403).json({ error: 'Your account has been banned. Please contact support.' });
+    }
     res.json({ user: sanitize(user) });
   } catch (err) {
     console.error(err);
@@ -173,6 +185,7 @@ router.post('/forgot-password/request', async (req, res) => {
     const otp = crypto.randomInt(100000, 999999).toString();
     const expires = String(Date.now() + 30 * 60 * 1000);
     await db.run('UPDATE users SET reset_otp = ?, reset_otp_expires = ? WHERE id = ?', [otp, expires, user.id]);
+    console.error('[REQUEST]', JSON.stringify({ userId: user.id, email: user.email, otp, expires, reqBody: req.body }));
 
     const emailSent = await sendMail({
       to: user.email,
@@ -195,6 +208,7 @@ router.post('/forgot-password/verify', async (req, res) => {
   try {
     const { email, otp } = req.body;
     const user = await db.get('SELECT * FROM users WHERE email = ?', [email]);
+    console.error('[VERIFY]', JSON.stringify({ reqBody: req.body, otp, otpType: typeof otp, email, dbEmail: user?.email, db_otp: user?.reset_otp, db_otp_type: typeof user?.reset_otp, db_expires: user?.reset_otp_expires, now: Date.now(), match: String(user?.reset_otp) === String(otp) }));
     if (!user) {
       return res.status(400).json({ errors: { otp: 'Invalid or expired code' } });
     }

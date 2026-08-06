@@ -83,4 +83,34 @@ function otpEmailTemplate(otp) {
     '</div>';
 }
 
-module.exports = { sendMail, otpEmailTemplate };
+function bannedEmailTemplate() {
+  return '<div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:30px;background:#fff;border-radius:16px;border:1px solid #fde7f0;">' +
+    '<div style="text-align:center;margin-bottom:24px;">' +
+    '<span style="font-size:32px;">💖</span>' +
+    '<h2 style="color:#e0136a;margin:8px 0 0;">Mukurtham Matrimony</h2>' +
+    '</div>' +
+    '<h3 style="color:#c0392b;text-align:center;margin-bottom:8px;">Your account has been banned</h3>' +
+    '<p style="color:#666;text-align:center;font-size:14px;">Your Mukurtham Matrimony account has been suspended by our administrators for violating our community guidelines.</p>' +
+    '<div style="text-align:center;margin:24px 0;">' +
+    '<span style="display:inline-block;font-size:15px;font-weight:700;color:#c0392b;background:#fdf2f2;padding:14px 24px;border-radius:12px;">You will not be able to log in or create a new account.</span>' +
+    '</div>' +
+    '<p style="color:#999;text-align:center;font-size:12px;">If you believe this is a mistake, please contact our support team for assistance.</p>' +
+    '</div>';
+}
+
+function unbannedEmailTemplate() {
+  return '<div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:30px;background:#fff;border-radius:16px;border:1px solid #fde7f0;">' +
+    '<div style="text-align:center;margin-bottom:24px;">' +
+    '<span style="font-size:32px;">💖</span>' +
+    '<h2 style="color:#e0136a;margin:8px 0 0;">Mukurtham Matrimony</h2>' +
+    '</div>' +
+    '<h3 style="color:#27ae60;text-align:center;margin-bottom:8px;">Your account has been reinstated</h3>' +
+    '<p style="color:#666;text-align:center;font-size:14px;">Good news! Your Mukurtham Matrimony account has been reactivated by our administrators.</p>' +
+    '<div style="text-align:center;margin:24px 0;">' +
+    '<span style="display:inline-block;font-size:15px;font-weight:700;color:#27ae60;background:#f0faf2;padding:14px 24px;border-radius:12px;">You can now log in and continue using the platform.</span>' +
+    '</div>' +
+    '<p style="color:#999;text-align:center;font-size:12px;">Thank you for being part of the Mukurtham Matrimony community.</p>' +
+    '</div>';
+}
+
+module.exports = { sendMail, otpEmailTemplate, bannedEmailTemplate, unbannedEmailTemplate };

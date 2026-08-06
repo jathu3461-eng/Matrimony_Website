@@ -1,6 +1,7 @@
 const express = require('express');
 const { db } = require('../db');
 const { requireAuth, requireRole, refreshAdminSession } = require('../middleware/auth');
+const { sendMail, bannedEmailTemplate, unbannedEmailTemplate } = require('../utils/email');
 
 const router = express.Router();
 // Every admin endpoint requires an authenticated administrator. The sliding
@@ -127,7 +128,8 @@ router.get('/stats', async (req, res) => {
     const pendingBrokers = (await db.get("SELECT COUNT(*) c FROM users WHERE role = 'broker' AND is_approved = 0")).c;
     const totalProfiles  = (await db.get('SELECT COUNT(*) c FROM profiles')).c;
     const verifiedProfiles = (await db.get('SELECT COUNT(*) c FROM profiles WHERE is_verified = 1')).c;
-    res.json({ totalUsers, totalBrokers, pendingBrokers, totalProfiles, verifiedProfiles });
+    const bannedUsers    = (await db.get("SELECT COUNT(*) c FROM users WHERE role != 'admin' AND is_banned = 1")).c;
+    res.json({ totalUsers, totalBrokers, pendingBrokers, totalProfiles, verifiedProfiles, bannedUsers });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -159,6 +161,39 @@ router.post('/profiles/:id/unverify', async (req, res) => {
     const result = await db.run('UPDATE profiles SET is_verified = 0 WHERE id = ?', [req.params.id]);
     if (result.changes === 0) return res.status(404).json({ error: 'Profile not found' });
     res.json({ ok: true, is_verified: false });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ── User Management (ban / unban) ─────────────────────────────────────────────
+
+router.get('/users', async (req, res) => {
+  try {
+    const users = await db.all(`
+      SELECT id, username, email, phone_number, role, business_name,
+             is_approved, is_banned, broker_profile_limit, created_at
+      FROM users WHERE role != 'admin' ORDER BY created_at DESC LIMIT 500
+    `);
+    res.json({ users });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.post('/users/:id/ban', async (req, res) => {
+  try {
+    const user = await db.get("SELECT id, email, username FROM users WHERE id = ? AND role != 'admin'", [req.params.id]);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    await db.run('UPDATE users SET is_banned = 1 WHERE id = ?', [user.id]);
+    sendMail({ to: user.email, subject: 'Your Mukurtham Matrimony account has been banned', html: bannedEmailTemplate() }).catch(() => {});
+    res.json({ ok: true, is_banned: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.post('/users/:id/unban', async (req, res) => {
+  try {
+    const user = await db.get("SELECT id, email, username FROM users WHERE id = ? AND role != 'admin'", [req.params.id]);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    await db.run('UPDATE users SET is_banned = 0 WHERE id = ?', [user.id]);
+    sendMail({ to: user.email, subject: 'Your Mukurtham Matrimony account has been reinstated', html: unbannedEmailTemplate() }).catch(() => {});
+    res.json({ ok: true, is_banned: false });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
