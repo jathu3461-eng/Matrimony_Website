@@ -107,9 +107,7 @@ export default function ProfileCard({ profile, actions, onShortlistChange }) {
     }
   };
 
-  const tags = profile.gender === 'F'
-    ? ['Doctor', 'Music', 'Cooking', 'Travel']
-    : ['Software Engineer', 'Gaming', 'Fitness', 'Movies'];
+  const tags = [profile.occupation, profile.education].filter(Boolean);
 
   return (
     <motion.div

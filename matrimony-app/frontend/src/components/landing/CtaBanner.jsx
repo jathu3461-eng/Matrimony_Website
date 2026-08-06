@@ -3,7 +3,7 @@ import { ArrowRight, Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { Button } from '../ui';
-import WeddingCoupleIllustration from './WeddingCoupleIllustration';
+import { uploadsUrl } from '../../api';
 
 const BENEFITS = [
   'Get more match responses',
@@ -113,8 +113,12 @@ export default function CtaBanner() {
           </div>
 
           {/* ── Right: illustration (55%) ── */}
-          <div className="order-1 md:order-2 lg:order-2 relative h-52 sm:h-64 md:h-72 lg:h-full lg:min-h-0 overflow-hidden">
-            <WeddingCoupleIllustration className="lg:absolute lg:inset-0" />
+          <div className="order-1 md:order-2 lg:order-2 relative h-52 sm:h-64 md:h-72 lg:h-full lg:min-h-0 overflow-hidden flex items-center justify-center">
+            <img
+              src={uploadsUrl('auth-couple.png')}
+              alt="Wedding couple"
+              className="w-full h-full object-contain drop-shadow-lg"
+            />
           </div>
         </div>
       </motion.div>
