@@ -185,7 +185,6 @@ router.post('/forgot-password/request', async (req, res) => {
     const otp = crypto.randomInt(100000, 999999).toString();
     const expires = String(Date.now() + 30 * 60 * 1000);
     await db.run('UPDATE users SET reset_otp = ?, reset_otp_expires = ? WHERE id = ?', [otp, expires, user.id]);
-    console.error('[REQUEST]', JSON.stringify({ userId: user.id, email: user.email, otp, expires, reqBody: req.body }));
 
     const emailSent = await sendMail({
       to: user.email,
@@ -208,7 +207,6 @@ router.post('/forgot-password/verify', async (req, res) => {
   try {
     const { email, otp } = req.body;
     const user = await db.get('SELECT * FROM users WHERE email = ?', [email]);
-    console.error('[VERIFY]', JSON.stringify({ reqBody: req.body, otp, otpType: typeof otp, email, dbEmail: user?.email, db_otp: user?.reset_otp, db_otp_type: typeof user?.reset_otp, db_expires: user?.reset_otp_expires, now: Date.now(), match: String(user?.reset_otp) === String(otp) }));
     if (!user) {
       return res.status(400).json({ errors: { otp: 'Invalid or expired code' } });
     }
