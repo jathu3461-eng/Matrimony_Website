@@ -180,11 +180,11 @@ export default function Dashboard() {
 
           <div className="flex gap-3 flex-wrap justify-center">
             {!isBroker && profiles.length > 0 ? (
-              <Button onClick={() => navigate(`/profile/${profiles[0].id}/edit`)} className="!bg-white !text-[var(--primary-strong)] !shadow-[0_10px_30px_-6px_rgba(255,255,255,0.5)]">
+              <Button onClick={() => navigate(`/profile/${profiles[0].id}/edit`)} style={{ background: 'white' }} className="!text-[var(--primary-strong)] !shadow-[0_10px_30px_-6px_rgba(255,255,255,0.5)]">
                 <PencilLine className="w-4 h-4" aria-hidden="true" /> Edit Profile
               </Button>
             ) : (
-              <Button onClick={() => navigate('/profile/new')} className="!bg-white !text-[var(--primary-strong)] !shadow-[0_10px_30px_-6px_rgba(255,255,255,0.5)]">
+              <Button onClick={() => navigate('/profile/new')} style={{ background: 'white' }} className="!text-[var(--primary-strong)] !shadow-[0_10px_30px_-6px_rgba(255,255,255,0.5)]">
                 <Plus className="w-4 h-4" aria-hidden="true" /> {t('create_new_profile')}
               </Button>
             )}
