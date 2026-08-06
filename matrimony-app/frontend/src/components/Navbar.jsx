@@ -1,11 +1,13 @@
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
+import { useChat } from '../context/ChatContext';
 import { useI18n } from '../context/I18nContext';
 
 export default function Navbar({ siteName }) {
   const { user, logout } = useAuth();
   const { lang, setLang, t } = useI18n();
+  const { unreadTotal } = useChat();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -128,6 +130,11 @@ export default function Navbar({ siteName }) {
                   : 'text-slate-600 hover:text-pink-600 hover:bg-white/70'}`}
             >
               💬 Messages
+              {unreadTotal > 0 && (
+                <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500 text-white text-[10px] font-extrabold flex items-center justify-center leading-none">
+                  {unreadTotal > 99 ? '99+' : unreadTotal}
+                </span>
+              )}
             </motion.button>
           )}
 

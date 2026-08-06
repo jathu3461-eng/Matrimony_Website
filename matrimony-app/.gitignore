@@ -12,7 +12,7 @@ backend/.env
 frontend/.env
 
 # ─── Build Output ─────────────────────────────
-frontend/dist/
+# frontend/dist/ is intentionally NOT ignored so cPanel can pull built files
 frontend/.vite/
 build/
 .cache/

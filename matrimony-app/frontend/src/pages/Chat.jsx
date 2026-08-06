@@ -369,7 +369,11 @@ export default function Chat() {
     setSending(false);
 
     if (ok && message) {
-      setMessages((prev) => prev.map((m) => (m.client_id === clientId && !m.id ? message : m)));
+      setMessages((prev) => {
+        const withoutTemp = prev.filter((m) => !(m.client_id === clientId && !m.id));
+        const known = new Set(withoutTemp.map((m) => m.id));
+        return known.has(message.id) ? withoutTemp : [...withoutTemp, message];
+      });
     } else {
       setMessages((prev) => prev.map((m) => (m.client_id === clientId ? { ...m, _temp: false, _error: true } : m)));
     }
@@ -387,7 +391,11 @@ export default function Chat() {
       text: msg.message,
     });
     if (ok && message) {
-      setMessages((prev) => prev.map((m) => (m.client_id === msg.client_id && !m.id ? message : m)));
+      setMessages((prev) => {
+        const withoutTemp = prev.filter((m) => !(m.client_id === msg.client_id && !m.id));
+        const known = new Set(withoutTemp.map((m) => m.id));
+        return known.has(message.id) ? withoutTemp : [...withoutTemp, message];
+      });
     } else {
       setMessages((prev) => prev.map((m) => (m.client_id === msg.client_id ? { ...m, _temp: false, _error: true } : m)));
     }
@@ -414,7 +422,7 @@ export default function Chat() {
     activeThreadRef.current = null;
     setActiveThread(null);
     setActiveChat(null);
-    if (urlThreadId) navigate("/messages", { replace: true });
+    if (urlThreadId) navigate("/chat", { replace: true });
   };
 
   const onScroll = () => {

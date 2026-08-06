@@ -1,6 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
-import { useLocation } from 'react-router-dom';
 import api, { socketUrl } from '../api';
 import { useAuth } from './AuthContext';
 import { useToast } from '../components/ui';
@@ -40,7 +39,6 @@ function threadSorter(a, b) {
 export function ChatProvider({ children }) {
   const { user } = useAuth();
   const toast = useToast();
-  const location = useLocation();
 
   const [socket, setSocket] = useState(null);
   const [connected, setConnected] = useState(false);
