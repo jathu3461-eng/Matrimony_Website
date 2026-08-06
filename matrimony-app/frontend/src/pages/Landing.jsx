@@ -5,7 +5,7 @@ import { Search, ArrowRight, ShieldCheck, Lock, Sparkles, Headphones, Gift, Chec
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
 import ProfileCard from '../components/ProfileCard';
-import { Button, Badge } from '../components/ui';
+import { Button, Badge, TiltCard } from '../components/ui';
 import CtaBanner from '../components/landing/CtaBanner';
 import MembershipPlans from '../components/landing/MembershipPlans';
 
@@ -128,6 +128,13 @@ export default function Landing() {
     { id: 104, name: 'Vikram', age: 29, city_or_state: 'Trichy', occupation: 'Product Manager', gender: 'M', is_verified: 1 },
   ];
 
+  const stats = [
+    { value: '50K+', label: 'Success Stories' },
+    { value: '10K+', label: 'Verified Profiles' },
+    { value: '5K+', label: 'Matches / Day' },
+    { value: '98%', label: 'Member Satisfaction' },
+  ];
+
   return (
     <div className="relative overflow-hidden">
       {/* ═══════════════ 1. HERO ═══════════════ */}
@@ -135,6 +142,14 @@ export default function Landing() {
         {/* Ambient glows */}
         <div className="absolute -top-20 -left-24 w-96 h-96 rounded-full bg-[radial-gradient(circle,rgba(255,95,158,0.28),transparent_70%)] blur-2xl pointer-events-none" />
         <div className="absolute top-24 right-0 w-96 h-96 rounded-full bg-[radial-gradient(circle,rgba(255,180,190,0.3),transparent_70%)] blur-2xl pointer-events-none" />
+        <div className="absolute bottom-10 left-1/3 w-80 h-80 rounded-full bg-[radial-gradient(circle,rgba(224,19,106,0.16),transparent_70%)] blur-2xl pointer-events-none" />
+
+        {/* Floating decorative hearts */}
+        <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+          <span className="float-blob absolute top-16 left-[8%] text-2xl opacity-30">💕</span>
+          <span className="float-blob absolute top-40 right-[12%] text-xl opacity-25" style={{ animationDelay: '1.2s' }}>💖</span>
+          <span className="float-blob absolute bottom-24 left-[45%] text-lg opacity-20" style={{ animationDelay: '2.1s' }}>💞</span>
+        </div>
 
         <div className="max-w-7xl mx-auto grid lg:grid-cols-12 gap-10 lg:gap-8 items-center relative z-10">
           {/* Left: copy */}
@@ -181,6 +196,7 @@ export default function Landing() {
               transition={{ delay: 0.25, duration: 0.8 }}
               className="relative max-w-md mx-auto"
             >
+              <TiltCard max={7} scale={1.03} className="perspective">
               <div className="relative rounded-t-full rounded-b-[2rem] overflow-hidden border-[6px] border-white shadow-[var(--shadow-pop)] bg-gradient-to-b from-pink-100 via-rose-50 to-pink-50 aspect-[4/5]">
                 {heroImgIndex < heroSources.length ? (
                   <img
@@ -196,6 +212,7 @@ export default function Landing() {
                 {/* Overlay gradient for depth */}
                 <div className="absolute inset-0 bg-gradient-to-t from-[#2d1226]/25 via-transparent to-transparent pointer-events-none" />
               </div>
+              </TiltCard>
 
               {/* Floating: success badge */}
               <motion.div
@@ -316,10 +333,30 @@ export default function Landing() {
         </motion.div>
       </section>
 
-      {/* ═══════════════ 3. PREMIUM CTA BANNER ═══════════════ */}
+      {/* ═══════════════ 3. TRUST STATS STRIP ═══════════════ */}
+      <section className="max-w-7xl mx-auto px-5 mt-14">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-60px' }}
+          transition={{ duration: 0.55, ease: 'easeOut' }}
+          className="grid grid-cols-2 md:grid-cols-4 gap-4"
+        >
+          {stats.map((s) => (
+            <div key={s.label} className="glass-card rounded-2xl px-5 py-6 text-center lift">
+              <p className="font-display text-2xl sm:text-3xl font-extrabold text-gradient">{s.value}</p>
+              <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--ink-faint)] mt-1">
+                {s.label}
+              </p>
+            </div>
+          ))}
+        </motion.div>
+      </section>
+
+      {/* ═══════════════ 4. PREMIUM CTA BANNER ═══════════════ */}
       <CtaBanner />
 
-      {/* ═══════════════ 4. FEATURED PROFILES ═══════════════ */}
+      {/* ═══════════════ 5. FEATURED PROFILES ═══════════════ */}
       <section className="max-w-7xl mx-auto px-5 py-12 lg:py-16">
         <motion.div {...reveal} className="flex flex-wrap items-end justify-between gap-4 mb-8">
           <div>
@@ -345,7 +382,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ═══════════════ 5. SUCCESS STORIES ═══════════════ */}
+      {/* ═══════════════ 6. SUCCESS STORIES ═══════════════ */}
       <section className="relative py-16 lg:py-20">
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[var(--surface-muted)] to-transparent pointer-events-none" />
         <div className="max-w-7xl mx-auto px-5 relative">
@@ -395,7 +432,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ═══════════════ 6. MEMBERSHIP PLANS ═══════════════ */}
+      {/* ═══════════════ 7. MEMBERSHIP PLANS ═══════════════ */}
       <MembershipPlans />
     </div>
   );

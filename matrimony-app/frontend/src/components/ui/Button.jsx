@@ -60,7 +60,9 @@ export default function Button({
       disabled={isDisabled}
       aria-label={ariaLabel}
       aria-busy={loading}
-      className={`btn ${VARIANTS[variant]} ${SIZES[size]} ${fullWidth ? 'w-full' : ''} ${className}`}
+      className={`btn ${VARIANTS[variant]} ${SIZES[size]} ${
+        fullWidth ? 'w-full' : ''
+      } ${variant === 'primary' ? 'shine' : ''} ${className}`}
       {...rest}
     >
       {ripples.map((r) => (

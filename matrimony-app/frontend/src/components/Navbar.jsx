@@ -33,7 +33,7 @@ export default function Navbar({ siteName }) {
       : 'text-slate-600 hover:text-pink-600 hover:bg-white/70';
 
   return (
-    <header className="sticky top-0 z-50 bg-white border-b border-pink-100/80 shadow-sm">
+    <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-pink-100/80 shadow-sm supports-[backdrop-filter]:bg-white/75">
       <div className="max-w-7xl mx-auto px-5 py-3 flex items-center justify-between gap-4 flex-wrap">
 
         {/* ── Brand Logo ── */}

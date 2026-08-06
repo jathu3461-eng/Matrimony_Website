@@ -22,6 +22,7 @@ function ToastStack({ toasts, onDismiss }) {
       <AnimatePresence>
         {toasts.map((t) => {
           const Icon = ICONS[t.type] || Info;
+          const duration = t.durationMs ?? (t.type === 'error' ? 6000 : 3500);
           return (
             <motion.div
               key={t.id}
@@ -29,7 +30,7 @@ function ToastStack({ toasts, onDismiss }) {
               animate={{ opacity: 1, x: 0, scale: 1 }}
               exit={{ opacity: 0, x: 48, scale: 0.96 }}
               transition={{ duration: 0.25, ease: 'easeOut' }}
-              className="glass-card flex items-start gap-3 p-4 rounded-2xl shadow-[var(--shadow-elevated)] border border-[var(--border-soft)]"
+              className="glass-card flex items-start gap-3 p-4 rounded-2xl shadow-[var(--shadow-elevated)] border border-[var(--border-soft)] overflow-hidden relative"
             >
               <Icon className={`w-5 h-5 shrink-0 mt-0.5 ${COLORS[t.type]}`} aria-hidden="true" />
               <p className="text-sm font-semibold text-[var(--ink)] flex-1 leading-snug">{t.message}</p>
@@ -41,6 +42,14 @@ function ToastStack({ toasts, onDismiss }) {
               >
                 <X className="w-4 h-4" aria-hidden="true" />
               </button>
+              <motion.span
+                key={`${t.id}-bar`}
+                className="absolute bottom-0 left-0 h-[3px] rounded-full bg-[var(--primary)] opacity-40"
+                initial={{ width: '100%' }}
+                animate={{ width: '0%' }}
+                transition={{ duration: duration / 1000, ease: 'linear' }}
+                aria-hidden="true"
+              />
             </motion.div>
           );
         })}
@@ -61,7 +70,7 @@ export function ToastProvider({ children }) {
     (type, message, options = {}) => {
       const id = ++idRef.current;
       const duration = options.duration ?? (type === 'error' ? 6000 : 3500);
-      setToasts((t) => [...t, { id, message, type }]);
+      setToasts((t) => [...t, { id, message, type, durationMs: duration }]);
       if (duration > 0) {
         setTimeout(() => dismiss(id), duration);
       }

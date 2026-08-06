@@ -123,9 +123,29 @@ body {
   0% { opacity: 0; transform: translateY(12px); }
   100% { opacity: 1; transform: translateY(0); }
 }
+@keyframes fade-in-down {
+  0% { opacity: 0; transform: translateY(-12px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes fade-in {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
 @keyframes scale-in {
   0% { opacity: 0; transform: scale(0.96); }
   100% { opacity: 1; transform: scale(1); }
+}
+@keyframes scale-out {
+  0% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(0.96); }
+}
+@keyframes slide-in-right {
+  0% { opacity: 0; transform: translateX(24px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+@keyframes slide-in-left {
+  0% { opacity: 0; transform: translateX(-24px); }
+  100% { opacity: 1; transform: translateX(0); }
 }
 @keyframes ripple {
   0% { transform: scale(0); opacity: 0.35; }
@@ -134,6 +154,36 @@ body {
 @keyframes pulse-soft {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.6; }
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-18px) rotate(2deg); }
+}
+@keyframes spin-slow {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+@keyframes gradient {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+@keyframes heartbeat {
+  0%, 100% { transform: scale(1); }
+  25% { transform: scale(1.12); }
+  40% { transform: scale(0.96); }
+  60% { transform: scale(1.08); }
+}
+@keyframes shine {
+  0% { transform: translateX(-120%) skewX(-20deg); }
+  100% { transform: translateX(220%) skewX(-20deg); }
 }
 
 /* Accessible keyboard focus */
@@ -616,4 +666,107 @@ button {
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PREMIUM UTILITIES (animation, gradient borders, shine, hover lifts)
+   ═══════════════════════════════════════════════════════════ */
+.text-balance {
+  text-wrap: balance;
+}
+
+.gradient-border {
+  position: relative;
+  background-clip: padding-box;
+  border: 1.5px solid transparent;
+  border-radius: 1.5rem;
+}
+.gradient-border::before {
+  content: '';
+  position: absolute;
+  inset: -1.5px;
+  z-index: -1;
+  border-radius: inherit;
+  background: linear-gradient(135deg, #ffc9de, #ff7ab3, #ffd9e8);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+}
+
+/* Soft gradient-ring border for avatars / hero images */
+.gradient-ring {
+  padding: 5px;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #ffc9de 0%, #ff5f9e 50%, #e8d9ff 100%);
+  box-shadow: 0 8px 30px -8px rgba(224, 19, 106, 0.45);
+}
+
+/* Shine sweep on hover (buttons, cards, images) */
+.shine {
+  position: relative;
+  overflow: hidden;
+}
+.shine::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+  transform: translateX(-120%) skewX(-20deg);
+  pointer-events: none;
+}
+.shine:hover::after {
+  animation: shine 0.9s ease;
+}
+
+/* Gentle card lift on hover (interactive tiles) */
+.lift {
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.35s ease;
+}
+.lift:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 18px 44px -16px rgba(224, 19, 106, 0.3);
+}
+@media (hover: none) {
+  .lift:hover {
+    transform: none;
+    box-shadow: none;
+  }
+}
+
+/* 3D tilt helpers — used with Framer Motion on cards */
+.perspective {
+  perspective: 1200px;
+}
+.preserve-3d {
+  transform-style: preserve-3d;
+}
+
+/* Animated gradient text (subtle moving hue) */
+.text-gradient-animated {
+  background: linear-gradient(90deg, #e0136a, #ff2a75, #ff7ab3, #e0136a);
+  background-size: 300% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: gradient 6s ease infinite;
+}
+
+/* Decorative floating hearts / blobs */
+.float-blob {
+  animation: float-slow 9s ease-in-out infinite;
+  will-change: transform;
+}
+
+/* Reduced-motion safety for custom animation utilities */
+@media (prefers-reduced-motion: reduce) {
+  .float-blob,
+  .text-gradient-animated,
+  .lift,
+  .shine::after {
+    animation: none !important;
+    transition: none !important;
+  }
 }

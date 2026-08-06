@@ -144,7 +144,7 @@ export default function ProfileCard({ profile, actions, onShortlistChange }) {
       </div>
 
       <Link to={`/profile/${profile.id}`} className="block relative z-10">
-        <div className="h-56 bg-gradient-to-br from-pink-100 via-rose-100 to-pink-100 flex items-center justify-center overflow-hidden relative">
+        <div className="h-56 bg-gradient-to-br from-pink-100 via-rose-100 to-pink-100 flex items-center justify-center overflow-hidden relative shine">
           {profile.main_profile_picture && !profile.blur_photo ? (
             <img
               src={uploadsUrl(profile.main_profile_picture)}

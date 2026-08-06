@@ -20,8 +20,10 @@ export default function Footer() {
 
   return (
     <footer className="mt-28 bg-gradient-to-b from-slate-900 via-[#3d0a2a] to-[#240414] text-white pt-16 pb-10 border-t border-pink-500/20 relative overflow-hidden">
+      {/* Gradient hairline accent */}
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-pink-400/70 to-transparent" />
       {/* Decorative ambient glows */}
-      <div className="absolute top-0 left-1/4 w-96 h-96 bg-pink-600/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute top-0 left-1/4 w-96 h-96 bg-pink-600/10 rounded-full blur-3xl pointer-events-none float-blob" />
       <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-rose-500/10 rounded-full blur-3xl pointer-events-none" />
 
       <div className="max-w-7xl mx-auto px-5 relative z-10">

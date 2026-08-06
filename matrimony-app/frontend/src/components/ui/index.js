@@ -9,4 +9,6 @@ export { default as Stepper } from './Stepper';
 export { default as ProgressBar } from './ProgressBar';
 export { default as Badge } from './Badge';
 export { default as ErrorCard } from './ErrorCard';
+export { default as Card } from './Card';
+export { default as TiltCard } from './TiltCard';
 export { ToastProvider, useToast } from './ToastContext';
