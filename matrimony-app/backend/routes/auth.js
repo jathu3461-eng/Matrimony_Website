@@ -5,6 +5,7 @@ const { db } = require('../db');
 const { setAuthCookie, setAdminAuthCookie, clearAuthCookie, requireAuth } = require('../middleware/auth');
 const { rateLimit, clientIp } = require('../middleware/rateLimit');
 const { logAdminLogin } = require('../utils/adminLogger');
+const { sendMail, otpEmailTemplate } = require('../utils/email');
 
 const router = express.Router();
 
@@ -170,9 +171,19 @@ router.post('/forgot-password/request', async (req, res) => {
     if (!user) return res.status(404).json({ errors: { email: 'No account found with this email' } });
 
     const otp = crypto.randomInt(100000, 999999).toString();
-    const expires = Date.now() + 10 * 60 * 1000;
+    const expires = String(Date.now() + 10 * 60 * 1000);
     await db.run('UPDATE users SET reset_otp = ?, reset_otp_expires = ? WHERE id = ?', [otp, expires, user.id]);
-    res.json({ message: 'OTP sent to your email', demo_otp: otp });
+
+    const emailSent = await sendMail({
+      to: user.email,
+      subject: 'Mukurtham Matrimony — Password Reset Code',
+      html: otpEmailTemplate(otp),
+    }).catch(() => false);
+
+    if (!emailSent)
+      return res.status(500).json({ error: 'Could not send email. Please try again later.' });
+
+    res.json({ message: 'Verification code sent to your email' });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });

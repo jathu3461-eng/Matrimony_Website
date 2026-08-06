@@ -37,7 +37,6 @@ export default function ForgotPassword() {
   const { t } = useI18n();
   const [step, setStep] = useState(1);
   const [email, setEmail] = useState('');
-  const [demoOtp, setDemoOtp] = useState('');
   const [serverError, setServerError] = useState('');
 
   const requestForm = useForm({
@@ -63,7 +62,6 @@ export default function ForgotPassword() {
     try {
       const res = await api.post('/auth/forgot-password/request', { email: em });
       setEmail(em);
-      setDemoOtp(res.data.demo_otp || '');
       setStep(2);
     } catch (err) {
       setServerError(err.response?.data?.error || 'Could not send reset code');
@@ -150,14 +148,13 @@ export default function ForgotPassword() {
         </p>
       </motion.div>
 
-      {demoOtp && step === 2 && (
+      {step === 2 && (
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="mb-5 p-3.5 rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] text-[13px] font-semibold text-[var(--ink-soft)]"
+          className="mb-5 p-3.5 rounded-xl border border-emerald-200 bg-emerald-50 text-[13px] font-semibold text-emerald-700"
         >
-          {t('fp_demo_note_prefix')}{' '}
-          <strong className="text-[var(--primary)] font-extrabold tracking-widest">{demoOtp}</strong>
+          ✅ A verification code has been sent to <strong>{email}</strong>. Check your inbox and enter the 6-digit code below.
         </motion.div>
       )}
 
