@@ -98,24 +98,24 @@ export default function Search() {
           </h1>
           <p className="text-sm font-semibold text-[var(--ink-soft)]">Your happy story begins here. Discover verified profiles matching your criteria. 💕</p>
         </div>
-        <div className="w-full md:w-80 h-48 mt-6 md:mt-0 relative rounded-2xl overflow-hidden shadow-lg border-2 border-white">
+        <div className="w-full md:w-80 h-64 mt-6 md:mt-0 relative rounded-2xl overflow-visible border-2 border-white shadow-[0_-10px_40px_10px_rgba(255,255,255,0.9),0_10px_40px_-8px_rgba(224,19,106,0.15)]">
           <img
             src="/uploads/couple_hero.png"
             alt="Search Header Couple"
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover rounded-2xl"
             onError={(e) => {
               e.target.onerror = null;
               e.target.style.display = 'none';
               const parent = e.target.parentElement;
               if (parent && !parent.querySelector('.search-hero-fallback')) {
                 const div = document.createElement('div');
-                div.className = 'search-hero-fallback absolute inset-0 bg-gradient-to-br from-pink-200 via-rose-100 to-pink-50 flex items-center justify-center';
+                div.className = 'search-hero-fallback absolute inset-0 bg-gradient-to-br from-pink-200 via-rose-100 to-pink-50 flex items-center justify-center rounded-2xl';
                 div.innerHTML = '<svg width="120" height="120" viewBox="0 0 200 200" fill="none"><circle cx="70" cy="80" r="35" fill="#f8d0b0"/><path d="M35 70 C45 50 95 50 105 70 C85 55 55 55 35 70Z" fill="#1f110b"/><circle cx="70" cy="105" r="25" fill="#e11d48"/><circle cx="130" cy="80" r="32" fill="#fae2cd"/><path d="M105 68 C115 50 145 50 155 68 C140 55 120 55 105 68Z" fill="#120703"/><circle cx="130" cy="105" r="25" fill="#f43f5e"/><path d="M70 120 Q100 140 130 120" stroke="#fff" strokeWidth="2" fill="none" opacity="0.5"/></svg>';
                 parent.appendChild(div);
               }
             }}
           />
-          <div className="absolute inset-0 bg-gradient-to-br from-pink-200/60 via-rose-100/40 to-pink-50/60 pointer-events-none" />
+          <div className="absolute inset-0 rounded-2xl bg-gradient-to-b from-white/50 via-transparent to-pink-100/30 pointer-events-none" />
         </div>
       </div>
 
