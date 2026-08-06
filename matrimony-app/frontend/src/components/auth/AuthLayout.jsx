@@ -2,6 +2,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Heart, ShieldCheck, Sparkles, Users, Lock, Languages, Star } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useI18n } from '../../context/I18nContext';
+import { uploadsUrl } from '../../api';
 
 const BRAND_POINTS = [
   { icon: ShieldCheck, titleKey: 'auth_brand_verified', subKey: 'auth_brand_verified_sub' },
@@ -42,7 +43,7 @@ function LanguageToggle({ className = '' }) {
 
 function AuthIllustration() {
   return (
-    <div className="relative w-full h-full flex items-center justify-center overflow-hidden" style={{ perspective: '800px' }}>
+    <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
       {/* Ambient orbs */}
       <motion.div
         animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0.6, 0.3] }}
@@ -68,26 +69,6 @@ function AuthIllustration() {
         className="absolute w-56 h-56 border border-white/10 rounded-full"
         style={{ transformStyle: 'preserve-3d' }}
       />
-
-      {/* Church silhouette background */}
-      <motion.div
-        animate={{ opacity: [0.06, 0.12, 0.06] }}
-        transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
-        className="absolute bottom-0 left-1/2 -translate-x-1/2"
-      >
-        <svg width="200" height="120" viewBox="0 0 200 120" fill="white" opacity="0.12">
-          <rect x="85" y="20" width="30" height="100" rx="2" />
-          <polygon points="100,0 70,30 130,30" />
-          <rect x="96" y="5" width="8" height="20" fill="white" />
-          <rect x="92" y="10" width="16" height="6" fill="white" />
-          <rect x="20" y="60" width="60" height="60" rx="3" />
-          <rect x="120" y="60" width="60" height="60" rx="3" />
-          <circle cx="50" cy="45" r="8" />
-          <circle cx="150" cy="45" r="8" />
-          <rect x="40" y="100" width="20" height="20" rx="3" fill="white" opacity="0.5" />
-          <rect x="140" y="100" width="20" height="20" rx="3" fill="white" opacity="0.5" />
-        </svg>
-      </motion.div>
 
       {/* Floating hearts */}
       {[
@@ -146,7 +127,7 @@ function AuthIllustration() {
         </motion.div>
       ))}
 
-      {/* Floating dove (peace symbol) */}
+      {/* Floating dove */}
       <motion.div
         animate={{ x: [-80, 80, -80], y: [-20, -35, -20], rotate: [0, 5, 0] }}
         transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
@@ -159,175 +140,23 @@ function AuthIllustration() {
         </svg>
       </motion.div>
 
-      {/* ── Main 3D Couple ── */}
+      {/* ── Main Couple Image ── */}
       <motion.div
         animate={{ y: [0, -10, 0] }}
         transition={{ duration: 4.5, repeat: Infinity, ease: 'easeInOut' }}
         className="relative z-10"
-        style={{ transformStyle: 'preserve-3d' }}
       >
-        {/* Glow ring behind couple */}
+        {/* Glow ring behind image */}
         <motion.div
           animate={{ scale: [1, 1.08, 1], opacity: [0.2, 0.4, 0.2] }}
           transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-          className="absolute -inset-6 rounded-full bg-[radial-gradient(circle,rgba(255,215,180,0.5),transparent_70%)] blur-xl"
+          className="absolute -inset-8 rounded-full bg-[radial-gradient(circle,rgba(255,215,180,0.5),transparent_70%)] blur-xl"
         />
-
-        <svg className="w-56 h-56 drop-shadow-2xl" viewBox="0 0 320 320" fill="none">
-          {/* Background circle */}
-          <circle cx="160" cy="160" r="140" fill="url(#bgGrad3d)" opacity="0.12" />
-          <circle cx="160" cy="160" r="110" fill="url(#bgGrad3d)" opacity="0.08" />
-
-          {/* ── Groom ── */}
-          <g transform="translate(48, 28)">
-            {/* Hair */}
-            <path d="M38 32 C22 5 88 5 105 32 C115 20 120 42 108 58 Z" fill="#1a0c06" />
-            {/* Hair shine */}
-            <path d="M50 20 C55 10 75 8 85 15" stroke="rgba(255,255,255,0.15)" strokeWidth="2" fill="none" strokeLinecap="round" />
-            {/* Face */}
-            <circle cx="72" cy="72" r="36" fill="#f0c8a0" />
-            <circle cx="72" cy="72" r="36" fill="url(#groomFaceShine)" opacity="0.3" />
-            {/* Eyes */}
-            <ellipse cx="57" cy="74" rx="5.5" ry="7" fill="#1a0800" />
-            <ellipse cx="87" cy="74" rx="5.5" ry="7" fill="#1a0800" />
-            <circle cx="55.5" cy="72.5" r="2.2" fill="#fff" />
-            <circle cx="85.5" cy="72.5" r="2.2" fill="#fff" />
-            {/* Eyebrows */}
-            <path d="M48 62 Q57 56 66 62" stroke="#1a0c06" strokeWidth="2.5" strokeLinecap="round" fill="none" />
-            <path d="M78 62 Q87 56 96 62" stroke="#1a0c06" strokeWidth="2.5" strokeLinecap="round" fill="none" />
-            {/* Smile */}
-            <path d="M57 90 Q72 104 87 90" stroke="#d97757" strokeWidth="2.5" strokeLinecap="round" fill="none" />
-            {/* Ears */}
-            <circle cx="36" cy="72" r="8" fill="#f0c8a0" />
-            <circle cx="108" cy="72" r="8" fill="#f0c8a0" />
-            {/* Body — white kurta with 3D shading */}
-            <path d="M25 120 Q72 98 120 120 L132 210 H12 Z" fill="#fff" />
-            <path d="M25 120 Q72 98 120 120 L132 210 H12 Z" fill="url(#kurtaShade)" opacity="0.4" />
-            {/* Collar V */}
-            <path d="M55 120 L65 142 L75 120" stroke="#e0d0c0" strokeWidth="1.8" fill="none" />
-            {/* Buttons */}
-            <circle cx="65" cy="148" r="1.8" fill="#d4c4b0" />
-            <circle cx="65" cy="158" r="1.8" fill="#d4c4b0" />
-            <circle cx="65" cy="168" r="1.8" fill="#d4c4b0" />
-            {/* Sacred thread / Malai */}
-            <path d="M52 126 Q72 168 92 126" stroke="#e11d48" strokeWidth="4.5" fill="none" strokeLinecap="round" />
-          </g>
-
-          {/* ── Bride ── */}
-          <g transform="translate(135, 22)">
-            {/* Hair flowing */}
-            <path d="M28 52 C8 130 22 215 65 245 C110 245 145 215 125 130 C115 70 105 52 80 42 Z" fill="#0d0500" />
-            <path d="M40 55 C30 130 35 200 60 230" stroke="rgba(255,255,255,0.08)" strokeWidth="2" fill="none" />
-            {/* Face */}
-            <circle cx="72" cy="68" r="34" fill="#f5dcc5" />
-            <circle cx="72" cy="68" r="34" fill="url(#brideFaceShine)" opacity="0.3" />
-            {/* Hair ornament — matha patti */}
-            <path d="M42 50 Q58 38 72 40 Q86 38 102 50" stroke="#fbbf24" strokeWidth="2" fill="none" />
-            <circle cx="55" cy="44" r="3.5" fill="#fbbf24" />
-            <circle cx="72" cy="40" r="4" fill="#e11d48" />
-            <circle cx="89" cy="44" r="3.5" fill="#fbbf24" />
-            {/* Jhumka decorations */}
-            <circle cx="38" cy="50" r="4" fill="#f59e0b" />
-            <circle cx="106" cy="50" r="4" fill="#f59e0b" />
-            {/* Eyes */}
-            <ellipse cx="57" cy="70" rx="5.5" ry="7" fill="#1a0500" />
-            <ellipse cx="87" cy="70" rx="5.5" ry="7" fill="#1a0500" />
-            <circle cx="55.5" cy="68.5" r="2.2" fill="#fff" />
-            <circle cx="85.5" cy="68.5" r="2.2" fill="#fff" />
-            {/* Eyebrows */}
-            <path d="M48 60 Q57 54 66 60" stroke="#1a0500" strokeWidth="2.5" strokeLinecap="round" fill="none" />
-            <path d="M78 60 Q87 54 96 60" stroke="#1a0500" strokeWidth="2.5" strokeLinecap="round" fill="none" />
-            {/* Bindi */}
-            <circle cx="72" cy="56" r="2.8" fill="#e11d48" />
-            {/* Nose ring with chain */}
-            <circle cx="69" cy="76" r="1.8" fill="#fbbf24" />
-            <path d="M69 76 Q66 68 63 60" stroke="#fbbf24" strokeWidth="0.8" fill="none" />
-            {/* Smile */}
-            <path d="M58 86 Q72 100 86 86" stroke="#d97757" strokeWidth="2.5" strokeLinecap="round" fill="none" />
-            {/* Ears */}
-            <circle cx="38" cy="68" r="7" fill="#f5dcc5" />
-            <circle cx="106" cy="68" r="7" fill="#f5dcc5" />
-            {/* Earrings */}
-            <path d="M38 75 L35 85 L41 85 Z" fill="#fbbf24" />
-            <path d="M106 75 L103 85 L109 85 Z" fill="#fbbf24" />
-            {/* Body — red saree with gold border */}
-            <path d="M15 120 Q72 92 135 120 L148 228 H5 Z" fill="#e11d48" />
-            <path d="M15 120 Q72 92 135 120 L148 228 H5 Z" fill="url(#sareeGrad3d)" />
-            {/* Saree gold border */}
-            <path d="M15 120 Q72 92 135 120" stroke="#fbbf24" strokeWidth="2.5" fill="none" />
-            <path d="M5 228 H148" stroke="#fbbf24" strokeWidth="2" fill="none" />
-            {/* Blouse neckline */}
-            <path d="M50 120 Q72 110 95 120" stroke="#be123c" strokeWidth="3" fill="none" />
-            {/* Necklace — layered */}
-            <path d="M42 122 Q72 142 102 122" stroke="#fbbf24" strokeWidth="2.5" fill="none" />
-            <path d="M48 128 Q72 148 96 128" stroke="#f59e0b" strokeWidth="2" fill="none" />
-            <circle cx="72" cy="138" r="4.5" fill="#fbbf24" />
-            <circle cx="72" cy="138" r="2.5" fill="#e11d48" />
-            {/* Bangles */}
-            <circle cx="20" cy="155" r="5" fill="#fbbf24" opacity="0.7" />
-            <circle cx="124" cy="155" r="5" fill="#fbbf24" opacity="0.7" />
-          </g>
-
-          {/* ── Sacred fire / Mangal Pooja element ── */}
-          <motion.g
-            animate={{ opacity: [0.4, 0.7, 0.4], y: [0, -3, 0] }}
-            transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-          >
-            <ellipse cx="160" cy="275" rx="18" ry="6" fill="#fbbf24" opacity="0.3" />
-            <path d="M152 275 Q156 260 160 248 Q164 260 168 275" fill="#ff6b35" opacity="0.5" />
-            <path d="M155 275 Q158 265 160 255 Q162 265 165 275" fill="#fbbf24" opacity="0.6" />
-          </motion.g>
-
-          {/* ── Pulsing heart between them ── */}
-          <motion.g
-            animate={{ scale: [1, 1.2, 1], opacity: [0.7, 1, 0.7] }}
-            transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
-          >
-            <path
-              d="M148 180 C148 168 136 157 125 163 C114 157 102 168 102 180 C102 198 125 210 125 210 C125 210 148 198 148 180Z"
-              fill="url(#heartGrad)"
-            />
-          </motion.g>
-
-          {/* ── Thaali / Mangalsutra symbol ── */}
-          <motion.g
-            animate={{ scale: [1, 1.1, 1], opacity: [0.6, 0.9, 0.6] }}
-            transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }}
-          >
-            <circle cx="160" cy="235" r="8" fill="none" stroke="#fbbf24" strokeWidth="2" />
-            <circle cx="160" cy="235" r="4" fill="#fbbf24" />
-          </motion.g>
-
-          <defs>
-            <linearGradient id="bgGrad3d" x1="0" y1="0" x2="320" y2="320">
-              <stop offset="0%" stopColor="#fff0f6" />
-              <stop offset="100%" stopColor="#ffd3e6" />
-            </linearGradient>
-            <linearGradient id="sareeGrad3d" x1="15" y1="120" x2="148" y2="228">
-              <stop offset="0%" stopColor="#e11d48" />
-              <stop offset="40%" stopColor="#be123c" />
-              <stop offset="70%" stopColor="#e11d48" />
-              <stop offset="100%" stopColor="#9f1239" />
-            </linearGradient>
-            <linearGradient id="kurtaShade" x1="12" y1="120" x2="132" y2="210">
-              <stop offset="0%" stopColor="transparent" />
-              <stop offset="50%" stopColor="rgba(0,0,0,0.08)" />
-              <stop offset="100%" stopColor="transparent" />
-            </linearGradient>
-            <linearGradient id="heartGrad" x1="102" y1="157" x2="148" y2="210">
-              <stop offset="0%" stopColor="#ff5f9e" />
-              <stop offset="100%" stopColor="#e11d48" />
-            </linearGradient>
-            <radialGradient id="groomFaceShine" cx="0.35" cy="0.3">
-              <stop offset="0%" stopColor="rgba(255,255,255,0.3)" />
-              <stop offset="100%" stopColor="transparent" />
-            </radialGradient>
-            <radialGradient id="brideFaceShine" cx="0.35" cy="0.3">
-              <stop offset="0%" stopColor="rgba(255,255,255,0.3)" />
-              <stop offset="100%" stopColor="transparent" />
-            </radialGradient>
-          </defs>
-        </svg>
+        <img
+          src={uploadsUrl('auth-couple.png')}
+          alt="Bride and Groom"
+          className="relative w-56 h-56 object-cover rounded-full drop-shadow-2xl border-4 border-white/20"
+        />
       </motion.div>
 
       {/* Floating badge — Verified */}
