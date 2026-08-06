@@ -186,6 +186,19 @@ async function initDB() {
         FOREIGN KEY (receiver_profile_id) REFERENCES profiles(id) ON DELETE CASCADE
       );
 
+      CREATE TABLE IF NOT EXISTS broker_requests (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        broker_id INT NOT NULL,
+        status ENUM('pending','accepted','rejected') NOT NULL DEFAULT 'pending',
+        message TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        responded_at TIMESTAMP NULL,
+        UNIQUE KEY uq_broker_request (user_id, broker_id),
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (broker_id) REFERENCES users(id) ON DELETE CASCADE
+      );
+
       CREATE TABLE IF NOT EXISTS chat_messages (
         id INT AUTO_INCREMENT PRIMARY KEY,
         thread_id VARCHAR(50) NOT NULL,

@@ -149,6 +149,14 @@ export default function App() {
         }
       />
       <Route
+        path="/broker/clients"
+        element={
+          <ProtectedRoute>
+            <BrokerDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/broker/interests"
         element={
           <ProtectedRoute>

@@ -26,6 +26,9 @@ import {
   Sparkles,
   ArrowRight,
   Crown,
+  UserPlus,
+  CheckCircle2,
+  Phone,
 } from 'lucide-react';
 import api, { uploadsUrl } from '../api';
 import { useAuth } from '../context/AuthContext';
@@ -35,6 +38,7 @@ import { Button, Badge, Skeleton, ErrorCard, useToast } from '../components/ui';
 const NAV_ITEMS = [
   { key: 'overview', path: '/broker/dashboard', label: 'Overview', icon: LayoutDashboard, desc: 'Portfolio at a glance' },
   { key: 'profiles', path: '/broker/profiles', label: 'Client Profiles', icon: Users, desc: 'Manage client portfolios' },
+  { key: 'clients', path: '/broker/clients', label: 'Client Requests', icon: UserPlus, desc: 'Connect with new clients' },
   { key: 'interests', path: '/broker/interests', label: 'Interests', icon: Heart, desc: 'Requests sent & received' },
   { key: 'shortlist', path: '/broker/shortlist', label: 'Shortlist', icon: Star, desc: 'Saved matches' },
   { key: 'messages', path: '/broker/messages', label: 'Messages', icon: MessagesSquare, desc: 'Chat with matches' },
@@ -55,6 +59,7 @@ export default function BrokerDashboard() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profiles, setProfiles] = useState([]);
   const [interactions, setInteractions] = useState({ sent: [], received: [], shortlists: [] });
+  const [clientRequests, setClientRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [busyId, setBusyId] = useState(null);
@@ -70,12 +75,14 @@ export default function BrokerDashboard() {
     setLoading(true);
     setLoadError('');
     try {
-      const [profilesRes, interactionsRes] = await Promise.all([
+      const [profilesRes, interactionsRes, requestsRes] = await Promise.all([
         api.get('/profiles/mine'),
         api.get('/interests/my-interactions'),
+        api.get('/brokers/requests'),
       ]);
       setProfiles(profilesRes.data.profiles);
       setInteractions(interactionsRes.data);
+      setClientRequests(requestsRes.data.requests);
     } catch (err) {
       console.error(err);
       setLoadError('Could not load your broker dashboard. Please check your connection and try again.');
@@ -135,6 +142,20 @@ export default function BrokerDashboard() {
       await refreshInteractions();
     } catch (err) {
       toast.error('Could not update shortlist');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const handleClientRequest = async (id, action) => {
+    setBusyId(id);
+    try {
+      await api.post(`/brokers/requests/${id}/${action}`);
+      toast.success(action === 'accept' ? 'Client request accepted' : 'Client request declined');
+      const res = await api.get('/brokers/requests');
+      setClientRequests(res.data.requests);
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Could not update request');
     } finally {
       setBusyId(null);
     }
@@ -266,6 +287,13 @@ export default function BrokerDashboard() {
                     busyId={busyId}
                     onDelete={handleDeleteProfile}
                     navigate={navigate}
+                  />
+                )}
+                {section === 'clients' && (
+                  <ClientRequestsSection
+                    requests={clientRequests}
+                    busyId={busyId}
+                    onRespond={handleClientRequest}
                   />
                 )}
                 {section === 'interests' && (
@@ -667,6 +695,125 @@ function ClientProfiles({ profiles, quota, usedPct, busyId, onDelete, navigate }
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+/* ── Client Requests ─────────────────────────────────────────────────────── */
+
+function ClientRequestsSection({ requests, busyId, onRespond }) {
+  const pending = requests.filter((r) => r.status === 'pending');
+  const past = requests.filter((r) => r.status !== 'pending');
+
+  return (
+    <div className="space-y-6">
+      <SectionHeader
+        icon={UserPlus}
+        title="Client Requests"
+        subtitle="Members who want to work with you as their broker"
+      />
+
+      {/* Pending requests */}
+      <div className="glass-card rounded-3xl p-6">
+        <h3 className="font-extrabold text-[var(--ink)] text-lg mb-4 flex items-center justify-between">
+          <span className="flex items-center gap-2">
+            <span className="w-9 h-9 rounded-2xl grad-primary text-white flex items-center justify-center shadow-md">
+              <Clock className="w-4 h-4" aria-hidden="true" />
+            </span>
+            Pending Requests
+          </span>
+          <Badge variant="warning">{pending.length} waiting</Badge>
+        </h3>
+        {pending.length === 0 ? (
+          <div className="py-12 text-center">
+            <div className="text-5xl mb-3">🤝</div>
+            <h4 className="font-bold text-[var(--ink)] text-base mb-1">No pending requests</h4>
+            <p className="text-xs text-[var(--ink-faint)] max-w-sm mx-auto">When members send you a connect request from their dashboard, it will appear here for you to accept or decline.</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {pending.map((r) => (
+              <motion.div
+                key={r.id}
+                whileHover={{ y: -2 }}
+                className="glass-card rounded-2xl p-4 border border-[var(--border)] shadow-md flex flex-col sm:flex-row sm:items-center gap-4"
+              >
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-pink-500 to-rose-500 flex items-center justify-center text-white font-display font-extrabold text-xl shadow-md shadow-pink-500/30 shrink-0">
+                  {r.user_username?.[0]?.toUpperCase()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="font-extrabold text-[var(--ink)] text-base">{r.user_username}</p>
+                    <Badge variant="neutral" icon={<Users className="w-3 h-3" aria-hidden="true" />}>
+                      {r.profile_count} profile{r.profile_count === 1 ? '' : 's'}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-[var(--ink-faint)] font-medium mt-1 truncate flex items-center gap-3">
+                    <span className="flex items-center gap-1"><Mail className="w-3 h-3" aria-hidden="true" /> {r.email}</span>
+                    <span className="flex items-center gap-1"><Phone className="w-3 h-3" aria-hidden="true" /> {r.phone_number}</span>
+                  </p>
+                  {r.message && (
+                    <p className="text-xs text-[var(--ink-soft)] font-medium mt-2 bg-[var(--primary-soft)] border border-[var(--border)] p-2.5 rounded-xl italic">
+                      “{r.message}”
+                    </p>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <Button
+                    size="sm"
+                    loading={busyId === r.id}
+                    onClick={() => onRespond(r.id, 'accept')}
+                    className="!bg-[linear-gradient(135deg,#10b981,#059669)] !shadow-[0_8px_25px_-4px_rgba(16,185,129,0.45)]"
+                  >
+                    <Check className="w-3.5 h-3.5" aria-hidden="true" /> Accept
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    disabled={busyId === r.id}
+                    onClick={() => onRespond(r.id, 'reject')}
+                  >
+                    <X className="w-3.5 h-3.5" aria-hidden="true" /> Decline
+                  </Button>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* History */}
+      <div className="glass-card rounded-3xl p-6">
+        <h3 className="font-extrabold text-[var(--ink)] text-lg mb-4 flex items-center gap-2">
+          <span className="w-9 h-9 rounded-2xl bg-[var(--primary-soft)] flex items-center justify-center">
+            <CheckCircle2 className="w-4 h-4 text-[var(--primary-strong)]" aria-hidden="true" />
+          </span>
+          Responded Requests
+        </h3>
+        {past.length === 0 ? (
+          <p className="text-sm text-[var(--ink-faint)] py-6 text-center">No requests responded to yet.</p>
+        ) : (
+          <div className="divide-y divide-[var(--border)]">
+            {past.map((r) => (
+              <div key={r.id} className="flex items-center justify-between gap-3 py-3">
+                <div className="min-w-0">
+                  <p className="font-bold text-[var(--ink)] text-sm truncate">{r.user_username}</p>
+                  <p className="text-[11px] text-[var(--ink-faint)] font-medium">
+                    Requested {new Date(r.created_at).toLocaleDateString()} · Responded {r.responded_at ? new Date(r.responded_at).toLocaleDateString() : '—'}
+                  </p>
+                </div>
+                <Badge
+                  variant={r.status === 'accepted' ? 'success' : 'error'}
+                  icon={r.status === 'accepted' ? <Check className="w-3 h-3" aria-hidden="true" /> : <X className="w-3 h-3" aria-hidden="true" />}
+                  className="shrink-0"
+                >
+                  {r.status === 'accepted' ? 'Accepted' : 'Declined'}
+                </Badge>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Users, Heart, Star, MessagesSquare, Plus, Search, Trash2, Pencil, PencilLine,
-  Mail, Check, X, Clock, Briefcase, Sparkles,
+  Mail, Check, X, Clock, Briefcase, Sparkles, Building2, ShieldCheck, UserPlus,
 } from 'lucide-react';
 import api, { uploadsUrl } from '../api';
 import { useAuth } from '../context/AuthContext';
@@ -16,6 +16,7 @@ const TABS = [
   { id: 'interests', icon: Heart, label: 'Interests' },
   { id: 'shortlists', icon: Star, label: 'Shortlist' },
   { id: 'messages', icon: MessagesSquare, label: 'Messages' },
+  { id: 'brokers', icon: Building2, label: 'Brokers' },
 ];
 
 function ProfileGridSkeleton() {
@@ -48,6 +49,8 @@ export default function Dashboard() {
 
   const [profiles, setProfiles] = useState([]);
   const [interactions, setInteractions] = useState({ sent: [], received: [], shortlists: [] });
+  const [brokers, setBrokers] = useState([]);
+  const [brokerBusyId, setBrokerBusyId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [activeTab, setActiveTab] = useState('profiles');
@@ -57,12 +60,14 @@ export default function Dashboard() {
     setLoading(true);
     setLoadError('');
     try {
-      const [profilesRes, interactionsRes] = await Promise.all([
+      const [profilesRes, interactionsRes, brokersRes] = await Promise.all([
         api.get('/profiles/mine'),
         api.get('/interests/my-interactions'),
+        api.get('/brokers'),
       ]);
       setProfiles(profilesRes.data.profiles);
       setInteractions(interactionsRes.data);
+      setBrokers(brokersRes.data.brokers);
     } catch (err) {
       console.error(err);
       setLoadError('Could not load your dashboard. Please check your connection and try again.');
@@ -122,6 +127,19 @@ export default function Dashboard() {
       toast.error('Could not update shortlist');
     } finally {
       setBusyId(null);
+    }
+  };
+
+  const handleConnectBroker = async (brokerId) => {
+    setBrokerBusyId(brokerId);
+    try {
+      const res = await api.post('/brokers/request', { broker_id: brokerId });
+      toast.success(res.data?.message || 'Request sent to the broker');
+      setBrokers((list) => list.map((b) => (b.id === brokerId ? { ...b, my_request_status: 'pending' } : b)));
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Could not send request');
+    } finally {
+      setBrokerBusyId(null);
     }
   };
 
@@ -478,6 +496,88 @@ export default function Dashboard() {
                     <Briefcase className="w-4 h-4" aria-hidden="true" /> Open Messages
                   </Button>
                 </div>
+              )}
+
+              {/* Brokers Tab */}
+              {activeTab === 'brokers' && (
+                brokers.length === 0 ? (
+                  <div className="glass-card rounded-3xl p-16 text-center">
+                    <div className="text-6xl mb-4">💼</div>
+                    <h3 className="text-xl font-bold text-[var(--ink)] mb-2">No brokers available yet</h3>
+                    <p className="text-sm text-[var(--ink-faint)] mb-6">Professional brokers will appear here once they join the platform. Connect with one to get expert help finding your match.</p>
+                    <Button size="lg" onClick={() => navigate('/search')}>
+                      <Search className="w-4 h-4" aria-hidden="true" /> Browse Matches
+                    </Button>
+                  </div>
+                ) : (
+                  <div>
+                    <div className="flex items-center justify-between gap-3 mb-6">
+                      <div>
+                        <h3 className="font-extrabold text-[var(--ink)] text-lg flex items-center gap-2">
+                          <span className="w-9 h-9 rounded-2xl grad-primary text-white flex items-center justify-center shadow-md">
+                            <Building2 className="w-4 h-4" aria-hidden="true" />
+                          </span>
+                          Professional Brokers
+                        </h3>
+                        <p className="text-xs text-[var(--ink-faint)] font-medium mt-1">Connect with a trusted broker to manage your profile and find the right match for you.</p>
+                      </div>
+                      <Badge variant="primary">{brokers.length} available</Badge>
+                    </div>
+
+                    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {brokers.map((b, i) => (
+                        <motion.div
+                          key={b.id}
+                          initial={{ opacity: 0, y: 14 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: i * 0.06 }}
+                          whileHover={{ y: -3 }}
+                          className="glass-card rounded-3xl p-6 flex flex-col gap-4"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-pink-500 to-rose-500 flex items-center justify-center text-white font-display font-extrabold text-xl shadow-md shadow-pink-500/30 shrink-0">
+                              {(b.business_name || b.username)?.[0]?.toUpperCase()}
+                            </div>
+                            <div className="min-w-0">
+                              <h4 className="font-extrabold text-[var(--ink)] truncate">{b.business_name || b.username}</h4>
+                              <p className="text-[11px] text-[var(--ink-faint)] font-medium truncate">@{b.username}</p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <Badge variant="success" icon={<ShieldCheck className="w-3 h-3" aria-hidden="true" />}>
+                              Verified Broker
+                            </Badge>
+                            <Badge variant="neutral" icon={<Users className="w-3 h-3" aria-hidden="true" />}>
+                              {b.client_count} client{b.client_count === 1 ? '' : 's'}
+                            </Badge>
+                          </div>
+
+                          <div className="mt-auto">
+                            {b.my_request_status === 'accepted' ? (
+                              <div className="flex items-center justify-center gap-2 text-xs font-bold py-3 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-200">
+                                <Check className="w-4 h-4" aria-hidden="true" /> Connected with this broker
+                              </div>
+                            ) : b.my_request_status === 'pending' ? (
+                              <div className="flex items-center justify-center gap-2 text-xs font-bold py-3 rounded-xl bg-amber-50 text-amber-600 border border-amber-200">
+                                <Clock className="w-4 h-4" aria-hidden="true" /> Request sent — awaiting approval
+                              </div>
+                            ) : (
+                              <Button
+                                fullWidth
+                                loading={brokerBusyId === b.id}
+                                onClick={() => handleConnectBroker(b.id)}
+                              >
+                                <UserPlus className="w-4 h-4" aria-hidden="true" />
+                                {b.my_request_status === 'rejected' ? 'Request Again' : 'Connect with Broker'}
+                              </Button>
+                            )}
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </div>
+                )
               )}
             </motion.div>
           </AnimatePresence>
