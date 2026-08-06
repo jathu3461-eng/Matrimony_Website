@@ -142,6 +142,9 @@ function initSocket(server) {
 
         const senderProfile = await db.get('SELECT id, name FROM profiles WHERE id = ? AND owner_user_id = ?', [senderProfileId, userId]);
         if (!senderProfile) return ack && ack({ ok: false, error: 'You do not own the sender profile' });
+        if (senderProfileId !== profileA && senderProfileId !== profileB) {
+          return ack && ack({ ok: false, error: 'Sender profile is not part of this conversation' });
+        }
 
         const receiverProfileId = Number(senderProfileId) === profileA ? profileB : profileA;
         const receiver = await db.get('SELECT owner_user_id, name FROM profiles WHERE id = ?', [receiverProfileId]);

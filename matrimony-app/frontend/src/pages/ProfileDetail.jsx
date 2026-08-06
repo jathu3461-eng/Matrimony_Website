@@ -136,7 +136,7 @@ export default function ProfileDetail() {
   if (!profile || !meta) {
     if (loadError) {
       return (
-        <div className="max-w-4xl mx-auto px-5 py-12">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
           <ErrorCard title="Profile failed to load" message={loadError} onRetry={load} />
         </div>
       );
@@ -179,7 +179,7 @@ export default function ProfileDetail() {
       >
         <div className="grid md:grid-cols-[300px_1fr]">
           {/* Photo Column */}
-          <div className="relative h-80 md:h-full bg-gradient-to-br from-pink-100 to-pink-200 flex items-center justify-center overflow-hidden">
+          <div className="relative h-64 sm:h-80 md:h-full min-h-[250px] bg-gradient-to-br from-pink-100 to-pink-200 flex items-center justify-center overflow-hidden">
             {profile.main_profile_picture && !profile.photo_blurred ? (
               <img
                 src={uploadsUrl(profile.main_profile_picture)}
@@ -192,7 +192,7 @@ export default function ProfileDetail() {
                 <p className="text-xs text-[var(--primary-strong)]/60 text-center px-4">{t('photo_locked')}</p>
               </div>
             ) : (
-              <span className="font-display text-8xl text-[var(--primary)]/30">{profile.name?.[0]}</span>
+              <span className="font-display text-7xl sm:text-8xl font-extrabold text-[var(--primary)]/20 select-none">{profile.name?.[0]?.toUpperCase()}</span>
             )}
 
             {/* Verification Badge */}

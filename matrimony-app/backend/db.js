@@ -267,14 +267,22 @@ async function seed(conn) {
   await conn.query('INSERT IGNORE INTO settings (id) VALUES (1)');
   await conn.query('INSERT IGNORE INTO footer_settings (id) VALUES (1)');
 
-  // Admin user
-  const [[adminRow]] = await conn.query('SELECT id FROM users WHERE email = ?', ['matrimony2026@gmail.com']);
+  // ── Admin user (create or repair password) ──────────────────────────────────
+  const ADMIN_EMAIL    = process.env.ADMIN_EMAIL    || 'matrimony2026@gmail.com';
+  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'Matrimony2026@';
+  const adminHash = bcrypt.hashSync(ADMIN_PASSWORD, 12);
+
+  const [[adminRow]] = await conn.query('SELECT id FROM users WHERE email = ?', [ADMIN_EMAIL]);
   if (!adminRow) {
-    const hash = bcrypt.hashSync('Matrimony2026', 10);
     await conn.query(
       'INSERT INTO users (username, email, password_hash, phone_number, role, is_approved, ui_language) VALUES (?,?,?,?,?,?,?)',
-      ['superadmin', 'matrimony2026@gmail.com', hash, '+10000000000', 'admin', 1, 'en']
+      ['superadmin', ADMIN_EMAIL, adminHash, '+10000000000', 'admin', 1, 'en']
     );
+    console.log('✅ Admin user created:', ADMIN_EMAIL);
+  } else {
+    // Always sync the admin password from env on startup so it stays correct.
+    await conn.query('UPDATE users SET password_hash = ?, is_approved = 1 WHERE id = ?', [adminHash, adminRow.id]);
+    console.log('✅ Admin password synced for:', ADMIN_EMAIL);
   }
 
   // Menu items

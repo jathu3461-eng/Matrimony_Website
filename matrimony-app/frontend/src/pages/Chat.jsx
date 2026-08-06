@@ -93,6 +93,7 @@ export default function Chat() {
     connected,
     threads,
     onlineUsers,
+    typingThreads,
     soundEnabled,
     subscribe,
     sendMessage,
@@ -186,6 +187,8 @@ export default function Chat() {
       setActiveThread(thread);
       activeThreadRef.current = thread;
       setActiveChat(thread.thread_id);
+      const memberId = myProfileIds.includes(thread.sender_profile_id) ? thread.sender_profile_id : thread.receiver_profile_id;
+      if (memberId && myProfileIdRef.current !== memberId) setMyProfileId(memberId);
       const key = thread.thread_id;
       openKeyRef.current = key;
       setMessages([]);
@@ -205,7 +208,7 @@ export default function Chat() {
         if (openKeyRef.current === key) setLoadingMsgs(false);
       }
     },
-    [fetchPage, markThreadRead, setActiveChat]
+    [fetchPage, markThreadRead, setActiveChat, myProfileIds]
   );
 
   const loadOlder = useCallback(async () => {
@@ -339,7 +342,7 @@ export default function Chat() {
   const handleSend = async (e) => {
     e.preventDefault();
     const thread = activeThreadRef.current;
-    const senderId = myProfileIdRef.current;
+    const senderId = myProfileIds.includes(thread.sender_profile_id) ? thread.sender_profile_id : thread.receiver_profile_id;
     const text = newMsg.trim();
     if (!text || !thread || !senderId || sending) return;
 
@@ -381,7 +384,7 @@ export default function Chat() {
 
   const retrySend = async (msg) => {
     const thread = activeThreadRef.current;
-    const senderId = myProfileIdRef.current;
+    const senderId = myProfileIds.includes(thread.sender_profile_id) ? thread.sender_profile_id : thread.receiver_profile_id;
     if (!thread || !senderId) return;
     setMessages((prev) => prev.map((m) => (m.client_id === msg.client_id ? { ...m, _temp: true, _error: false } : m)));
     const { ok, message } = await sendMessage({
@@ -438,7 +441,7 @@ export default function Chat() {
   const otherLastSeen = other ? onlineUsers[String(other.otherUserId)]?.lastSeen : null;
 
   return (
-    <div className="h-[calc(100dvh-64px)] flex flex-col">
+    <div className="h-[100dvh] flex flex-col">
       <div className="px-5 py-3 flex items-center gap-3 border-b border-[var(--border)] grad-primary shrink-0">
         <button onClick={() => navigate("/dashboard")} className="text-white/80 hover:text-white text-xl font-bold mr-1" aria-label="Back to dashboard">
           ←
@@ -522,7 +525,11 @@ export default function Chat() {
                           <MessageStatus msg={{ delivered_at: true }} />
                         )}
                         <p className={`text-xs truncate mt-0.5 flex-1 ${thread.unread_count > 0 ? "text-[var(--ink)] font-semibold" : "text-[var(--ink-faint)]"}`}>
-                          {thread.last_message || "No messages yet — say hello!"}
+                          {typingThreads[thread.thread_id] ? (
+                            <span className="text-[var(--primary)] font-semibold">{typingThreads[thread.thread_id]} is typing…</span>
+                          ) : (
+                            thread.last_message || "No messages yet — say hello!"
+                          )}
                         </p>
                       </div>
                     </div>

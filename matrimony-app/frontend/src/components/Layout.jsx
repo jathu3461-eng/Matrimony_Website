@@ -21,6 +21,8 @@ export default function Layout() {
     api.get('/public/settings').then((res) => setSettings(res.data.settings)).catch(() => {});
   }, []);
 
+  const hideFooter = location.pathname.startsWith('/chat');
+
   return (
     <div className="min-h-screen flex flex-col relative">
       <ScrollToTop />
@@ -36,7 +38,7 @@ export default function Layout() {
           <Outlet />
         </motion.div>
       </main>
-      <Footer />
+      {!hideFooter && <Footer />}
     </div>
   );
 }

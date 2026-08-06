@@ -44,9 +44,11 @@ export function ChatProvider({ children }) {
   const [connected, setConnected] = useState(false);
   const [threads, setThreads] = useState([]);
   const [onlineUsers, setOnlineUsers] = useState({});
+  const [typingThreads, setTypingThreads] = useState({});
   const [soundEnabled, setSoundEnabled] = useState(() => localStorage.getItem('mukurtham_chat_sound') !== 'off');
 
   const listenersRef = useRef(new Map());
+  const typingTimersRef = useRef(new Map());
   const activeThreadIdRef = useRef(null); // which thread is open in the UI
   const myUserIdRef = useRef(user?.id);
   const connectedRef = useRef(false);
@@ -103,6 +105,9 @@ export function ChatProvider({ children }) {
       setConnected(false);
       setThreads([]);
       setOnlineUsers({});
+      setTypingThreads({});
+      typingTimersRef.current.forEach((t) => clearTimeout(t));
+      typingTimersRef.current.clear();
       socket?.disconnect();
       setSocket(null);
       return;
@@ -166,7 +171,34 @@ export function ChatProvider({ children }) {
     };
     const onSeen = (payload) => emitLocal('chat:seen', payload);
     const onDelivered = (payload) => emitLocal('chat:delivered', payload);
-    const onTyping = (payload) => emitLocal('chat:typing', payload);
+    const onTyping = (payload) => {
+      if (!payload || payload.threadId == null) return;
+      const tid = String(payload.threadId);
+      if (payload.isTyping) {
+        const existing = typingTimersRef.current.get(tid);
+        if (existing) clearTimeout(existing);
+        setTypingThreads((prev) => ({ ...prev, [tid]: payload.name || 'Someone' }));
+        const t = setTimeout(() => {
+          typingTimersRef.current.delete(tid);
+          setTypingThreads((prev) => {
+            const next = { ...prev };
+            delete next[tid];
+            return next;
+          });
+        }, 4000);
+        typingTimersRef.current.set(tid, t);
+      } else {
+        const existing = typingTimersRef.current.get(tid);
+        if (existing) clearTimeout(existing);
+        typingTimersRef.current.delete(tid);
+        setTypingThreads((prev) => {
+          const next = { ...prev };
+          delete next[tid];
+          return next;
+        });
+      }
+      emitLocal('chat:typing', payload);
+    };
     const onPresence = ({ userId, online, lastSeen }) => {
       if (userId == null) return;
       setOnlineUsers((prev) => ({ ...prev, [String(userId)]: { online: !!online, lastSeen: lastSeen || null } }));
@@ -287,6 +319,7 @@ export function ChatProvider({ children }) {
       threads,
       unreadTotal,
       onlineUsers,
+      typingThreads,
       soundEnabled,
       subscribe,
       sendMessage,
@@ -296,7 +329,7 @@ export function ChatProvider({ children }) {
       loadThreads,
       toggleSound,
     }),
-    [socket, connected, threads, unreadTotal, onlineUsers, soundEnabled, subscribe, sendMessage, markThreadRead, setTyping, setActiveChat, loadThreads, toggleSound]
+    [socket, connected, threads, unreadTotal, onlineUsers, typingThreads, soundEnabled, subscribe, sendMessage, markThreadRead, setTyping, setActiveChat, loadThreads, toggleSound]
   );
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;

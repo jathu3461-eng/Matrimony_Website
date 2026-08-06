@@ -11,6 +11,8 @@ export default function Navbar({ siteName }) {
   const navigate = useNavigate();
   const location = useLocation();
 
+  if (location.pathname.startsWith('/chat')) return null;
+
   /* ── Logout ── */
   const handleLogout = async () => {
     try {

@@ -138,7 +138,7 @@ export default function Dashboard() {
         <div className="absolute top-0 right-0 w-80 h-80 rounded-full opacity-10 bg-white" style={{ transform: 'translate(30%, -40%)' }} />
         <div className="absolute bottom-0 left-0 w-64 h-64 rounded-full opacity-10 bg-white" style={{ transform: 'translate(-20%, 40%)' }} />
 
-        <div className="max-w-6xl mx-auto px-5 py-10 flex flex-col sm:flex-row items-center sm:justify-between gap-4 relative z-10">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-10 flex flex-col sm:flex-row items-center sm:justify-between gap-4 relative z-10">
           <div className="text-white">
             <div className="flex items-center gap-2 mb-2">
               <span className="text-3xl">{isBroker ? '💼' : '💖'}</span>
@@ -173,7 +173,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-5 py-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
         {/* ── Stat Cards ── */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
           {STAT_CARDS.map((s, i) => (

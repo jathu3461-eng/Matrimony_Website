@@ -86,9 +86,9 @@ export default function Search() {
   );
 
   return (
-    <div className="max-w-7xl mx-auto px-5 py-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
       {/* ── Top Header Panel ── */}
-      <div className="rounded-3xl overflow-hidden mb-8 grad-hero border border-[var(--border)] shadow-[var(--shadow-elevated)] flex flex-col md:flex-row items-center justify-between p-8 md:p-12 relative">
+      <div className="rounded-3xl overflow-hidden mb-8 grad-hero border border-[var(--border)] shadow-[var(--shadow-elevated)] flex flex-col md:flex-row items-center justify-between p-6 sm:p-8 md:p-12 relative">
         <div className="max-w-lg text-left z-10">
           <Badge variant="primary" icon={<Sparkles className="w-3 h-3" aria-hidden="true" />} className="mb-3">
             Premium Matchmaking
@@ -103,8 +103,19 @@ export default function Search() {
             src="/uploads/couple_hero.png"
             alt="Search Header Couple"
             className="w-full h-full object-cover"
-            onError={(e) => { e.target.onerror = null; e.target.style.display = 'none'; }}
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.style.display = 'none';
+              const parent = e.target.parentElement;
+              if (parent && !parent.querySelector('.search-hero-fallback')) {
+                const div = document.createElement('div');
+                div.className = 'search-hero-fallback absolute inset-0 bg-gradient-to-br from-pink-200 via-rose-100 to-pink-50 flex items-center justify-center';
+                div.innerHTML = '<svg width="120" height="120" viewBox="0 0 200 200" fill="none"><circle cx="70" cy="80" r="35" fill="#f8d0b0"/><path d="M35 70 C45 50 95 50 105 70 C85 55 55 55 35 70Z" fill="#1f110b"/><circle cx="70" cy="105" r="25" fill="#e11d48"/><circle cx="130" cy="80" r="32" fill="#fae2cd"/><path d="M105 68 C115 50 145 50 155 68 C140 55 120 55 105 68Z" fill="#120703"/><circle cx="130" cy="105" r="25" fill="#f43f5e"/><path d="M70 120 Q100 140 130 120" stroke="#fff" strokeWidth="2" fill="none" opacity="0.5"/></svg>';
+                parent.appendChild(div);
+              }
+            }}
           />
+          <div className="absolute inset-0 bg-gradient-to-br from-pink-200/60 via-rose-100/40 to-pink-50/60 pointer-events-none" />
         </div>
       </div>
 

@@ -7,7 +7,6 @@ import { useAuth } from '../context/AuthContext';
 import ProfileCard from '../components/ProfileCard';
 import { Button, Badge, TiltCard } from '../components/ui';
 import CtaBanner from '../components/landing/CtaBanner';
-import MembershipPlans from '../components/landing/MembershipPlans';
 
 // ─── Flat Vector Couple Hero Illustration (SVG fallback if no photo exists) ───
 function CoupleHeroIllustration() {
@@ -433,7 +432,6 @@ export default function Landing() {
       </section>
 
       {/* ═══════════════ 7. MEMBERSHIP PLANS ═══════════════ */}
-      <MembershipPlans />
     </div>
   );
 }

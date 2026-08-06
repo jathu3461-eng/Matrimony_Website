@@ -87,8 +87,6 @@ export default function Footer() {
           <div>
             <h4 className="font-display text-base font-bold text-pink-300 mb-4">For Members</h4>
             <ul className="space-y-2.5 text-xs text-pink-100/70 font-medium">
-              <li><Link to="/search" className="hover:text-pink-400 transition-colors">Premium Membership</Link></li>
-              <li><Link to="/search" className="hover:text-pink-400 transition-colors">10-Porutham Match</Link></li>
               <li><Link to="/search" className="hover:text-pink-400 transition-colors">Broker Portal</Link></li>
               <li><Link to="/search" className="hover:text-pink-400 transition-colors">Community Guidelines</Link></li>
             </ul>

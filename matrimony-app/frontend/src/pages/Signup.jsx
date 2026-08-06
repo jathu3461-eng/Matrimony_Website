@@ -39,10 +39,15 @@ function PasswordChecklist({ value, t }) {
       {RULES.map(({ key, labelKey }) => {
         const ok = rules[key];
         return (
-          <span key={key} className={`pw-rule ${ok ? 'pw-rule-ok' : ''}`}>
+          <motion.span
+            key={key}
+            initial={{ opacity: 0, x: -8 }}
+            animate={{ opacity: 1, x: 0 }}
+            className={`pw-rule ${ok ? 'pw-rule-ok' : ''}`}
+          >
             <span className="pw-rule-icon">{ok && <Check className="w-3 h-3" aria-hidden="true" />}</span>
             {t(labelKey)}
-          </span>
+          </motion.span>
         );
       })}
     </div>
@@ -59,9 +64,12 @@ function StrengthMeter({ score, label }) {
     <div className="mt-1.5 flex items-center gap-2 animate-[fade-in-up_0.2s_ease-out_both]">
       <div className="flex gap-1 flex-1">
         {cols.map((c, i) => (
-          <div
+          <motion.div
             key={i}
-            className={`h-1.5 flex-1 rounded-full transition-colors ${score >= c.min ? c.color : 'bg-[var(--border)]'}`}
+            initial={{ scaleX: 0 }}
+            animate={{ scaleX: score >= c.min ? 1 : 0.6 }}
+            transition={{ delay: i * 0.1, duration: 0.3 }}
+            className={`h-1.5 flex-1 rounded-full transition-colors origin-left ${score >= c.min ? c.color : 'bg-[var(--border)]'}`}
           />
         ))}
       </div>
@@ -69,6 +77,15 @@ function StrengthMeter({ score, label }) {
     </div>
   );
 }
+
+const stagger = {
+  hidden: { opacity: 0 },
+  show: { opacity: 1, transition: { staggerChildren: 0.06 } },
+};
+const fadeUp = {
+  hidden: { opacity: 0, y: 14 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: 'easeOut' } },
+};
 
 export default function Signup() {
   const [params] = useSearchParams();
@@ -169,56 +186,75 @@ export default function Signup() {
       subtitle="auth_signup_subtitle"
       brand={{ prefixKey: 'auth_already_have', labelKey: 'auth_login_here', to: '/login' }}
     >
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}>
+      <motion.div variants={stagger} initial="hidden" animate="show">
         {/* Role switcher */}
-        <div className="flex gap-1.5 p-1.5 rounded-full border border-[var(--border)] bg-[var(--surface-soft)] mb-5" role="tablist" aria-label="Account type">
-          {[
-            { v: false, labelKey: 'auth_individual', icon: User },
-            { v: true, labelKey: 'auth_broker', icon: Building2 },
-          ].map(({ v, labelKey, icon: Icon }) => (
-            <button
-              key={labelKey}
-              type="button"
-              role="tab"
-              aria-selected={isBroker === v}
-              onClick={() => toggleRole(v)}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-full text-xs font-extrabold transition-all ${
-                isBroker === v ? 'grad-primary text-white shadow-md' : 'text-[var(--ink-soft)] hover:text-[var(--primary)]'
-              }`}
-            >
-              <Icon className="w-4 h-4" aria-hidden="true" />
-              {t(labelKey)}
-            </button>
-          ))}
-        </div>
+        <motion.div variants={fadeUp} className="mb-5">
+          <div className="flex gap-1.5 p-1.5 rounded-full border border-[var(--border)] bg-[var(--surface-soft)]" role="tablist" aria-label="Account type">
+            {[
+              { v: false, labelKey: 'auth_individual', icon: User },
+              { v: true, labelKey: 'auth_broker', icon: Building2 },
+            ].map(({ v, labelKey, icon: Icon }) => (
+              <motion.button
+                key={labelKey}
+                type="button"
+                role="tab"
+                aria-selected={isBroker === v}
+                onClick={() => toggleRole(v)}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.97 }}
+                className={`relative flex-1 flex items-center justify-center gap-2 py-2.5 rounded-full text-xs font-extrabold transition-all ${
+                  isBroker === v ? 'text-white' : 'text-[var(--ink-soft)] hover:text-[var(--primary)]'
+                }`}
+              >
+                {isBroker === v && (
+                  <motion.div
+                    layoutId="role-pill"
+                    className="absolute inset-0 grad-primary rounded-full shadow-md"
+                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                  />
+                )}
+                <span className="relative z-10 flex items-center gap-2">
+                  <Icon className="w-4 h-4" aria-hidden="true" />
+                  {t(labelKey)}
+                </span>
+              </motion.button>
+            ))}
+          </div>
+        </motion.div>
 
         {serverError && (
-          <div className="mb-5">
+          <motion.div variants={fadeUp} className="mb-5">
             <ErrorCard message={serverError} onDismiss={() => setServerError('')} />
-          </div>
+          </motion.div>
         )}
 
         <form onSubmit={onSubmit} noValidate className="space-y-4">
-          <TextField
-            label={t('auth_full_name')}
-            placeholder={t('auth_full_name_placeholder')}
-            icon={<User className="w-4 h-4" />}
-            error={showErr('username')}
-            success={showSuccess('username', touchedFields.username) ? t('auth_valid') : undefined}
-            autoComplete="name"
-            {...register('username')}
-          />
-          <TextField
-            label={t('auth_email_label')}
-            placeholder={t('auth_email_placeholder')}
-            icon={<Mail className="w-4 h-4" />}
-            error={showErr('email')}
-            success={showSuccess('email', touchedFields.email) ? t('auth_valid') : undefined}
-            autoComplete="email"
-            inputMode="email"
-            {...register('email')}
-          />
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <motion.div variants={fadeUp}>
+            <TextField
+              label={t('auth_full_name')}
+              placeholder={t('auth_full_name_placeholder')}
+              icon={<User className="w-4 h-4" />}
+              error={showErr('username')}
+              success={showSuccess('username', touchedFields.username) ? t('auth_valid') : undefined}
+              autoComplete="name"
+              {...register('username')}
+            />
+          </motion.div>
+
+          <motion.div variants={fadeUp}>
+            <TextField
+              label={t('auth_email_label')}
+              placeholder={t('auth_email_placeholder')}
+              icon={<Mail className="w-4 h-4" />}
+              error={showErr('email')}
+              success={showSuccess('email', touchedFields.email) ? t('auth_valid') : undefined}
+              autoComplete="email"
+              inputMode="email"
+              {...register('email')}
+            />
+          </motion.div>
+
+          <motion.div variants={fadeUp} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <TextField
               label={t('auth_mobile_label')}
               placeholder={t('auth_mobile_placeholder')}
@@ -248,35 +284,44 @@ export default function Signup() {
               }
               {...register('password')}
             />
-          </div>
+          </motion.div>
 
-          {touchedFields.password && passwordValue && (
-            <>
-              <PasswordChecklist value={passwordValue} t={t} />
-              <StrengthMeter score={pwScore} label={strengthLabel} />
-            </>
-          )}
-
-          <TextField
-            label={t('auth_confirm_password')}
-            placeholder={t('auth_confirm_placeholder')}
-            type={showConfirm ? 'text' : 'password'}
-            icon={<Lock className="w-4 h-4" />}
-            error={showErr('confirm_password')}
-            success={showSuccess('confirm_password', touchedFields.confirm_password) ? t('auth_valid') : undefined}
-            autoComplete="new-password"
-            right={
-              <button
-                type="button"
-                onClick={() => setShowConfirm((s) => !s)}
-                aria-label={showConfirm ? t('auth_hide_password') : t('auth_show_password')}
-                className="absolute right-3 top-[0.8rem] text-[var(--ink-faint)] hover:text-[var(--primary)] transition-colors"
+          <AnimatePresence>
+            {touchedFields.password && passwordValue && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.25 }}
               >
-                {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-            }
-            {...register('confirm_password')}
-          />
+                <PasswordChecklist value={passwordValue} t={t} />
+                <StrengthMeter score={pwScore} label={strengthLabel} />
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <motion.div variants={fadeUp}>
+            <TextField
+              label={t('auth_confirm_password')}
+              placeholder={t('auth_confirm_placeholder')}
+              type={showConfirm ? 'text' : 'password'}
+              icon={<Lock className="w-4 h-4" />}
+              error={showErr('confirm_password')}
+              success={showSuccess('confirm_password', touchedFields.confirm_password) ? t('auth_valid') : undefined}
+              autoComplete="new-password"
+              right={
+                <button
+                  type="button"
+                  onClick={() => setShowConfirm((s) => !s)}
+                  aria-label={showConfirm ? t('auth_hide_password') : t('auth_show_password')}
+                  className="absolute right-3 top-[0.8rem] text-[var(--ink-faint)] hover:text-[var(--primary)] transition-colors"
+                >
+                  {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              }
+              {...register('confirm_password')}
+            />
+          </motion.div>
 
           <AnimatePresence>
             {isBroker && (
@@ -284,7 +329,7 @@ export default function Signup() {
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.2 }}
+                transition={{ duration: 0.25 }}
               >
                 <TextField
                   label={t('auth_business_name')}
@@ -298,37 +343,48 @@ export default function Signup() {
             )}
           </AnimatePresence>
 
-          <label className="flex items-start gap-2.5 pt-1 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              {...register('terms')}
-              className="mt-0.5 w-4 h-4 accent-[var(--primary)]"
-            />
-            <span className={`text-[11px] font-semibold leading-tight ${errors.terms ? 'text-[var(--error)]' : 'text-[var(--ink-soft)]'}`}>
-              {t('auth_terms_i_agree')}{' '}
-              <span className="text-[var(--primary)] hover:underline cursor-pointer">{t('auth_terms_conditions')}</span>{' '}
-              <span className="text-[var(--ink-faint)]">{t('auth_and')}</span>{' '}
-              <span className="text-[var(--primary)] hover:underline cursor-pointer">{t('auth_privacy_policy')}</span>
-            </span>
-          </label>
-          {errors.terms && (
-            <p className="text-xs font-semibold text-[var(--error)] -mt-1" role="alert">{errors.terms.message}</p>
-          )}
+          <motion.div variants={fadeUp}>
+            <label className="flex items-start gap-2.5 pt-1 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                {...register('terms')}
+                className="mt-0.5 w-4 h-4 accent-[var(--primary)]"
+              />
+              <span className={`text-[11px] font-semibold leading-tight ${errors.terms ? 'text-[var(--error)]' : 'text-[var(--ink-soft)]'}`}>
+                {t('auth_terms_i_agree')}{' '}
+                <span className="text-[var(--primary)] hover:underline cursor-pointer">{t('auth_terms_conditions')}</span>{' '}
+                <span className="text-[var(--ink-faint)]">{t('auth_and')}</span>{' '}
+                <span className="text-[var(--primary)] hover:underline cursor-pointer">{t('auth_privacy_policy')}</span>
+              </span>
+            </label>
+            {errors.terms && (
+              <motion.p
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-xs font-semibold text-[var(--error)] mt-1"
+                role="alert"
+              >
+                {errors.terms.message}
+              </motion.p>
+            )}
+          </motion.div>
 
-          <Button
-            type="submit"
-            fullWidth
-            loading={isSubmitting}
-            success={pwOk && !isSubmitting}
-            className="mt-2"
-          >
-            {isBroker ? t('auth_register_broker') : t('auth_register_individual')}
-          </Button>
+          <motion.div variants={fadeUp}>
+            <Button
+              type="submit"
+              fullWidth
+              loading={isSubmitting}
+              success={pwOk && !isSubmitting}
+              className="mt-2"
+            >
+              {isBroker ? t('auth_register_broker') : t('auth_register_individual')}
+            </Button>
+          </motion.div>
 
-          <div className="flex items-center justify-center gap-1.5 text-[11px] text-[var(--ink-faint)] font-semibold">
+          <motion.div variants={fadeUp} className="flex items-center justify-center gap-1.5 text-[11px] text-[var(--ink-faint)] font-semibold">
             <ShieldCheck className="w-3.5 h-3.5 text-[var(--success)]" aria-hidden="true" />
             {t('auth_encrypted_note')}
-          </div>
+          </motion.div>
         </form>
       </motion.div>
     </AuthLayout>

@@ -217,7 +217,7 @@ async function getThreadPartners(userId) {
      JOIN profiles pr ON pr.id = i.receiver_profile_id
      WHERE i.status = 'accepted'
      AND (i.sender_profile_id IN (${placeholders}) OR i.receiver_profile_id IN (${placeholders}))`,
-    myIds
+    [...myIds, ...myIds]
   );
   const set = new Set();
   for (const r of rows) {

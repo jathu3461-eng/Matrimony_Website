@@ -72,6 +72,9 @@ router.post('/:profileA/:profileB', requireAuth, async (req, res) => {
 
     const senderProfile = await db.get('SELECT id, name FROM profiles WHERE id = ? AND owner_user_id = ?', [sender_profile_id, req.user.id]);
     if (!senderProfile) return res.status(403).json({ error: 'You do not own the sender profile' });
+    if (Number(sender_profile_id) !== Number(profileA) && Number(sender_profile_id) !== Number(profileB)) {
+      return res.status(403).json({ error: 'Sender profile is not part of this conversation' });
+    }
 
     const receiverProfileId = Number(sender_profile_id) === Number(profileA) ? Number(profileB) : Number(profileA);
     const receiver = await db.get('SELECT owner_user_id, name FROM profiles WHERE id = ?', [receiverProfileId]);

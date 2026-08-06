@@ -347,7 +347,7 @@ button {
 }
 .fl-label {
   position: absolute;
-  left: 1rem;
+  left: 1.15rem;
   top: 1.05rem;
   font-size: 16px;
   color: var(--ink-faint);
@@ -370,7 +370,7 @@ button {
 }
 .fl-icon {
   position: absolute;
-  left: 1rem;
+  left: 1.15rem;
   top: 50%;
   transform: translateY(-50%);
   color: var(--ink-faint);
@@ -378,11 +378,14 @@ button {
   z-index: 1;
 }
 .fl-input.fl-has-icon {
-  padding-left: 2.6rem;
+  padding-left: 3rem;
+}
+.fl-field:has(.fl-has-icon) .fl-label {
+  left: 3rem;
 }
 .fl-input.fl-has-icon:focus ~ .fl-label,
 .fl-input.fl-has-icon:not(:placeholder-shown) ~ .fl-label {
-  left: 2.6rem;
+  left: 3rem;
 }
 .fl-input.fl-has-right {
   padding-right: 2.6rem;
