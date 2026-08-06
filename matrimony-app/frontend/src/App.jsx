@@ -14,6 +14,7 @@ import ProfileDetail from './pages/ProfileDetail';
 import Search from './pages/Search';
 import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
+import BrokerDashboard from './pages/BrokerDashboard';
 import Chat from './pages/Chat';
 
 
@@ -127,6 +128,56 @@ export default function App() {
           <AdminRoute>
             <AdminDashboard />
           </AdminRoute>
+        }
+      />
+
+      {/* Broker dashboard — full-screen panel with its own sidebar/topbar. */}
+      <Route
+        path="/broker/dashboard"
+        element={
+          <ProtectedRoute>
+            <BrokerDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/broker/profiles"
+        element={
+          <ProtectedRoute>
+            <BrokerDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/broker/interests"
+        element={
+          <ProtectedRoute>
+            <BrokerDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/broker/shortlist"
+        element={
+          <ProtectedRoute>
+            <BrokerDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/broker/messages"
+        element={
+          <ProtectedRoute>
+            <BrokerDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/broker/*"
+        element={
+          <ProtectedRoute>
+            <BrokerDashboard />
+          </ProtectedRoute>
         }
       />
 

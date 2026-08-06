@@ -25,7 +25,9 @@ export default function Navbar({ siteName }) {
 
   /* ── Dashboard path by role ── */
   const dashboardPath =
-    user?.role === 'admin' ? '/admin/dashboard' : '/dashboard';
+    user?.role === 'admin' ? '/admin/dashboard'
+    : user?.role === 'broker' ? '/broker/dashboard'
+    : '/dashboard';
 
   /* ── Language toggle ── */
   const toggleLang = () => setLang(lang === 'en' ? 'ta' : 'en');

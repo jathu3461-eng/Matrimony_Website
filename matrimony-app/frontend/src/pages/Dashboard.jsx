@@ -42,6 +42,10 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const toast = useToast();
 
+  useEffect(() => {
+    if (user && user.role === 'broker') navigate('/broker/dashboard', { replace: true });
+  }, [user, navigate]);
+
   const [profiles, setProfiles] = useState([]);
   const [interactions, setInteractions] = useState({ sent: [], received: [], shortlists: [] });
   const [loading, setLoading] = useState(true);
