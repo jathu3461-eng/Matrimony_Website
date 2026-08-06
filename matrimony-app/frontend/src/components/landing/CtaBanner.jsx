@@ -25,7 +25,7 @@ export default function CtaBanner() {
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: '-80px' }}
         transition={{ duration: 0.7, ease: 'easeOut' }}
-        className="glass-cta relative overflow-hidden rounded-[28px] lg:h-[360px]"
+        className="glass-cta relative overflow-hidden rounded-[28px] lg:h-[420px]"
       >
         {/* Animated glow decorations */}
         <motion.div
@@ -46,7 +46,7 @@ export default function CtaBanner() {
 
         <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-[45fr_55fr] relative z-10">
           {/* ── Left: copy (45%) ── */}
-          <div className="order-2 md:order-1 lg:order-1 px-7 pt-2 pb-9 lg:py-10 lg:pl-12 flex flex-col justify-center">
+          <div className="order-2 md:order-1 lg:order-1 px-7 pt-2 pb-9 lg:py-10 lg:pl-12 lg:pr-6 flex flex-col justify-center">
             <motion.span
               initial={{ opacity: 0, y: 12 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -73,7 +73,7 @@ export default function CtaBanner() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.55, delay: 0.26 }}
-              className="text-[13px] leading-relaxed text-[var(--ink-soft)] font-medium mb-4 max-w-md"
+              className="text-[13px] leading-relaxed text-[var(--ink-soft)] font-medium mb-4"
             >
               Find your perfect life partner with verified profiles and AI-powered smart matching.
             </motion.p>
@@ -117,7 +117,7 @@ export default function CtaBanner() {
             <img
               src={uploadsUrl('auth-couple.png')}
               alt="Wedding couple"
-              className="w-full h-full object-contain drop-shadow-lg"
+              className="w-[85%] h-[85%] object-contain drop-shadow-lg scale-90"
             />
           </div>
         </div>
