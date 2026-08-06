@@ -49,6 +49,14 @@ export default function App() {
         }
       />
       <Route
+        path="/admin/profiles"
+        element={
+          <AdminRoute>
+            <AdminDashboard />
+          </AdminRoute>
+        }
+      />
+      <Route
         path="/admin/payments"
         element={
           <AdminRoute>
@@ -98,6 +106,14 @@ export default function App() {
       />
       <Route
         path="/admin/logs"
+        element={
+          <AdminRoute>
+            <AdminDashboard />
+          </AdminRoute>
+        }
+      />
+      <Route
+        path="/admin/menu"
         element={
           <AdminRoute>
             <AdminDashboard />
