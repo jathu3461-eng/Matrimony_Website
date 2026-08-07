@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import api from '../api';
+import api, { uploadsUrl } from '../api';
 import { useI18n } from '../context/I18nContext';
 
 export default function Footer() {
@@ -31,12 +31,7 @@ export default function Footer() {
           {/* Brand Info */}
           <div className="md:col-span-2">
             <div className="flex items-center gap-2.5 mb-4">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-pink-500 to-rose-400 flex items-center justify-center text-xl shadow-lg">
-                💖
-              </div>
-              <span className="font-display text-2xl font-extrabold text-white tracking-tight">
-                Mukurtham Matrimony
-              </span>
+              <img src={uploadsUrl('logo.png')} alt="Mukurtham Matrimony" className="h-10 w-auto" />
             </div>
             <p className="text-sm text-pink-100/70 leading-relaxed mb-6 max-w-sm">
               {footer ? (lang === 'ta' ? footer.footer_about_snippet_ta : footer.footer_about_snippet_en) : 'Trusted matchmaking platform for the global Sri Lankan Tamil diaspora. Loved for happiness, verified for safety.'}

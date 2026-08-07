@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { useChat } from '../context/ChatContext';
 import { useI18n } from '../context/I18nContext';
+import { uploadsUrl } from '../api';
 
 export default function Navbar({ siteName }) {
   const { user, logout } = useAuth();
@@ -43,24 +44,14 @@ export default function Navbar({ siteName }) {
       <div className="max-w-7xl mx-auto px-5 py-3 flex items-center justify-between gap-4 flex-wrap">
 
         {/* ── Brand Logo ── */}
-        <Link to="/" className="flex items-center gap-2.5 shrink-0 group">
-          <motion.div
-            whileHover={{ scale: 1.12, rotate: 8 }}
+        <Link to="/" className="flex items-center gap-2 shrink-0 group">
+          <motion.img
+            whileHover={{ scale: 1.08 }}
             whileTap={{ scale: 0.95 }}
-            className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-pink-500 via-rose-500 to-pink-400
-                       flex items-center justify-center text-white shadow-md shadow-pink-500/30"
-          >
-            <span className="text-lg">💖</span>
-          </motion.div>
-          <div>
-            <span className="font-display text-xl font-extrabold text-slate-800 tracking-tight flex items-center gap-1">
-              {siteName || 'Mukurtham'}
-              <span className="w-1.5 h-1.5 rounded-full bg-pink-500 animate-ping inline-block" />
-            </span>
-            <span className="block text-[9px] font-bold text-pink-600 tracking-widest uppercase -mt-0.5">
-              {lang === 'ta' ? 'உங்கள் இல்லம் காண்போம் 💕' : 'Find Your Forever 💕'}
-            </span>
-          </div>
+            src={uploadsUrl('logo.png')}
+            alt="Mukurtham Matrimony"
+            className="h-10 w-auto"
+          />
         </Link>
 
         {/* ── Single pill nav row ── */}

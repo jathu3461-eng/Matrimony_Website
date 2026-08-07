@@ -224,16 +224,7 @@ export default function AuthLayout({
 
             <div className="relative z-10 p-8 flex flex-col h-full">
               <div className="flex items-center gap-3">
-                <motion.div
-                  whileHover={{ scale: 1.08, rotate: 6 }}
-                  className="w-11 h-11 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-lg"
-                >
-                  <Heart className="w-6 h-6 fill-current" aria-hidden="true" />
-                </motion.div>
-                <div>
-                  <p className="font-display font-extrabold text-lg leading-none tracking-tight">Mukurtham</p>
-                  <p className="text-white/70 text-[11px] font-semibold mt-0.5">{t('auth_brand_tagline')}</p>
-                </div>
+                <img src={uploadsUrl('logo.png')} alt="Mukurtham" className="h-10 w-auto" />
               </div>
 
               {/* 3D Animated illustration area */}
@@ -297,10 +288,7 @@ export default function AuthLayout({
           >
             <div className="flex items-center justify-between gap-3 mb-7">
               <Link to="/" className="flex items-center gap-2 md:hidden">
-                <div className="w-9 h-9 rounded-xl grad-primary flex items-center justify-center shadow">
-                  <Heart className="w-5 h-5 text-white fill-current" aria-hidden="true" />
-                </div>
-                <span className="font-display font-extrabold text-lg text-[var(--ink)]">Mukurtham</span>
+                <img src={uploadsUrl('logo.png')} alt="Mukurtham" className="h-9 w-auto" />
               </Link>
               <div className="hidden md:flex items-center gap-2 text-[11px] text-[var(--ink-faint)] font-semibold">
                 <Lock className="w-3.5 h-3.5 text-[var(--primary)]" aria-hidden="true" />

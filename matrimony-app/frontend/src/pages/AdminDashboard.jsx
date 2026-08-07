@@ -28,7 +28,7 @@ import {
   ShieldOff,
   Search,
 } from 'lucide-react';
-import api from '../api';
+import api, { uploadsUrl } from '../api';
 import { useAuth } from '../context/AuthContext';
 
 const NAV_ITEMS = [
@@ -182,20 +182,10 @@ function SidebarContent({ user, section, onLogout, onNavigate }) {
       {/* Brand */}
       <div className="px-6 pt-7 pb-6 border-b border-white/10">
         <Link to="/" className="flex items-center gap-2.5 group">
-          <motion.div
-            whileHover={{ scale: 1.1, rotate: 8 }}
-            className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-pink-500 to-rose-400 flex items-center justify-center text-xl shadow-lg shadow-pink-500/40"
-          >
-            💖
-          </motion.div>
-          <div>
-            <span className="font-display text-lg font-extrabold text-white tracking-tight leading-none">
-              Mukurtham
-            </span>
-            <span className="block text-[9px] font-bold text-pink-300 tracking-[0.25em] uppercase mt-1">
-              Admin Panel
-            </span>
-          </div>
+          <img src={uploadsUrl('logo.png')} alt="Mukurtham" className="h-10 w-auto" />
+          <span className="block text-[9px] font-bold text-pink-300 tracking-[0.25em] uppercase">
+            Admin Panel
+          </span>
         </Link>
       </div>
 
