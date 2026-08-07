@@ -1,12 +1,13 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Ionicons } from '@expo/vector-icons';
 import { Button } from '@/components/Button';
 import { Screen } from '@/components/Screen';
-import { profileApi } from '@/api/profiles';
 import { ProfileCard } from '@/components/ProfileCard';
+import { profileApi } from '@/api/profiles';
 import { useAppSelector } from '@/store/hooks';
 import { colors, spacing, typography } from '@/theme';
 import type { RootStackParamList } from '@/navigation/types';
@@ -20,8 +21,14 @@ export function HomeScreen() {
 
   const matches = useQuery({
     queryKey: ['matches', 'recent'],
-    queryFn: () => profileApi.search({ limit: 10 }),
+    queryFn: () => profileApi.search({}),
   });
+
+  useFocusEffect(
+    useCallback(() => {
+      matches.refetch();
+    }, [])
+  );
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -35,32 +42,54 @@ export function HomeScreen() {
         contentContainerStyle={styles.content}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
-        <Text style={styles.greeting}>
-          Namaste, {user?.username ?? 'friend'}
-        </Text>
-        <Text style={styles.subGreeting}>Your trusted Tamil matrimony companion</Text>
+        <View style={styles.hero}>
+          <View>
+            <Text style={styles.greeting}>Namaste,</Text>
+            <Text style={styles.name}>{user?.username ?? 'friend'} 👋</Text>
+          </View>
+          <View style={styles.heroActions}>
+            <Button
+              title="Create Profile"
+              size="sm"
+              onPress={() => navigation.navigate('CreateProfile')}
+            />
+          </View>
+        </View>
 
-        <View style={styles.quickActions}>
+        <View style={styles.statsRow}>
+          <View style={styles.statCard}>
+            <Ionicons name="people" size={20} color={colors.primary} />
+            <Text style={styles.statNum}>{matches.data?.length ?? 0}</Text>
+            <Text style={styles.statLabel}>Profiles</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Ionicons name="heart" size={20} color="#e0136a" />
+            <Text style={styles.statNum}>New</Text>
+            <Text style={styles.statLabel}>Matches</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Ionicons name="chatbubble" size={20} color="#2563eb" />
+            <Text style={styles.statNum}>Live</Text>
+            <Text style={styles.statLabel}>Chat</Text>
+          </View>
+        </View>
+
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Fresh Matches</Text>
           <Button
-            title="Browse Profiles"
-            size="md"
-            style={styles.quickBtn}
+            title="View All"
+            variant="ghost"
+            size="sm"
             onPress={() => navigation.navigate('Main', { screen: 'Search' })}
-          />
-          <Button
-            title="Create Profile"
-            variant="outline"
-            size="md"
-            style={styles.quickBtn}
-            onPress={() => navigation.navigate('CreateProfile')}
           />
         </View>
 
-        <Text style={styles.sectionTitle}>Fresh matches</Text>
         {matches.isLoading ? (
-          <Text style={styles.empty}>Loading profiles...</Text>
+          <View style={styles.emptyWrap}>
+            <Text style={styles.empty}>Loading profiles...</Text>
+          </View>
         ) : matches.data && matches.data.length > 0 ? (
-          matches.data.map((p) => (
+          matches.data.slice(0, 10).map((p) => (
             <ProfileCard
               key={p.id}
               profile={p}
@@ -68,9 +97,13 @@ export function HomeScreen() {
             />
           ))
         ) : (
-          <Text style={styles.empty}>
-            No profiles yet. Create your profile to start receiving matches.
-          </Text>
+          <View style={styles.emptyCard}>
+            <Ionicons name="person-add" size={40} color={colors.inkFaint} />
+            <Text style={styles.empty}>No profiles yet.</Text>
+            <Text style={styles.emptyHint}>
+              Create your profile to start receiving matches
+            </Text>
+          </View>
         )}
       </ScrollView>
     </Screen>
@@ -79,36 +112,86 @@ export function HomeScreen() {
 
 const styles = StyleSheet.create({
   content: {
-    padding: spacing.md,
     paddingBottom: spacing.xxl,
   },
+  hero: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: spacing.lg,
+    paddingBottom: spacing.md,
+  },
   greeting: {
-    ...typography.title,
-    color: colors.ink,
-  },
-  subGreeting: {
-    ...typography.caption,
+    ...typography.body,
     color: colors.inkSoft,
-    marginTop: 2,
-    marginBottom: spacing.lg,
   },
-  quickActions: {
+  name: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: colors.ink,
+    marginTop: 2,
+  },
+  heroActions: {},
+  statsRow: {
     flexDirection: 'row',
     gap: spacing.sm,
+    paddingHorizontal: spacing.lg,
     marginBottom: spacing.lg,
   },
-  quickBtn: {
+  statCard: {
     flex: 1,
+    backgroundColor: colors.surface,
+    borderRadius: 14,
+    padding: spacing.md,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
+    gap: spacing.xs,
+  },
+  statNum: {
+    ...typography.body,
+    fontWeight: '700',
+    color: colors.ink,
+  },
+  statLabel: {
+    ...typography.label,
+    color: colors.inkFaint,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.md,
   },
   sectionTitle: {
     ...typography.title,
     color: colors.ink,
-    marginBottom: spacing.md,
+  },
+  emptyWrap: {
+    paddingVertical: spacing.xl,
+    alignItems: 'center',
   },
   empty: {
     ...typography.body,
     color: colors.inkFaint,
     textAlign: 'center',
-    marginVertical: spacing.xl,
+    marginTop: spacing.sm,
+  },
+  emptyHint: {
+    ...typography.caption,
+    color: colors.inkFaint,
+    textAlign: 'center',
+    marginTop: spacing.xs,
+  },
+  emptyCard: {
+    alignItems: 'center',
+    paddingVertical: spacing.xxl,
+    marginHorizontal: spacing.lg,
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderStyle: 'dashed',
   },
 });

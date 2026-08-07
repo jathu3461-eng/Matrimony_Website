@@ -7,26 +7,34 @@ import { Ionicons } from '@expo/vector-icons';
 import { profileApi, SearchParams } from '@/api/profiles';
 import { ProfileCard } from '@/components/ProfileCard';
 import { Screen } from '@/components/Screen';
+import { Button } from '@/components/Button';
 import { colors, spacing, typography } from '@/theme';
 import type { RootStackParamList } from '@/navigation/types';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
+const GENDER_FILTERS = [
+  { label: 'All', value: undefined },
+  { label: 'Male', value: 'M' as const },
+  { label: 'Female', value: 'F' as const },
+];
+
 export function SearchScreen() {
   const navigation = useNavigation<Nav>();
   const [query, setQuery] = useState('');
+  const [gender, setGender] = useState<'M' | 'F' | undefined>(undefined);
   const [applied, setApplied] = useState<SearchParams>({});
   const [refreshing, setRefreshing] = useState(false);
 
   const results = useQuery({
     queryKey: ['search', applied],
     queryFn: () => profileApi.search(applied),
-    enabled: true,
   });
 
   const runSearch = () => {
     const params: SearchParams = {};
     if (query.trim()) params.q = query.trim();
+    if (gender) params.gender = gender;
     setApplied(params);
   };
 
@@ -52,6 +60,19 @@ export function SearchScreen() {
         />
       </View>
 
+      <View style={styles.filterRow}>
+        {GENDER_FILTERS.map((f) => (
+          <Button
+            key={f.label}
+            title={f.label}
+            variant={gender === f.value ? 'primary' : 'outline'}
+            size="sm"
+            onPress={() => { setGender(f.value); }}
+          />
+        ))}
+        <Button title="Search" size="sm" onPress={runSearch} />
+      </View>
+
       <FlatList
         data={results.data ?? []}
         keyExtractor={(item) => String(item.id)}
@@ -62,19 +83,25 @@ export function SearchScreen() {
             onPress={() => navigation.navigate('ProfileDetail', { profileId: item.id })}
           />
         )}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        ListHeaderComponent={
+          results.data && results.data.length > 0 ? (
+            <Text style={styles.count}>{results.data.length} profiles found</Text>
+          ) : null
         }
         ListEmptyComponent={
           <View style={styles.emptyWrap}>
             {results.isLoading ? (
               <Text style={styles.empty}>Searching...</Text>
             ) : (
-              <Text style={styles.empty}>
-                {Object.keys(applied).length === 0
-                  ? 'Type a keyword above and press search.'
-                  : 'No profiles matched your search.'}
-              </Text>
+              <>
+                <Ionicons name="search-outline" size={48} color={colors.inkFaint} />
+                <Text style={styles.empty}>
+                  {Object.keys(applied).length === 0
+                    ? 'Search by name, occupation, or city'
+                    : 'No profiles matched your search'}
+                </Text>
+              </>
             )}
           </View>
         }
@@ -94,21 +121,33 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     marginHorizontal: spacing.md,
     marginTop: spacing.md,
-    marginBottom: spacing.sm,
   },
   searchInput: {
     flex: 1,
-    paddingVertical: 10,
+    paddingVertical: 12,
     marginLeft: spacing.sm,
     fontSize: typography.body.fontSize,
     color: colors.ink,
   },
+  filterRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
   list: {
-    padding: spacing.md,
     paddingBottom: spacing.xxl,
   },
+  count: {
+    ...typography.caption,
+    color: colors.inkFaint,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.sm,
+  },
   emptyWrap: {
-    paddingVertical: spacing.xl,
+    alignItems: 'center',
+    paddingVertical: spacing.xxl,
+    gap: spacing.sm,
   },
   empty: {
     ...typography.body,

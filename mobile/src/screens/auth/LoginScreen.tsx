@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Ionicons } from '@expo/vector-icons';
 import { Button } from '@/components/Button';
 import { Input } from '@/components/Input';
 import { Screen } from '@/components/Screen';
@@ -42,14 +43,19 @@ export function LoginScreen() {
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <ScrollView
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
-        >
-          <Text style={styles.brand}>Mukurtham</Text>
-          <Text style={styles.subtitle}>Welcome back</Text>
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          <View style={styles.header}>
+            <View style={styles.logoWrap}>
+              <Ionicons name="heart" size={32} color={colors.white} />
+            </View>
+            <Text style={styles.brand}>Mukurtham</Text>
+            <Text style={styles.tagline}>Matrimony, made meaningful</Text>
+          </View>
 
-          <View style={styles.form}>
+          <View style={styles.card}>
+            <Text style={styles.welcome}>Welcome back</Text>
+            <Text style={styles.hint}>Sign in to continue your journey</Text>
+
             <Input
               label="Email or phone"
               value={email}
@@ -70,7 +76,10 @@ export function LoginScreen() {
             />
 
             {(fieldError || error) && (
-              <Text style={styles.error}>{fieldError || error}</Text>
+              <View style={styles.errorBox}>
+                <Ionicons name="alert-circle" size={16} color={colors.error} />
+                <Text style={styles.error}>{fieldError || error}</Text>
+              </View>
             )}
 
             <Button title="Log In" onPress={submit} loading={loading} size="lg" />
@@ -83,12 +92,16 @@ export function LoginScreen() {
               size="sm"
               onPress={() => navigation.navigate('ForgotPassword')}
             />
-            <Button
-              title="Create an account"
-              variant="outline"
-              size="md"
-              onPress={() => navigation.navigate('Register')}
-            />
+            <View style={styles.signupRow}>
+              <Text style={styles.signupText}>New here? </Text>
+              <Button
+                title="Create account"
+                variant="ghost"
+                size="sm"
+                titleStyle={{ fontWeight: '700' }}
+                onPress={() => navigation.navigate('Register')}
+              />
+            </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -100,31 +113,82 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   content: {
     flexGrow: 1,
-    justifyContent: 'center',
     padding: spacing.xl,
+    justifyContent: 'center',
   },
-  brand: {
-    ...typography.display,
-    color: colors.primary,
-    textAlign: 'center',
-  },
-  subtitle: {
-    ...typography.body,
-    color: colors.inkSoft,
-    textAlign: 'center',
-    marginTop: spacing.sm,
+  header: {
+    alignItems: 'center',
     marginBottom: spacing.xl,
   },
-  form: {
+  logoWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.md,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  brand: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: colors.primary,
+  },
+  tagline: {
+    ...typography.caption,
+    color: colors.inkSoft,
+    marginTop: 2,
+  },
+  card: {
+    backgroundColor: colors.white,
+    borderRadius: 20,
+    padding: spacing.lg,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 3,
     marginBottom: spacing.lg,
+  },
+  welcome: {
+    ...typography.title,
+    color: colors.ink,
+    marginBottom: spacing.xs,
+  },
+  hint: {
+    ...typography.caption,
+    color: colors.inkFaint,
+    marginBottom: spacing.lg,
+  },
+  errorBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    backgroundColor: colors.errorSoft,
+    borderRadius: 10,
+    padding: spacing.sm,
+    marginBottom: spacing.md,
   },
   error: {
     ...typography.caption,
     color: colors.error,
-    marginBottom: spacing.md,
+    flex: 1,
   },
   footer: {
-    gap: spacing.sm,
     alignItems: 'center',
+  },
+  signupRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: spacing.xs,
+  },
+  signupText: {
+    ...typography.body,
+    color: colors.inkSoft,
   },
 });
