@@ -204,7 +204,7 @@ export default function ProfileDetail() {
           </div>
 
           {/* Details Column */}
-          <div className="p-8">
+          <div className="p-8 overflow-hidden">
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
               <div>
                 <h1 className="font-display text-3xl text-[var(--ink)] font-extrabold mb-1">{profile.name}</h1>
@@ -252,7 +252,7 @@ export default function ProfileDetail() {
             </div>
 
             <h2 className="font-display text-lg text-[var(--ink)] font-bold mb-2">About</h2>
-            <p className="text-[var(--ink-soft)] leading-relaxed mb-6 break-words">{profile.about_me}</p>
+            <p className="text-[var(--ink-soft)] leading-relaxed mb-6 break-all">{profile.about_me}</p>
 
             {/* Horoscope Access */}
             {profile.horoscope_chart ? (
@@ -439,7 +439,7 @@ function InfoRow({ label, value }) {
   return (
     <div className="min-w-0">
       <p className="text-xs uppercase tracking-wide text-[var(--primary)]/80 font-semibold">{label}</p>
-      <p className="text-[var(--ink)] break-words">{value}</p>
+      <p className="text-[var(--ink)] break-all">{value}</p>
     </div>
   );
 }
