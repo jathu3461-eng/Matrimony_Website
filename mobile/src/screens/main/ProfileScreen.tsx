@@ -75,8 +75,9 @@ export function ProfileScreen() {
           ))
         ) : (
           <View style={styles.noProfile}>
+            <Ionicons name="person-add-outline" size={40} color={colors.inkFaint} />
             <Text style={styles.noProfileText}>
-              You haven't created a profile yet.
+              You haven't created a profile yet
             </Text>
             <Button
               title="Create Profile"
@@ -92,6 +93,7 @@ export function ProfileScreen() {
             title="Settings"
             variant="outline"
             size="md"
+            leftIcon="settings-outline"
             style={styles.actionBtn}
             onPress={() => navigation.navigate('Settings')}
           />
@@ -99,6 +101,7 @@ export function ProfileScreen() {
             title="Log Out"
             variant="danger"
             size="md"
+            leftIcon="log-out-outline"
             style={styles.actionBtn}
             loading={loggingOut}
             onPress={doLogout}
@@ -193,12 +196,13 @@ const styles = StyleSheet.create({
   noProfile: {
     alignItems: 'center',
     paddingVertical: spacing.lg,
+    gap: spacing.sm,
   },
   noProfileText: {
     ...typography.body,
     color: colors.inkFaint,
     textAlign: 'center',
-    marginBottom: spacing.md,
+    marginBottom: spacing.xs,
   },
   noProfileBtn: {
     alignSelf: 'stretch',

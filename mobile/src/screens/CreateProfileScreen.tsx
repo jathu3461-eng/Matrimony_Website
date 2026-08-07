@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -11,9 +11,8 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as ImagePicker from 'expo-image-picker';
-import { Ionicons } from '@expo/vector-icons';
 import { Button } from '@/components/Button';
-import { Input } from '@/components/Input';
+import { FormField } from '@/components/FormField';
 import { Screen } from '@/components/Screen';
 import { profileApi } from '@/api/profiles';
 import { extractError } from '@/api/client';
@@ -22,10 +21,12 @@ import type { RootStackParamList } from '@/navigation/types';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
+const DOB_RE = /^\d{4}-\d{2}-\d{2}$/;
+
 export function CreateProfileScreen() {
   const navigation = useNavigation<Nav>();
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | undefined>(undefined);
+  const [serverError, setServerError] = useState<string | null>(null);
 
   const [name, setName] = useState('');
   const [gender, setGender] = useState<'M' | 'F'>('M');
@@ -40,6 +41,40 @@ export function CreateProfileScreen() {
   const [familyValues, setFamilyValues] = useState('');
   const [photoUri, setPhotoUri] = useState<string | null>(null);
 
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const touch = (f: string) => setTouched((t) => ({ ...t, [f]: true }));
+
+  const errors = useMemo(
+    () => ({
+      name: touched.name ? (!name.trim() ? 'Full name is required' : null) : null,
+      dob: touched.dob
+        ? !dob.trim()
+          ? 'Date of birth is required'
+          : !DOB_RE.test(dob.trim())
+            ? 'Use format YYYY-MM-DD (e.g. 1995-06-15)'
+            : null
+        : null,
+      occupation: touched.occupation
+        ? !occupation.trim()
+          ? 'Occupation is required'
+          : null
+        : null,
+      education: touched.education
+        ? education.trim().length > 0 && education.trim().length < 3
+          ? 'Enter a valid education level'
+          : null
+        : null,
+      city: touched.city
+        ? city.trim().length > 0 && city.trim().length < 2
+          ? 'Enter a valid city'
+          : null
+        : null,
+    }),
+    [name, dob, occupation, education, city, touched]
+  );
+
+  const hasErrors = Object.values(errors).some(Boolean);
+
   const pickPhoto = async () => {
     const res = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
@@ -53,19 +88,10 @@ export function CreateProfileScreen() {
   };
 
   const submit = async () => {
-    if (!name.trim()) {
-      setError('Name is required.');
-      return;
-    }
-    if (!dob.trim() || !/^\d{4}-\d{2}-\d{2}$/.test(dob.trim())) {
-      setError('Enter date of birth as YYYY-MM-DD.');
-      return;
-    }
-    if (!occupation.trim()) {
-      setError('Occupation is required.');
-      return;
-    }
-    setError(undefined);
+    setTouched({ name: true, dob: true, occupation: true });
+    if (hasErrors) return;
+
+    setServerError(null);
     setLoading(true);
     try {
       const formData = new FormData();
@@ -94,7 +120,7 @@ export function CreateProfileScreen() {
         { text: 'OK', onPress: () => navigation.goBack() },
       ]);
     } catch (err) {
-      setError(extractError(err, 'Failed to create profile.'));
+      setServerError(extractError(err, 'Failed to create profile.'));
     } finally {
       setLoading(false);
     }
@@ -106,21 +132,35 @@ export function CreateProfileScreen() {
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-          <Text style={styles.title}>Create your profile</Text>
+        <ScrollView
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.header}>
+            <Text style={styles.title}>Create your profile</Text>
+            <Text style={styles.subtitle}>Fill in your details to find the right match</Text>
+          </View>
 
           <Button
             title={photoUri ? 'Change photo' : 'Add profile photo'}
             variant="outline"
             size="md"
             onPress={pickPhoto}
+            leftIcon="camera-outline"
           />
-          {photoUri && (
-            <Text style={styles.photoHint}>Photo selected</Text>
-          )}
+          {photoUri && <Text style={styles.photoHint}>Photo selected</Text>}
 
           <Text style={styles.sectionLabel}>Basic info</Text>
-          <Input label="Full name" value={name} onChangeText={setName} placeholder="Your name" />
+          <FormField
+            label="Full name"
+            value={name}
+            onChangeText={setName}
+            onBlur={() => touch('name')}
+            placeholder="Your name"
+            error={errors.name}
+            hint="Your display name on the profile"
+          />
 
           <View style={styles.genderRow}>
             <Button
@@ -139,50 +179,96 @@ export function CreateProfileScreen() {
             />
           </View>
 
-          <Input
-            label="Date of birth (YYYY-MM-DD)"
+          <FormField
+            label="Date of birth"
             value={dob}
             onChangeText={setDob}
-            placeholder="1995-06-15"
+            onBlur={() => touch('dob')}
+            placeholder="YYYY-MM-DD (e.g. 1995-06-15)"
             keyboardType="numbers-and-punctuation"
+            error={errors.dob}
+            hint="Format: YYYY-MM-DD"
           />
+
           <View style={styles.heightRow}>
-            <Input
+            <FormField
               label="Feet"
               value={heightFeet}
               onChangeText={setHeightFeet}
               keyboardType="number-pad"
               containerStyle={styles.heightInput}
+              placeholder="5"
             />
-            <Input
+            <FormField
               label="Inches"
               value={heightInches}
               onChangeText={setHeightInches}
               keyboardType="number-pad"
               containerStyle={styles.heightInput}
+              placeholder="6"
             />
           </View>
 
           <Text style={styles.sectionLabel}>Education & career</Text>
-          <Input label="Education" value={education} onChangeText={setEducation} placeholder="B.E. Computer Science" />
-          <Input label="Occupation" value={occupation} onChangeText={setOccupation} placeholder="Software Engineer" />
-          <Input label="City / State" value={city} onChangeText={setCity} placeholder="Chennai" />
+          <FormField
+            label="Education"
+            value={education}
+            onChangeText={setEducation}
+            onBlur={() => touch('education')}
+            placeholder="B.E. Computer Science"
+            error={errors.education}
+            hint="Degree or qualification"
+          />
+          <FormField
+            label="Occupation"
+            value={occupation}
+            onChangeText={setOccupation}
+            onBlur={() => touch('occupation')}
+            placeholder="Software Engineer"
+            error={errors.occupation}
+            hint="Your current job title"
+          />
+          <FormField
+            label="City / State"
+            value={city}
+            onChangeText={setCity}
+            onBlur={() => touch('city')}
+            placeholder="Chennai"
+            error={errors.city}
+            hint="Where you live"
+          />
 
           <Text style={styles.sectionLabel}>Lifestyle</Text>
-          <Input label="Diet" value={diet} onChangeText={setDiet} placeholder="Vegetarian" />
-          <Input label="Family values" value={familyValues} onChangeText={setFamilyValues} placeholder="Traditional" />
+          <FormField
+            label="Diet"
+            value={diet}
+            onChangeText={setDiet}
+            placeholder="Vegetarian"
+            hint="e.g. Vegetarian, Non-vegetarian, Vegan"
+          />
+          <FormField
+            label="Family values"
+            value={familyValues}
+            onChangeText={setFamilyValues}
+            placeholder="Traditional"
+            hint="e.g. Traditional, Moderate, Liberal"
+          />
 
           <Text style={styles.sectionLabel}>About you</Text>
-          <Input
+          <FormField
             label="About me"
             value={about}
             onChangeText={setAbout}
             placeholder="Tell others about yourself..."
             multiline
-            style={{ minHeight: 80 }}
+            style={{ minHeight: 80, textAlignVertical: 'top' }}
           />
 
-          {error && <Text style={styles.error}>{error}</Text>}
+          {serverError && (
+            <View style={styles.errorBox}>
+              <Text style={styles.errorBoxText}>{serverError}</Text>
+            </View>
+          )}
 
           <Button title="Create Profile" onPress={submit} loading={loading} size="lg" />
         </ScrollView>
@@ -197,10 +283,17 @@ const styles = StyleSheet.create({
     padding: spacing.xl,
     paddingBottom: spacing.xxl,
   },
+  header: {
+    marginBottom: spacing.lg,
+  },
   title: {
     ...typography.title,
     color: colors.ink,
-    marginBottom: spacing.lg,
+  },
+  subtitle: {
+    ...typography.caption,
+    color: colors.inkFaint,
+    marginTop: spacing.xs,
   },
   photoHint: {
     ...typography.caption,
@@ -231,9 +324,14 @@ const styles = StyleSheet.create({
   heightInput: {
     flex: 1,
   },
-  error: {
+  errorBox: {
+    backgroundColor: colors.errorSoft,
+    borderRadius: 10,
+    padding: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  errorBoxText: {
     ...typography.caption,
     color: colors.error,
-    marginBottom: spacing.md,
   },
 });

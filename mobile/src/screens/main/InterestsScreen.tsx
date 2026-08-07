@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react';
-import { FlatList, RefreshControl, SectionList, StyleSheet, Text, View } from 'react-native';
+import { RefreshControl, SectionList, StyleSheet, Text, View } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Ionicons } from '@expo/vector-icons';
 import { interestApi } from '@/api/interests';
 import { InterestRow } from '@/components/InterestRow';
 import { Screen } from '@/components/Screen';
@@ -35,6 +36,8 @@ export function InterestsScreen() {
     setRefreshing(false);
   };
 
+  const receivedCount = data.data?.received?.length ?? 0;
+
   return (
     <Screen>
       <SectionList
@@ -53,18 +56,31 @@ export function InterestsScreen() {
           />
         )}
         renderSectionHeader={({ section }) => (
-          <Text style={styles.sectionHeader}>{section.title}</Text>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={styles.sectionHeader}>{section.title}</Text>
+            {section.title === 'Received' && receivedCount > 0 && (
+              <View style={styles.countBadge}>
+                <Text style={styles.countText}>{receivedCount}</Text>
+              </View>
+            )}
+          </View>
         )}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         ListEmptyComponent={
           <View style={styles.emptyWrap}>
             {data.isLoading ? (
-              <Text style={styles.empty}>Loading interests...</Text>
+              <Ionicons name="heart-outline" size={48} color={colors.inkFaint} />
             ) : (
-              <Text style={styles.empty}>
-                No interests yet. Send one from a profile you like!
-              </Text>
+              <Ionicons name="heart-outline" size={48} color={colors.inkFaint} />
             )}
+            <Text style={styles.emptyTitle}>
+              {data.isLoading ? 'Loading...' : 'No interests yet'}
+            </Text>
+            <Text style={styles.emptyHint}>
+              {data.isLoading
+                ? 'Fetching your interests'
+                : 'Send an interest from a profile you like to get started'}
+            </Text>
           </View>
         }
       />
@@ -77,20 +93,47 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     paddingBottom: spacing.xxl,
   },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginTop: spacing.md,
+    marginBottom: spacing.sm,
+  },
   sectionHeader: {
     ...typography.caption,
     fontWeight: '700',
     textTransform: 'uppercase',
     color: colors.inkFaint,
-    marginTop: spacing.md,
-    marginBottom: spacing.sm,
+  },
+  countBadge: {
+    backgroundColor: colors.primary,
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 6,
+  },
+  countText: {
+    ...typography.label,
+    color: colors.white,
+    fontWeight: '700',
   },
   emptyWrap: {
-    paddingVertical: spacing.xl,
+    alignItems: 'center',
+    paddingVertical: spacing.xxl,
+    gap: spacing.sm,
   },
-  empty: {
+  emptyTitle: {
+    ...typography.title,
+    color: colors.inkSoft,
+    marginTop: spacing.sm,
+  },
+  emptyHint: {
     ...typography.body,
     color: colors.inkFaint,
     textAlign: 'center',
+    maxWidth: 260,
   },
 });

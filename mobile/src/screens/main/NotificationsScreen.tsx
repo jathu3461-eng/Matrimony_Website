@@ -65,11 +65,15 @@ export function NotificationsScreen() {
         }
         ListEmptyComponent={
           <View style={styles.emptyWrap}>
-            {data.isLoading ? (
-              <Text style={styles.empty}>Loading notifications...</Text>
-            ) : (
-              <Text style={styles.empty}>No notifications yet.</Text>
-            )}
+            <Ionicons name="notifications-outline" size={48} color={colors.inkFaint} />
+            <Text style={styles.emptyTitle}>
+              {data.isLoading ? 'Loading...' : 'No notifications yet'}
+            </Text>
+            <Text style={styles.emptyHint}>
+              {data.isLoading
+                ? 'Fetching notifications'
+                : 'When someone shows interest or accepts yours, you will see it here'}
+            </Text>
           </View>
         }
       />
@@ -134,11 +138,19 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   emptyWrap: {
-    paddingVertical: spacing.xl,
+    alignItems: 'center',
+    paddingVertical: spacing.xxl,
+    gap: spacing.sm,
   },
-  empty: {
+  emptyTitle: {
+    ...typography.title,
+    color: colors.inkSoft,
+    marginTop: spacing.sm,
+  },
+  emptyHint: {
     ...typography.body,
     color: colors.inkFaint,
     textAlign: 'center',
+    maxWidth: 260,
   },
 });

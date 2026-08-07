@@ -1,10 +1,17 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { Button } from '@/components/Button';
-import { Input } from '@/components/Input';
+import { FormField } from '@/components/FormField';
 import { Screen } from '@/components/Screen';
 import { extractError } from '@/api/client';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
@@ -22,18 +29,23 @@ export function LoginScreen() {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [fieldError, setFieldError] = useState<string | undefined>(undefined);
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [serverError, setServerError] = useState<string | null>(null);
+
+  const touch = (field: string) => setTouched((t) => ({ ...t, [field]: true }));
+
+  const emailError = touched.email && !email.trim() ? 'Email or phone is required' : null;
+  const passwordError = touched.password && !password ? 'Password is required' : null;
 
   const submit = async () => {
-    if (!email.trim() || !password) {
-      setFieldError('Enter your email and password');
-      return;
-    }
-    setFieldError(undefined);
+    setTouched({ email: true, password: true });
+    if (!email.trim() || !password) return;
+
+    setServerError(null);
     try {
       await dispatch(login({ email: email.trim(), password })).unwrap();
     } catch (err) {
-      setFieldError(extractError(err, 'Unable to log in. Please try again.'));
+      setServerError(extractError(err, 'Unable to log in. Please try again.'));
     }
   };
 
@@ -43,7 +55,11 @@ export function LoginScreen() {
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <ScrollView
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
           <View style={styles.header}>
             <View style={styles.logoWrap}>
               <Ionicons name="heart" size={32} color={colors.white} />
@@ -56,29 +72,34 @@ export function LoginScreen() {
             <Text style={styles.welcome}>Welcome back</Text>
             <Text style={styles.hint}>Sign in to continue your journey</Text>
 
-            <Input
+            <FormField
               label="Email or phone"
               value={email}
               onChangeText={setEmail}
+              onBlur={() => touch('email')}
               placeholder="you@example.com or +91..."
               autoCapitalize="none"
               keyboardType="email-address"
               autoComplete="email"
+              error={emailError}
+              hint="Enter your registered email or phone"
             />
-            <Input
+            <FormField
               label="Password"
               value={password}
               onChangeText={setPassword}
+              onBlur={() => touch('password')}
               placeholder="Your password"
               secure
               autoCapitalize="none"
               onSubmitEditing={submit}
+              error={passwordError}
             />
 
-            {(fieldError || error) && (
+            {(serverError || error) && (
               <View style={styles.errorBox}>
                 <Ionicons name="alert-circle" size={16} color={colors.error} />
-                <Text style={styles.error}>{fieldError || error}</Text>
+                <Text style={styles.errorBoxText}>{serverError || error}</Text>
               </View>
             )}
 
@@ -174,7 +195,7 @@ const styles = StyleSheet.create({
     padding: spacing.sm,
     marginBottom: spacing.md,
   },
-  error: {
+  errorBoxText: {
     ...typography.caption,
     color: colors.error,
     flex: 1,

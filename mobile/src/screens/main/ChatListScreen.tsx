@@ -90,7 +90,9 @@ export function ChatListScreen() {
             }
           >
             <View style={[styles.avatar, styles.avatarPlaceholder]}>
-              <Ionicons name="person" size={22} color={colors.inkFaint} />
+              <Text style={styles.avatarText}>
+                {(item.otherName ?? '?')[0]?.toUpperCase() ?? '?'}
+              </Text>
             </View>
             <View style={styles.details}>
               <View style={styles.rowTop}>
@@ -115,13 +117,15 @@ export function ChatListScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         ListEmptyComponent={
           <View style={styles.emptyWrap}>
-            {threads.isLoading ? (
-              <Text style={styles.empty}>Loading chats...</Text>
-            ) : (
-              <Text style={styles.empty}>
-                No conversations yet. Send an interest to start chatting.
-              </Text>
-            )}
+            <Ionicons name="chatbubble-ellipses-outline" size={48} color={colors.inkFaint} />
+            <Text style={styles.emptyTitle}>
+              {threads.isLoading ? 'Loading...' : 'No conversations yet'}
+            </Text>
+            <Text style={styles.emptyHint}>
+              {threads.isLoading
+                ? 'Fetching your chats'
+                : 'Send an interest to start chatting with someone special'}
+            </Text>
           </View>
         }
       />
@@ -156,6 +160,11 @@ const styles = StyleSheet.create({
   avatarPlaceholder: {
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  avatarText: {
+    ...typography.body,
+    fontWeight: '700',
+    color: colors.primary,
   },
   details: {
     flex: 1,
@@ -203,11 +212,19 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   emptyWrap: {
-    paddingVertical: spacing.xl,
+    alignItems: 'center',
+    paddingVertical: spacing.xxl,
+    gap: spacing.sm,
   },
-  empty: {
+  emptyTitle: {
+    ...typography.title,
+    color: colors.inkSoft,
+    marginTop: spacing.sm,
+  },
+  emptyHint: {
     ...typography.body,
     color: colors.inkFaint,
     textAlign: 'center',
+    maxWidth: 260,
   },
 });

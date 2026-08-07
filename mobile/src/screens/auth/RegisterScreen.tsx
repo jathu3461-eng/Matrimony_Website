@@ -1,15 +1,30 @@
-import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { Button } from '@/components/Button';
-import { Input } from '@/components/Input';
+import { FormField } from '@/components/FormField';
 import { Screen } from '@/components/Screen';
 import { authApi } from '@/api/auth';
 import { extractError } from '@/api/client';
 import { useAppDispatch } from '@/store/hooks';
 import { login } from '@/store/authSlice';
+import {
+  validateUsername,
+  validateEmail,
+  validatePhone,
+  validatePassword,
+  validateConfirmPassword,
+  HINTS,
+} from '@/utils/validation';
 import { colors, spacing, typography } from '@/theme';
 import type { AuthStackParamList } from '@/navigation/types';
 
@@ -19,6 +34,7 @@ export function RegisterScreen() {
   const navigation = useNavigation<Nav>();
   const dispatch = useAppDispatch();
   const [loading, setLoading] = useState(false);
+  const [serverError, setServerError] = useState<string | null>(null);
 
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -27,27 +43,41 @@ export function RegisterScreen() {
   const [confirm, setConfirm] = useState('');
   const [role, setRole] = useState<'regular' | 'broker'>('regular');
   const [businessName, setBusinessName] = useState('');
-  const [formError, setFormError] = useState<string | undefined>(undefined);
 
-  const validate = (): string | null => {
-    if (username.trim().length < 4) return 'Username must be at least 4 characters.';
-    if (!/^[a-zA-Z0-9_]+$/.test(username.trim())) return 'Username: letters, numbers and underscore only.';
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return 'Enter a valid email address.';
-    if (!/^\+[1-9]\d{7,14}$/.test(phone.trim())) return 'Phone must be in international format, e.g. +14165550198.';
-    if (!/^(?=.*[A-Z])(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/.test(password))
-      return 'Password: min 8 chars, 1 uppercase, 1 special character.';
-    if (password !== confirm) return 'Passwords do not match.';
-    if (role === 'broker' && businessName.trim().length < 2) return 'Business name is required for broker accounts.';
-    return null;
-  };
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const touch = (field: string) => setTouched((t) => ({ ...t, [field]: true }));
+
+  const errors = useMemo(
+    () => ({
+      username: touched.username ? validateUsername(username) : null,
+      email: touched.email ? validateEmail(email) : null,
+      phone: touched.phone ? validatePhone(phone) : null,
+      password: touched.password ? validatePassword(password) : null,
+      confirm: touched.confirm ? validateConfirmPassword(password, confirm) : null,
+      businessName:
+        role === 'broker' && touched.businessName
+          ? businessName.trim().length < 2
+            ? 'Business name is required (min 2 characters)'
+            : null
+          : null,
+    }),
+    [username, email, phone, password, confirm, role, businessName, touched]
+  );
+
+  const hasErrors = Object.values(errors).some(Boolean);
 
   const submit = async () => {
-    const invalid = validate();
-    if (invalid) {
-      setFormError(invalid);
-      return;
-    }
-    setFormError(undefined);
+    setTouched({
+      username: true,
+      email: true,
+      phone: true,
+      password: true,
+      confirm: true,
+      businessName: true,
+    });
+    if (hasErrors) return;
+
+    setServerError(null);
     setLoading(true);
     try {
       const result = await authApi.signup({
@@ -59,14 +89,14 @@ export function RegisterScreen() {
         ...(role === 'broker' ? { business_name: businessName.trim() } : {}),
       });
       if (result.status === 'pending_approval') {
-        setFormError(undefined);
+        setServerError(null);
         alert('Account created! Waiting for admin approval.');
         navigation.navigate('Login');
         return;
       }
       await dispatch(login({ email: email.trim(), password })).unwrap();
     } catch (err) {
-      setFormError(extractError(err, 'Unable to create account. Please try again.'));
+      setServerError(extractError(err, 'Unable to create account.'));
     } finally {
       setLoading(false);
     }
@@ -78,12 +108,16 @@ export function RegisterScreen() {
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <ScrollView
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
           <View style={styles.header}>
             <View style={styles.logoWrap}>
               <Ionicons name="heart" size={24} color={colors.white} />
             </View>
-            <Text style={styles.title}>Create your account</Text>
+            <Text style={styles.title}>Create Account</Text>
             <Text style={styles.subtitle}>Start your journey to find the perfect match</Text>
           </View>
 
@@ -105,62 +139,82 @@ export function RegisterScreen() {
               />
             </View>
 
-            <Input
+            <FormField
               label="Username"
               value={username}
               onChangeText={setUsername}
-              placeholder="4-30 letters, numbers, underscore"
+              onBlur={() => touch('username')}
+              placeholder="e.g. john_95"
               autoCapitalize="none"
               autoCorrect={false}
+              error={errors.username}
+              hint={HINTS.username}
             />
-            <Input
+            <FormField
               label="Email"
               value={email}
               onChangeText={setEmail}
-              placeholder="name@example.com"
+              onBlur={() => touch('email')}
+              placeholder="e.g. john@gmail.com"
               autoCapitalize="none"
               keyboardType="email-address"
+              autoComplete="email"
+              error={errors.email}
+              hint={HINTS.email}
             />
-            <Input
+            <FormField
               label="Phone number"
               value={phone}
               onChangeText={setPhone}
-              placeholder="+14165550198"
+              onBlur={() => touch('phone')}
+              placeholder="e.g. +919876543210"
               keyboardType="phone-pad"
+              error={errors.phone}
+              hint={HINTS.phone}
             />
-            <Input
+            <FormField
               label="Password"
               value={password}
               onChangeText={setPassword}
-              placeholder="Min 8 chars, 1 uppercase, 1 special"
+              onBlur={() => touch('password')}
+              placeholder="Create a strong password"
               secure
               autoCapitalize="none"
+              error={errors.password}
+              hint={HINTS.password}
             />
-            <Input
+            <FormField
               label="Confirm password"
               value={confirm}
               onChangeText={setConfirm}
+              onBlur={() => touch('confirm')}
               placeholder="Re-enter password"
               secure
               autoCapitalize="none"
+              error={errors.confirm}
+              hint={HINTS.confirm}
             />
+
             {role === 'broker' && (
-              <Input
+              <FormField
                 label="Business name"
                 value={businessName}
                 onChangeText={setBusinessName}
+                onBlur={() => touch('businessName')}
                 placeholder="Your agency name"
+                error={errors.businessName}
+                hint={HINTS.businessName}
               />
             )}
 
-            {formError && (
+            {serverError && (
               <View style={styles.errorBox}>
                 <Ionicons name="alert-circle" size={16} color={colors.error} />
-                <Text style={styles.error}>{formError}</Text>
+                <Text style={styles.errorBoxText}>{serverError}</Text>
               </View>
             )}
 
-            <Button title="Sign Up" onPress={submit} loading={loading} size="lg" />
+            <Button title="Create Account" onPress={submit} loading={loading} size="lg" />
           </View>
 
           <View style={styles.footer}>
@@ -190,6 +244,7 @@ const styles = StyleSheet.create({
   header: {
     alignItems: 'center',
     marginBottom: spacing.lg,
+    marginTop: spacing.lg,
   },
   logoWrap: {
     width: 48,
@@ -237,7 +292,7 @@ const styles = StyleSheet.create({
     padding: spacing.sm,
     marginBottom: spacing.md,
   },
-  error: {
+  errorBoxText: {
     ...typography.caption,
     color: colors.error,
     flex: 1,

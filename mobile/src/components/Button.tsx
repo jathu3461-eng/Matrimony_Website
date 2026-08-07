@@ -1,4 +1,5 @@
 import { ActivityIndicator, Pressable, StyleSheet, Text, ViewStyle, TextStyle } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { colors, radius, typography } from '@/theme';
 
 interface ButtonProps {
@@ -10,6 +11,7 @@ interface ButtonProps {
   disabled?: boolean;
   style?: ViewStyle;
   titleStyle?: TextStyle;
+  leftIcon?: keyof typeof Ionicons.glyphMap;
 }
 
 export function Button({
@@ -21,6 +23,7 @@ export function Button({
   disabled = false,
   style,
   titleStyle,
+  leftIcon,
 }: ButtonProps) {
   const isDisabled = disabled || loading;
   const sizeStyles = {
@@ -44,6 +47,8 @@ export function Button({
         ? colors.primaryDark
         : colors.primary;
 
+  const iconSize = size === 'sm' ? 14 : size === 'md' ? 16 : 18;
+
   return (
     <Pressable
       onPress={onPress}
@@ -60,7 +65,12 @@ export function Button({
       {loading ? (
         <ActivityIndicator color={textColor} size="small" />
       ) : (
-        <Text style={[styles.text, { color: textColor }, titleStyle]}>{title}</Text>
+        <>
+          {leftIcon && (
+            <Ionicons name={leftIcon} size={iconSize} color={textColor} style={styles.icon} />
+          )}
+          <Text style={[styles.text, { color: textColor }, titleStyle]}>{title}</Text>
+        </>
       )}
     </Pressable>
   );
@@ -82,5 +92,8 @@ const styles = StyleSheet.create({
   text: {
     fontSize: typography.body.fontSize,
     fontWeight: '700',
+  },
+  icon: {
+    marginRight: 6,
   },
 });

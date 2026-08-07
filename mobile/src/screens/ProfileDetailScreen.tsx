@@ -144,9 +144,12 @@ export function ProfileDetailScreen() {
         {!isOwnProfile && (
           <View style={styles.actions}>
             {interestStatus === 'pending' ? (
-              <Button title="Interest Sent" variant="secondary" disabled size="md" />
+              <View style={styles.pendingRow}>
+                <Ionicons name="time-outline" size={18} color={colors.inkFaint} />
+                <Button title="Interest Sent" variant="secondary" disabled size="md" />
+              </View>
             ) : interestStatus === 'accepted' ? (
-              <Button title="Chat" variant="primary" size="md" disabled />
+              <Button title="Chat" variant="primary" size="md" disabled leftIcon="chatbubble" />
             ) : (
               <View style={styles.interestRow}>
                 <TextInput
@@ -164,6 +167,7 @@ export function ProfileDetailScreen() {
               title={isShortlisted ? 'Unshortlist' : 'Shortlist'}
               variant={isShortlisted ? 'secondary' : 'outline'}
               size="md"
+              leftIcon={isShortlisted ? 'star' : 'star-outline'}
               loading={shortlisting}
               onPress={toggleShortlist}
             />
@@ -285,6 +289,11 @@ const styles = StyleSheet.create({
   actions: {
     gap: spacing.sm,
     marginTop: spacing.md,
+  },
+  pendingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
   },
   interestRow: {
     flexDirection: 'row',

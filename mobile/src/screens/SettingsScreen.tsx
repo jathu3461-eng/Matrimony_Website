@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { Button } from '@/components/Button';
@@ -45,14 +45,16 @@ export function SettingsScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>App</Text>
           <Row icon="globe" label="Language" value={user?.ui_language === 'ta' ? 'Tamil' : 'English'} />
+          <Row icon="phone-portrait" label="Platform" value={Platform.OS === 'ios' ? 'iOS' : 'Android'} />
           <Row icon="information-circle" label="Version" value="1.0.0" />
         </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>Privacy</Text>
+          <Row icon="lock-closed" label="Security" value="End-to-end encrypted" />
+          <Row icon="eye-off" label="Visibility" value="Members only" />
           <Text style={styles.privacyNote}>
-            Your data is stored securely and never shared with third parties. Profile photos are
-            only visible to other registered users.
+            Your data is stored securely and never shared with third parties.
           </Text>
         </View>
 
