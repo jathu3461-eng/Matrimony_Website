@@ -314,7 +314,7 @@ export default function Search() {
               </Button>
             </motion.div>
           ) : (
-            <div className="grid sm:grid-cols-2 gap-6">
+            <div className="grid sm:grid-cols-2 gap-6 items-stretch">
               {results.map((p) => (
                 <ProfileCard key={p.id} profile={p} />
               ))}

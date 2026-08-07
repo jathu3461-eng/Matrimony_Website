@@ -281,7 +281,7 @@ export default function Dashboard() {
                     </Button>
                   </div>
                 ) : (
-                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
                     {profiles.map((p) => (
                       <ProfileCard
                         key={p.id}
@@ -464,7 +464,7 @@ export default function Dashboard() {
                     </Button>
                   </div>
                 ) : (
-                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
                     {interactions.shortlists.map((s) => (
                       <ProfileCard
                         key={s.id}

@@ -25,7 +25,7 @@ export default function CtaBanner() {
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: '-80px' }}
         transition={{ duration: 0.7, ease: 'easeOut' }}
-        className="glass-cta relative overflow-hidden rounded-[28px]"
+        className="glass-cta relative overflow-hidden rounded-[28px] lg:h-[360px]"
       >
         {/* Animated glow decorations */}
         <motion.div
@@ -44,18 +44,9 @@ export default function CtaBanner() {
         <div className="absolute -right-20 top-1/2 -translate-y-1/2 w-64 h-64 rounded-full border border-white/60 pointer-events-none" />
         <div className="absolute -right-10 top-1/2 -translate-y-1/2 w-40 h-40 rounded-full border border-white/50 pointer-events-none" />
 
-        <div className="flex flex-col relative z-10">
-          {/* ── Top: illustration ── */}
-          <div className="relative h-56 sm:h-64 md:h-72 overflow-hidden flex items-end justify-center">
-            <img
-              src={uploadsUrl('auth-couple.png')}
-              alt="Wedding couple"
-              className="w-[70%] h-[90%] object-contain drop-shadow-lg"
-            />
-          </div>
-
-          {/* ── Bottom: copy ── */}
-          <div className="px-7 pt-2 pb-9 flex flex-col items-center text-center">
+        <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-[45fr_55fr] relative z-10">
+          {/* ── Left: copy (45%) ── */}
+          <div className="order-2 md:order-1 lg:order-1 px-7 pt-2 pb-9 lg:py-10 lg:pl-12 flex flex-col justify-center">
             <motion.span
               initial={{ opacity: 0, y: 12 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -82,7 +73,7 @@ export default function CtaBanner() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.55, delay: 0.26 }}
-              className="text-[13px] leading-relaxed text-[var(--ink-soft)] font-medium mb-4 max-w-lg mx-auto"
+              className="text-[13px] leading-relaxed text-[var(--ink-soft)] font-medium mb-4 max-w-md"
             >
               Find your perfect life partner with verified profiles and AI-powered smart matching.
             </motion.p>
@@ -92,7 +83,7 @@ export default function CtaBanner() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.55, delay: 0.34 }}
-              className="grid grid-cols-1 sm:grid-cols-2 gap-x-5 gap-y-1.5 mb-6 max-w-lg mx-auto"
+              className="grid grid-cols-1 sm:grid-cols-2 gap-x-5 gap-y-1.5 mb-6"
             >
               {BENEFITS.map((b) => (
                 <li key={b} className="flex items-center gap-2 text-[12px] font-bold text-[var(--ink-soft)]">
@@ -119,6 +110,15 @@ export default function CtaBanner() {
                 <ArrowRight className="w-5 h-5" aria-hidden="true" />
               </Button>
             </motion.div>
+          </div>
+
+          {/* ── Right: illustration (55%) ── */}
+          <div className="order-1 md:order-2 lg:order-2 relative h-52 sm:h-64 md:h-72 lg:h-full lg:min-h-0 overflow-hidden flex items-center justify-center">
+            <img
+              src={uploadsUrl('auth-couple.png')}
+              alt="Wedding couple"
+              className="w-full h-full object-contain drop-shadow-lg"
+            />
           </div>
         </div>
       </motion.div>

@@ -372,7 +372,7 @@ export default function Landing() {
           </button>
         </motion.div>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch">
           {(recommendedProfiles.length > 0 ? recommendedProfiles : fallbackProfiles).map((p) => (
             <motion.div key={p.id} {...reveal}>
               <ProfileCard profile={p} />

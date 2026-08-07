@@ -725,7 +725,7 @@ function ClientProfiles({ profiles, quota, usedPct, busyId, onDelete, navigate }
           onCta={() => navigate('/profile/new')}
         />
       ) : (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
           {profiles.map((p) => (
             <ProfileCard
               key={p.id}
@@ -1037,7 +1037,7 @@ function ShortlistSection({ items, busyId, onRemove, navigate }) {
           onCta={() => navigate('/search')}
         />
       ) : (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
           {items.map((s) => (
             <ProfileCard
               key={s.id}

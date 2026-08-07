@@ -179,7 +179,7 @@ export default function ProfileDetail() {
       >
         <div className="grid md:grid-cols-[300px_1fr]">
           {/* Photo Column */}
-          <div className="relative h-64 sm:h-80 md:h-full min-h-[250px] bg-gradient-to-br from-pink-100 to-pink-200 flex items-center justify-center overflow-hidden">
+          <div className="relative h-56 sm:h-64 md:h-full md:min-h-[350px] bg-gradient-to-br from-pink-100 to-pink-200 flex items-center justify-center overflow-hidden">
             {profile.main_profile_picture && !profile.photo_blurred ? (
               <img
                 src={uploadsUrl(profile.main_profile_picture)}
@@ -252,7 +252,7 @@ export default function ProfileDetail() {
             </div>
 
             <h2 className="font-display text-lg text-[var(--ink)] font-bold mb-2">About</h2>
-            <p className="text-[var(--ink-soft)] leading-relaxed mb-6">{profile.about_me}</p>
+            <p className="text-[var(--ink-soft)] leading-relaxed mb-6 break-words">{profile.about_me}</p>
 
             {/* Horoscope Access */}
             {profile.horoscope_chart ? (
@@ -437,9 +437,9 @@ export default function ProfileDetail() {
 function InfoRow({ label, value }) {
   if (!value) return null;
   return (
-    <div>
+    <div className="min-w-0">
       <p className="text-xs uppercase tracking-wide text-[var(--primary)]/80 font-semibold">{label}</p>
-      <p className="text-[var(--ink)]">{value}</p>
+      <p className="text-[var(--ink)] break-words">{value}</p>
     </div>
   );
 }

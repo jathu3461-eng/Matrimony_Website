@@ -107,7 +107,7 @@ export default function ProfileCard({ profile, actions, onShortlistChange }) {
     }
   };
 
-  const tags = [profile.occupation, profile.education].filter(Boolean);
+  const tags = [];
 
   return (
     <motion.div
@@ -121,7 +121,7 @@ export default function ProfileCard({ profile, actions, onShortlistChange }) {
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
       whileHover={{ y: -6 }}
-      className="glass-card rounded-3xl overflow-hidden flex flex-col cursor-pointer relative group shadow-[var(--shadow-elevated)]"
+      className="glass-card rounded-3xl overflow-hidden flex flex-col cursor-pointer relative group shadow-[var(--shadow-elevated)] h-full"
     >
       {/* 3D Verification & Status Badge */}
       <div className="absolute top-3 left-3 right-3 z-20 flex items-center justify-between pointer-events-none">
@@ -177,7 +177,7 @@ export default function ProfileCard({ profile, actions, onShortlistChange }) {
         </div>
 
         {/* Card Details */}
-        <div className="p-5 bg-[var(--surface-glass)]">
+        <div className="p-5 bg-[var(--surface-glass)] flex-1 flex flex-col">
           <div className="flex items-center justify-between gap-1 mb-1">
             <h3 className="font-display text-lg font-bold text-[var(--ink)] truncate">{profile.name}</h3>
             {profile.is_verified && <ShieldCheck className="w-4 h-4 text-[var(--primary)] shrink-0" aria-label="Verified Profile" />}
@@ -187,16 +187,21 @@ export default function ProfileCard({ profile, actions, onShortlistChange }) {
             {profile.age ? `${profile.age} yrs` : 'Age N/A'} · {profile.height_feet}'{profile.height_inches}" · {profile.city_or_state || 'Diaspora'}
           </p>
 
-          <p className="text-xs text-[var(--primary)] font-bold mb-3 truncate">{profile.occupation}</p>
+          <p className="text-xs text-[var(--primary)] font-bold truncate">{profile.occupation}</p>
+
+          {/* Spacer to push buttons to bottom */}
+          <div className="flex-1" />
 
           {/* Interest Chips */}
-          <div className="flex flex-wrap gap-1.5 mb-2">
-            {tags.map((tag) => (
-              <Badge key={tag} variant="primary" className="!bg-[var(--primary-soft)]">
-                {tag}
-              </Badge>
-            ))}
-          </div>
+          {tags.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mt-2">
+              {tags.map((tag) => (
+                <Badge key={tag} variant="primary" className="!bg-[var(--primary-soft)]">
+                  {tag}
+                </Badge>
+              ))}
+            </div>
+          )}
         </div>
       </Link>
 
