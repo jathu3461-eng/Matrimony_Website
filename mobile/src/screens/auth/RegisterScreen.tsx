@@ -94,7 +94,15 @@ export function RegisterScreen() {
         navigation.navigate('Login');
         return;
       }
-      await dispatch(login({ email: email.trim(), password })).unwrap();
+      // Navigate to OTP verification
+      navigation.navigate('VerifyOTP', {
+        email: email.trim(),
+        password,
+        username: username.trim(),
+        phone: phone.trim(),
+        role,
+        ...(role === 'broker' ? { businessName: businessName.trim() } : {}),
+      });
     } catch (err) {
       setServerError(extractError(err, 'Unable to create account.'));
     } finally {

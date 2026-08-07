@@ -71,6 +71,11 @@ export function InterestRow({ interest, direction, onPress, onResponded }: Inter
             <Ionicons name="close" size={18} color={colors.error} />
           </Pressable>
         </View>
+      ) : interest.status === 'accepted' ? (
+        <Pressable onPress={onPress} style={styles.viewBtn}>
+          <Ionicons name="person-outline" size={16} color={colors.primary} />
+          <Text style={styles.viewBtnText}>View</Text>
+        </Pressable>
       ) : (
         status && <Text style={[styles.status, { color: status.color }]}>{status.text}</Text>
       )}
@@ -144,5 +149,19 @@ const styles = StyleSheet.create({
     backgroundColor: colors.errorSoft,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  viewBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.primarySoft,
+    borderRadius: radius.pill,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  viewBtnText: {
+    ...typography.label,
+    color: colors.primary,
+    fontWeight: '700',
   },
 });

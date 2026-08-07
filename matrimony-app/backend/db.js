@@ -282,6 +282,8 @@ async function initDB() {
     await ensureIndex('refresh_tokens', 'idx_refresh_tokens_hash', 'UNIQUE INDEX idx_refresh_tokens_hash ON refresh_tokens(token_hash)');
     await ensureIndex('refresh_tokens', 'idx_refresh_tokens_user', 'INDEX idx_refresh_tokens_user ON refresh_tokens(user_id)');
 
+    await ensureColumn('users', 'email_verified', 'email_verified TINYINT NOT NULL DEFAULT 0');
+
     await seed(conn);
     console.log('✅ MySQL DB initialized');
   } finally {

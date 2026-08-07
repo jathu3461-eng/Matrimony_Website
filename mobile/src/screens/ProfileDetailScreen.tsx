@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Alert, Image, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useRoute, RouteProp } from '@react-navigation/native';
 import { useQuery } from '@tanstack/react-query';
+import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { profileApi } from '@/api/profiles';
 import { interestApi } from '@/api/interests';
@@ -16,15 +17,6 @@ import type { RootStackParamList } from '@/navigation/types';
 
 type DetailRoute = RouteProp<RootStackParamList, 'ProfileDetail'>;
 
-function formatDate(iso: string) {
-  if (!iso) return '';
-  return new Date(iso).toLocaleDateString('en-IN', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  });
-}
-
 export function ProfileDetailScreen() {
   const route = useRoute<DetailRoute>();
   const { profileId } = route.params;
@@ -33,6 +25,7 @@ export function ProfileDetailScreen() {
   const [interestMsg, setInterestMsg] = useState('');
   const [sending, setSending] = useState(false);
   const [shortlisting, setShortlisting] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   const profile = useQuery({
     queryKey: ['profile', profileId],
@@ -70,11 +63,42 @@ export function ProfileDetailScreen() {
     }
   };
 
+  const uploadPhoto = async () => {
+    if (!p) return;
+    const res = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [3, 4],
+      quality: 0.8,
+    });
+    if (res.canceled || !res.assets[0]) return;
+
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      const uri = res.assets[0].uri;
+      const ext = uri.split('.').pop() || 'jpg';
+      formData.append('main_profile_picture', {
+        uri,
+        name: `profile.${ext}`,
+        type: `image/${ext}`,
+      } as unknown as Blob);
+      await profileApi.update(p.id, formData);
+      Alert.alert('Photo updated');
+      profile.refetch();
+    } catch (err) {
+      Alert.alert('Error', extractError(err, 'Failed to upload photo.'));
+    } finally {
+      setUploading(false);
+    }
+  };
+
   if (profile.isLoading) return <Spinner />;
   if (profile.isError || !p)
     return (
       <Screen>
         <View style={styles.center}>
+          <Ionicons name="person-outline" size={48} color={colors.inkFaint} />
           <Text style={styles.emptyText}>Profile not found.</Text>
         </View>
       </Screen>
@@ -88,13 +112,20 @@ export function ProfileDetailScreen() {
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.content}>
-        {photoUrl ? (
-          <Image source={{ uri: photoUrl }} style={styles.photo} />
-        ) : (
-          <View style={[styles.photo, styles.photoPlaceholder]}>
-            <Ionicons name="person" size={64} color={colors.inkFaint} />
-          </View>
-        )}
+        <View style={styles.photoWrap}>
+          {photoUrl ? (
+            <Image source={{ uri: photoUrl }} style={styles.photo} />
+          ) : (
+            <View style={[styles.photo, styles.photoPlaceholder]}>
+              <Ionicons name="person" size={64} color={colors.inkFaint} />
+            </View>
+          )}
+          {isOwnProfile && (
+            <Pressable style={styles.editPhotoBtn} onPress={uploadPhoto} disabled={uploading}>
+              <Ionicons name="camera" size={18} color={colors.white} />
+            </Pressable>
+          )}
+        </View>
 
         <View style={styles.header}>
           <Text style={styles.name}>{p.name}</Text>
@@ -149,7 +180,7 @@ export function ProfileDetailScreen() {
                 <Button title="Interest Sent" variant="secondary" disabled size="md" />
               </View>
             ) : interestStatus === 'accepted' ? (
-              <Button title="Chat" variant="primary" size="md" disabled leftIcon="chatbubble" />
+              <Button title="Start Chat" variant="primary" size="md" leftIcon="chatbubble" disabled />
             ) : (
               <View style={styles.interestRow}>
                 <TextInput
@@ -176,7 +207,14 @@ export function ProfileDetailScreen() {
 
         {isOwnProfile && (
           <View style={styles.actions}>
-            <Text style={styles.ownLabel}>This is your own profile</Text>
+            <Button
+              title="Edit Photo"
+              variant="outline"
+              size="md"
+              leftIcon="camera-outline"
+              loading={uploading}
+              onPress={uploadPhoto}
+            />
           </View>
         )}
       </ScrollView>
@@ -223,21 +261,41 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: spacing.xl,
+    gap: spacing.sm,
   },
   emptyText: {
     ...typography.body,
     color: colors.inkFaint,
+  },
+  photoWrap: {
+    position: 'relative',
+    marginBottom: spacing.lg,
   },
   photo: {
     width: '100%',
     height: 320,
     borderRadius: radius.lg,
     backgroundColor: colors.primarySoft,
-    marginBottom: spacing.lg,
   },
   photoPlaceholder: {
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  editPhotoBtn: {
+    position: 'absolute',
+    bottom: spacing.md,
+    right: spacing.md,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
   },
   header: {
     flexDirection: 'row',
@@ -310,10 +368,5 @@ const styles = StyleSheet.create({
     fontSize: typography.body.fontSize,
     color: colors.ink,
     backgroundColor: colors.surface,
-  },
-  ownLabel: {
-    ...typography.caption,
-    color: colors.inkFaint,
-    textAlign: 'center',
   },
 });

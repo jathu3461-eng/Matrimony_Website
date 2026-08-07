@@ -4,6 +4,14 @@ export type AuthStackParamList = {
   Login: undefined;
   Register: undefined;
   ForgotPassword: undefined;
+  VerifyOTP: {
+    email: string;
+    password: string;
+    username: string;
+    phone: string;
+    role: 'regular' | 'broker';
+    businessName?: string;
+  };
 };
 
 export type MainTabParamList = {

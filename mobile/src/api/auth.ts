@@ -54,4 +54,12 @@ export const authApi = {
   async resetPassword(email: string, otp: string, new_password: string): Promise<void> {
     await api.post('/auth/forgot-password/reset', { email, otp, new_password });
   },
+
+  async requestSignupOtp(email: string): Promise<void> {
+    await api.post('/auth/signup/verify/request', { email });
+  },
+
+  async verifySignupOtp(email: string, otp: string): Promise<void> {
+    await api.post('/auth/signup/verify', { email, otp });
+  },
 };

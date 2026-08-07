@@ -10,7 +10,7 @@ import { CreateProfileScreen } from '@/screens/CreateProfileScreen';
 import { SettingsScreen } from '@/screens/SettingsScreen';
 import { useBootstrap } from '@/hooks/useBootstrap';
 import { useAppSelector } from '@/store/hooks';
-import { colors } from '@/theme';
+import { useTheme } from '@/theme';
 import type { RootStackParamList } from '@/navigation/types';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -18,6 +18,7 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 export function RootNavigator() {
   useBootstrap();
   const status = useAppSelector((s) => s.auth.status);
+  const { colors } = useTheme();
 
   if (status === 'idle') {
     return <SplashScreen />;
@@ -29,6 +30,7 @@ export function RootNavigator() {
         headerShown: false,
         headerTintColor: colors.primary,
         headerTitleStyle: { fontWeight: '700' },
+        contentStyle: { backgroundColor: colors.background },
       }}
     >
       {status === 'authenticated' ? (

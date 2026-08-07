@@ -344,6 +344,71 @@ router.post('/forgot-password/reset', async (req, res) => {
   }
 });
 
+// ── Signup email verification ────────────────────────────────────────────────
+// POST /api/auth/signup/verify/request — send a 6-digit OTP for email verification
+router.post('/signup/verify/request', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email || !EMAIL_RE.test(email)) {
+      return res.status(400).json({ errors: { email: 'Valid email is required' } });
+    }
+    const user = await db.get('SELECT * FROM users WHERE email = ?', [email.trim()]);
+    if (!user) {
+      return res.status(404).json({ errors: { email: 'No account found with this email' } });
+    }
+    if (user.email_verified) {
+      return res.status(400).json({ errors: { email: 'Email is already verified' } });
+    }
+
+    const otp = crypto.randomInt(100000, 999999).toString();
+    const expires = String(Date.now() + 30 * 60 * 1000);
+    await db.run('UPDATE users SET reset_otp = ?, reset_otp_expires = ? WHERE id = ?', [otp, expires, user.id]);
+
+    const emailSent = await sendMail({
+      to: user.email,
+      subject: 'Mukurtham Matrimony — Email Verification Code',
+      html: otpEmailTemplate(otp),
+    }).catch(() => false);
+
+    if (!emailSent) {
+      return res.status(500).json({ error: 'Could not send verification email. Please try again later.' });
+    }
+    res.json({ message: 'Verification code sent to your email' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// POST /api/auth/signup/verify — verify the OTP and mark email as verified
+router.post('/signup/verify', async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+    if (!email || !otp) {
+      return res.status(400).json({ errors: { otp: 'Email and code are required' } });
+    }
+    const user = await db.get('SELECT * FROM users WHERE email = ?', [email.trim()]);
+    if (!user) {
+      return res.status(400).json({ errors: { otp: 'Invalid or expired code' } });
+    }
+    if (String(user.reset_otp) !== String(otp)) {
+      return res.status(400).json({ errors: { otp: 'Invalid code. Please check and try again' } });
+    }
+    if (Date.now() > Number(user.reset_otp_expires)) {
+      return res.status(400).json({ errors: { otp: 'Code expired. Please request a new one' } });
+    }
+
+    await db.run(
+      'UPDATE users SET email_verified = 1, reset_otp = NULL, reset_otp_expires = NULL WHERE id = ?',
+      [user.id]
+    );
+    res.json({ verified: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 function sanitize(user) {
   const { password_hash, reset_otp, reset_otp_expires, ...rest } = user;
   return rest;

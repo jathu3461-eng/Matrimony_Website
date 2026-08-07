@@ -1,3 +1,7 @@
+export { ThemeProvider, useTheme } from './ThemeContext';
+export type { ThemeMode, ThemeColors } from './ThemeContext';
+
+// Default light theme (backward-compatible)
 export const colors = {
   primary: '#e0136a',
   primaryDark: '#c00f5c',
