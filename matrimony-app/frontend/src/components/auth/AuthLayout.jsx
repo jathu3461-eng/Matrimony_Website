@@ -223,9 +223,6 @@ export default function AuthLayout({
             <div className="absolute bottom-1/4 -left-20 w-56 h-56 rounded-full bg-white/10" />
 
             <div className="relative z-10 p-8 flex flex-col h-full">
-              <div className="flex items-center gap-3">
-                <img src={uploadsUrl('logo.png')} alt="Mukurtham" className="h-10 w-auto" />
-              </div>
 
               {/* 3D Animated illustration area */}
               <div className="flex-1 flex items-center justify-center my-4">
@@ -287,9 +284,6 @@ export default function AuthLayout({
             className="bg-[var(--surface)] p-7 sm:p-10 flex flex-col"
           >
             <div className="flex items-center justify-between gap-3 mb-7">
-              <Link to="/" className="flex items-center gap-2 md:hidden">
-                <img src={uploadsUrl('logo.png')} alt="Mukurtham" className="h-9 w-auto" />
-              </Link>
               <div className="hidden md:flex items-center gap-2 text-[11px] text-[var(--ink-faint)] font-semibold">
                 <Lock className="w-3.5 h-3.5 text-[var(--primary)]" aria-hidden="true" />
                 {t('auth_secure_private')}
