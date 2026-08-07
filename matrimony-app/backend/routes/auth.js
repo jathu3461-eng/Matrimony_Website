@@ -2,7 +2,16 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const { db } = require('../db');
-const { setAuthCookie, setAdminAuthCookie, clearAuthCookie, requireAuth } = require('../middleware/auth');
+const {
+  setAuthCookie,
+  setAdminAuthCookie,
+  clearAuthCookie,
+  requireAuth,
+  signAccessToken,
+  generateRefreshToken,
+  hashToken,
+  REFRESH_TOKEN_TTL_MS,
+} = require('../middleware/auth');
 const { rateLimit, clientIp } = require('../middleware/rateLimit');
 const { logAdminLogin } = require('../utils/adminLogger');
 const { sendMail, otpEmailTemplate } = require('../utils/email');
@@ -102,6 +111,98 @@ router.post('/login', async (req, res) => {
     }
     setAuthCookie(res, user);
     res.json({ user: sanitize(user) });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// ── Mobile token auth ─────────────────────────────────────────────────────────
+// Returns a short-lived access token + rotating refresh token (no cookies).
+// Reuses the same credential checks as /login so behaviour stays identical.
+router.post('/mobile/login', async (req, res) => {
+  try {
+    const { email, password, device_info } = req.body;
+    if (!email || !password) return res.status(400).json({ errors: { email: 'Email and password are required' } });
+
+    const identifier = email.trim();
+    const user = await db.get('SELECT * FROM users WHERE email = ? OR phone_number = ?', [identifier, identifier]);
+    if (!user || !bcrypt.compareSync(password, user.password_hash)) {
+      return res.status(401).json({ errors: { password: 'Incorrect email or password' } });
+    }
+    if (user.is_banned) {
+      return res.status(403).json({ error: 'Your account has been banned. Please contact support.' });
+    }
+    if (user.role === 'broker' && !user.is_approved) {
+      return res.status(403).json({ status: 'pending_approval', message: 'Account Created. Waiting for Email Verification & Admin Approval' });
+    }
+    if (user.role === 'admin') {
+      return res.status(403).json({ error: 'Admins must log in via the admin panel' });
+    }
+
+    const accessToken = signAccessToken(user);
+    const refreshToken = generateRefreshToken();
+    const expiresAt = Date.now() + REFRESH_TOKEN_TTL_MS;
+    await db.run(
+      'INSERT INTO refresh_tokens (user_id, token_hash, expires_at, device_info) VALUES (?,?,?,?)',
+      [user.id, hashToken(refreshToken), String(expiresAt), device_info || 'mobile']
+    );
+
+    res.json({ user: sanitize(user), accessToken, refreshToken, expiresAt });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// POST /api/auth/mobile/refresh — rotate refresh token, issue new access token.
+router.post('/mobile/refresh', async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+    if (!refreshToken) return res.status(400).json({ error: 'Refresh token required' });
+
+    const tokenHash = hashToken(refreshToken);
+    const stored = await db.get('SELECT * FROM refresh_tokens WHERE token_hash = ?', [tokenHash]);
+    if (!stored || stored.revoked_at) {
+      return res.status(401).json({ error: 'Invalid refresh token' });
+    }
+    if (Date.now() > Number(stored.expires_at)) {
+      await db.run('UPDATE refresh_tokens SET revoked_at = ? WHERE id = ?', [Date.now(), stored.id]);
+      return res.status(401).json({ error: 'Refresh token expired, please log in again' });
+    }
+
+    const user = await db.get('SELECT * FROM users WHERE id = ?', [stored.user_id]);
+    if (!user) return res.status(401).json({ error: 'Account not found' });
+    if (user.is_banned) {
+      await db.run('UPDATE refresh_tokens SET revoked_at = ? WHERE user_id = ?', [Date.now(), user.id]);
+      return res.status(403).json({ error: 'Your account has been banned. Please contact support.' });
+    }
+
+    // Rotate: revoke the old token, issue a fresh pair.
+    await db.run('UPDATE refresh_tokens SET revoked_at = ? WHERE id = ?', [Date.now(), stored.id]);
+    const accessToken = signAccessToken(user);
+    const newRefreshToken = generateRefreshToken();
+    const expiresAt = Date.now() + REFRESH_TOKEN_TTL_MS;
+    await db.run(
+      'INSERT INTO refresh_tokens (user_id, token_hash, expires_at, device_info) VALUES (?,?,?,?)',
+      [user.id, hashToken(newRefreshToken), String(expiresAt), stored.device_info || 'mobile']
+    );
+
+    res.json({ user: sanitize(user), accessToken, refreshToken: newRefreshToken, expiresAt });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// POST /api/auth/mobile/logout — revoke the presented refresh token.
+router.post('/mobile/logout', async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+    if (refreshToken) {
+      await db.run('UPDATE refresh_tokens SET revoked_at = ? WHERE token_hash = ?', [Date.now(), hashToken(refreshToken)]);
+    }
+    res.json({ ok: true });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });

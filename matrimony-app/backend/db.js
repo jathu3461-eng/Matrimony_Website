@@ -237,6 +237,17 @@ async function initDB() {
         FOREIGN KEY (profile_id_1) REFERENCES profiles(id) ON DELETE CASCADE,
         FOREIGN KEY (profile_id_2) REFERENCES profiles(id) ON DELETE CASCADE
       );
+
+      CREATE TABLE IF NOT EXISTS refresh_tokens (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        token_hash VARCHAR(64) NOT NULL,
+        expires_at BIGINT NOT NULL,
+        revoked_at BIGINT NULL,
+        device_info TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      );
     `);
 
     // Index for chat thread lookups
@@ -268,6 +279,8 @@ async function initDB() {
     await ensureColumn('users', 'is_banned', 'is_banned TINYINT NOT NULL DEFAULT 0');
     await ensureIndex('chat_messages', 'uq_chat_client_id', 'UNIQUE INDEX uq_chat_client_id ON chat_messages(client_id)');
     await ensureIndex('chat_messages', 'idx_chat_thread_id', 'INDEX idx_chat_thread_id ON chat_messages(thread_id, id)');
+    await ensureIndex('refresh_tokens', 'idx_refresh_tokens_hash', 'UNIQUE INDEX idx_refresh_tokens_hash ON refresh_tokens(token_hash)');
+    await ensureIndex('refresh_tokens', 'idx_refresh_tokens_user', 'INDEX idx_refresh_tokens_user ON refresh_tokens(user_id)');
 
     await seed(conn);
     console.log('✅ MySQL DB initialized');
