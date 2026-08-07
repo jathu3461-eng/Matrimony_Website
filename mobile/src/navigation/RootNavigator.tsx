@@ -9,7 +9,6 @@ import { ChatThreadScreen } from '@/screens/ChatThreadScreen';
 import { CreateProfileScreen } from '@/screens/CreateProfileScreen';
 import { SettingsScreen } from '@/screens/SettingsScreen';
 import { useBootstrap } from '@/hooks/useBootstrap';
-import { tokenStorage } from '@/services/tokenStorage';
 import { useAppSelector } from '@/store/hooks';
 import { colors } from '@/theme';
 import type { RootStackParamList } from '@/navigation/types';
@@ -17,19 +16,10 @@ import type { RootStackParamList } from '@/navigation/types';
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export function RootNavigator() {
-  const { loading } = useBootstrap();
+  useBootstrap();
   const status = useAppSelector((s) => s.auth.status);
-  const [onboarded, setOnboarded] = useState(false);
-  const [checkingOnboard, setCheckingOnboard] = useState(true);
 
-  useEffect(() => {
-    tokenStorage.isOnboardingDone().then((done) => {
-      setOnboarded(done);
-      setCheckingOnboard(false);
-    });
-  }, []);
-
-  if (loading || checkingOnboard || status === 'idle') {
+  if (status === 'idle') {
     return <SplashScreen />;
   }
 
@@ -67,13 +57,11 @@ export function RootNavigator() {
         </>
       ) : (
         <>
-          {!onboarded && (
-            <Stack.Screen
-              name="Onboarding"
-              component={OnboardingScreen}
-              options={{ animation: 'fade' }}
-            />
-          )}
+          <Stack.Screen
+            name="Onboarding"
+            component={OnboardingScreen}
+            options={{ animation: 'fade' }}
+          />
           <Stack.Screen name="Auth" component={AuthNavigator} />
         </>
       )}

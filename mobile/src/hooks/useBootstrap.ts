@@ -1,49 +1,52 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authApi } from '@/api/auth';
-import { tokenStorage } from '@/services/tokenStorage';
 import { useAppDispatch } from '@/store/hooks';
 import { setAuthenticated, clearAuth } from '@/store/authSlice';
-import type { User } from '@/types';
 
-/**
- * On cold start, restore the session from async storage. If a stored access
- * token fails validation, the API client will attempt one refresh rotation
- * before giving up.
- */
 export function useBootstrap() {
-  const [loading, setLoading] = useState(true);
   const dispatch = useAppDispatch();
 
   useEffect(() => {
+    // Move status away from 'idle' immediately so the splash can dismiss.
+    dispatch(clearAuth());
+
+    let cancelled = false;
+
     (async () => {
       try {
-        const user = await tokenStorage.getUser<User>();
-        const token = await tokenStorage.getAccessToken();
-        if (user && token) {
-          // Verify the token is still valid and pull fresh user data.
-          try {
-            const fresh = await authApi.me();
+        const [userJson, token, onboarded] = await Promise.all([
+          AsyncStorage.getItem('mukurtham_user'),
+          AsyncStorage.getItem('mukurtham_access_token'),
+          AsyncStorage.getItem('mukurtham_onboarding_done'),
+        ]);
+
+        if (cancelled) return;
+
+        // No stored session — already dispatched clearAuth above.
+        if (!userJson || !token || !onboarded) return;
+
+        // Try to restore session from the server.
+        try {
+          const fresh = await authApi.me();
+          if (!cancelled) {
             dispatch(
               setAuthenticated({
                 user: fresh,
                 accessToken: token,
-                refreshToken: (await tokenStorage.getRefreshToken()) ?? '',
+                refreshToken: (await AsyncStorage.getItem('mukurtham_refresh_token')) ?? '',
                 expiresAt: Date.now() + 15 * 60 * 1000,
               })
             );
-          } catch {
-            // Token invalid and refresh failed — fall through to signed-out.
           }
+        } catch {
+          // Token invalid or server unreachable — already cleared above.
         }
       } catch {
-        // No stored session.
-      } finally {
-        // Always move status away from 'idle' so the navigator can proceed.
-        dispatch(clearAuth());
-        setLoading(false);
+        // AsyncStorage error — already cleared above.
       }
     })();
-  }, [dispatch]);
 
-  return { loading };
+    return () => { cancelled = true; };
+  }, [dispatch]);
 }
