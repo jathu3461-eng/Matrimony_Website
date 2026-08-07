@@ -2,11 +2,11 @@ import { useEffect, useState } from 'react';
 import { authApi } from '@/api/auth';
 import { tokenStorage } from '@/services/tokenStorage';
 import { useAppDispatch } from '@/store/hooks';
-import { setAuthenticated } from '@/store/authSlice';
+import { setAuthenticated, clearAuth } from '@/store/authSlice';
 import type { User } from '@/types';
 
 /**
- * On cold start, restore the session from secure storage. If a stored access
+ * On cold start, restore the session from async storage. If a stored access
  * token fails validation, the API client will attempt one refresh rotation
  * before giving up.
  */
@@ -38,6 +38,8 @@ export function useBootstrap() {
       } catch {
         // No stored session.
       } finally {
+        // Always move status away from 'idle' so the navigator can proceed.
+        dispatch(clearAuth());
         setLoading(false);
       }
     })();

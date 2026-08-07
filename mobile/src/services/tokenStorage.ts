@@ -1,4 +1,4 @@
-import * as SecureStore from 'react-native-secure-store';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { AuthResponse } from '@/types';
 
 const ACCESS_KEY = 'mukurtham_access_token';
@@ -9,14 +9,14 @@ const ONBOARDING_KEY = 'mukurtham_onboarding_done';
 export const tokenStorage = {
   async saveTokens(auth: Pick<AuthResponse, 'accessToken' | 'refreshToken'>) {
     await Promise.all([
-      SecureStore.setItem(ACCESS_KEY, auth.accessToken),
-      SecureStore.setItem(REFRESH_KEY, auth.refreshToken),
+      AsyncStorage.setItem(ACCESS_KEY, auth.accessToken),
+      AsyncStorage.setItem(REFRESH_KEY, auth.refreshToken),
     ]);
   },
 
   async getAccessToken(): Promise<string | null> {
     try {
-      return await SecureStore.getItem(ACCESS_KEY);
+      return await AsyncStorage.getItem(ACCESS_KEY);
     } catch {
       return null;
     }
@@ -24,19 +24,19 @@ export const tokenStorage = {
 
   async getRefreshToken(): Promise<string | null> {
     try {
-      return await SecureStore.getItem(REFRESH_KEY);
+      return await AsyncStorage.getItem(REFRESH_KEY);
     } catch {
       return null;
     }
   },
 
   async saveUser(user: unknown) {
-    await SecureStore.setItem(USER_KEY, JSON.stringify(user));
+    await AsyncStorage.setItem(USER_KEY, JSON.stringify(user));
   },
 
   async getUser<T>(): Promise<T | null> {
     try {
-      const raw = await SecureStore.getItem(USER_KEY);
+      const raw = await AsyncStorage.getItem(USER_KEY);
       return raw ? (JSON.parse(raw) as T) : null;
     } catch {
       return null;
@@ -45,21 +45,21 @@ export const tokenStorage = {
 
   async isOnboardingDone(): Promise<boolean> {
     try {
-      return (await SecureStore.getItem(ONBOARDING_KEY)) === 'true';
+      return (await AsyncStorage.getItem(ONBOARDING_KEY)) === 'true';
     } catch {
       return false;
     }
   },
 
   async setOnboardingDone() {
-    await SecureStore.setItem(ONBOARDING_KEY, 'true');
+    await AsyncStorage.setItem(ONBOARDING_KEY, 'true');
   },
 
   async clear() {
     await Promise.all([
-      SecureStore.deleteItem(ACCESS_KEY),
-      SecureStore.deleteItem(REFRESH_KEY),
-      SecureStore.deleteItem(USER_KEY),
+      AsyncStorage.removeItem(ACCESS_KEY),
+      AsyncStorage.removeItem(REFRESH_KEY),
+      AsyncStorage.removeItem(USER_KEY),
     ]);
   },
 };
