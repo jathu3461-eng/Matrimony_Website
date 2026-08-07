@@ -2,7 +2,8 @@ import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { uploadsUrl } from '@/api/client';
 import { interestApi } from '@/api/interests';
-import { colors, radius, spacing, typography } from '@/theme';
+import { useTheme } from '@/theme';
+import { radius, spacing, typography } from '@/theme';
 import type { Interest } from '@/types';
 
 interface InterestRowProps {
@@ -12,41 +13,44 @@ interface InterestRowProps {
   onResponded?: () => void;
 }
 
-const STATUS_LABEL: Record<string, { text: string; color: string }> = {
-  pending: { text: 'Pending', color: colors.warning },
-  accepted: { text: 'Accepted', color: colors.success },
-  rejected: { text: 'Declined', color: colors.error },
-  declined: { text: 'Declined', color: colors.error },
-};
-
 export function InterestRow({ interest, direction, onPress, onResponded }: InterestRowProps) {
+  const { colors } = useTheme();
   const otherName = direction === 'received' ? interest.sender_name : interest.receiver_name;
   const otherPic = direction === 'received' ? interest.sender_pic : interest.receiver_pic;
+
+  const STATUS_LABEL: Record<string, { text: string; color: string }> = {
+    pending: { text: 'Pending', color: colors.warning },
+    accepted: { text: 'Accepted', color: colors.success },
+    rejected: { text: 'Declined', color: colors.error },
+    declined: { text: 'Declined', color: colors.error },
+  };
   const status = STATUS_LABEL[interest.status];
 
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.row, pressed && styles.pressed]}>
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.row,
+        { backgroundColor: colors.surface, borderColor: colors.border },
+        pressed && styles.pressed,
+      ]}
+    >
       {otherPic ? (
-        <Image source={{ uri: uploadsUrl(otherPic) }} style={styles.avatar} />
+        <Image source={{ uri: uploadsUrl(otherPic) }} style={[styles.avatar, { backgroundColor: colors.primarySoft }]} />
       ) : (
-        <View style={[styles.avatar, styles.avatarPlaceholder]}>
+        <View style={[styles.avatar, styles.avatarPlaceholder, { backgroundColor: colors.primarySoft }]}>
           <Ionicons name="person" size={22} color={colors.inkFaint} />
         </View>
       )}
 
       <View style={styles.details}>
-        <Text style={styles.name}>{otherName ?? 'Profile'}</Text>
-        {interest.message ? (
-          <Text style={styles.message} numberOfLines={1}>
-            {interest.message}
-          </Text>
-        ) : (
-          <Text style={styles.message} numberOfLines={1}>
-            {direction === 'received' ? 'Sent you an interest' : 'You sent an interest'}
-          </Text>
-        )}
+        <Text style={[styles.name, { color: colors.ink }]}>{otherName ?? 'Profile'}</Text>
+        <Text style={[styles.message, { color: colors.inkSoft }]} numberOfLines={1}>
+          {interest.message ||
+            (direction === 'received' ? 'Sent you an interest' : 'You sent an interest')}
+        </Text>
         {interest.occupation ? (
-          <Text style={styles.meta}>{interest.occupation}</Text>
+          <Text style={[styles.meta, { color: colors.inkFaint }]}>{interest.occupation}</Text>
         ) : null}
       </View>
 
@@ -57,7 +61,7 @@ export function InterestRow({ interest, direction, onPress, onResponded }: Inter
               await interestApi.respond(interest.id, 'accepted');
               onResponded?.();
             }}
-            style={styles.acceptBtn}
+            style={[styles.acceptBtn, { backgroundColor: colors.successSoft }]}
           >
             <Ionicons name="checkmark" size={18} color={colors.success} />
           </Pressable>
@@ -66,15 +70,15 @@ export function InterestRow({ interest, direction, onPress, onResponded }: Inter
               await interestApi.respond(interest.id, 'rejected');
               onResponded?.();
             }}
-            style={styles.rejectBtn}
+            style={[styles.rejectBtn, { backgroundColor: colors.errorSoft }]}
           >
             <Ionicons name="close" size={18} color={colors.error} />
           </Pressable>
         </View>
       ) : interest.status === 'accepted' ? (
-        <Pressable onPress={onPress} style={styles.viewBtn}>
+        <Pressable onPress={onPress} style={[styles.viewBtn, { backgroundColor: colors.primarySoft }]}>
           <Ionicons name="person-outline" size={16} color={colors.primary} />
-          <Text style={styles.viewBtnText}>View</Text>
+          <Text style={[styles.viewBtnText, { color: colors.primary }]}>View</Text>
         </Pressable>
       ) : (
         status && <Text style={[styles.status, { color: status.color }]}>{status.text}</Text>
@@ -87,10 +91,8 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surface,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.border,
     padding: spacing.md,
     marginBottom: spacing.sm,
     gap: spacing.md,
@@ -102,7 +104,6 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: colors.primarySoft,
   },
   avatarPlaceholder: {
     alignItems: 'center',
@@ -114,16 +115,13 @@ const styles = StyleSheet.create({
   name: {
     ...typography.body,
     fontWeight: '700',
-    color: colors.ink,
   },
   message: {
     ...typography.caption,
-    color: colors.inkSoft,
     marginTop: 2,
   },
   meta: {
     ...typography.label,
-    color: colors.inkFaint,
     marginTop: 2,
   },
   status: {
@@ -138,7 +136,6 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: colors.successSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -146,7 +143,6 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: colors.errorSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -154,14 +150,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: colors.primarySoft,
     borderRadius: radius.pill,
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
   viewBtnText: {
     ...typography.label,
-    color: colors.primary,
     fontWeight: '700',
   },
 });

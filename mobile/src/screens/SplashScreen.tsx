@@ -1,16 +1,18 @@
 import { ActivityIndicator, Image, StyleSheet, Text, View } from 'react-native';
-import { colors, typography } from '@/theme';
+import { useTheme } from '@/theme';
+import { typography } from '@/theme';
 
 export function SplashScreen() {
+  const { colors } = useTheme();
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.primarySoft }]}>
       <Image
         source={require('../../assets/icon.png')}
         style={styles.logo}
         resizeMode="contain"
       />
-      <Text style={styles.brand}>Mukurtham</Text>
-      <Text style={styles.tagline}>Matrimony, made meaningful</Text>
+      <Text style={[styles.brand, { color: colors.primary }]}>Mukurtham</Text>
+      <Text style={[styles.tagline, { color: colors.inkSoft }]}>Matrimony, made meaningful</Text>
       <ActivityIndicator size="large" color={colors.primary} style={styles.spinner} />
     </View>
   );
@@ -21,7 +23,6 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#fff0f5',
   },
   logo: {
     width: 120,
@@ -30,12 +31,10 @@ const styles = StyleSheet.create({
   },
   brand: {
     ...typography.display,
-    color: colors.primary,
     marginTop: 16,
   },
   tagline: {
     ...typography.body,
-    color: colors.inkSoft,
     marginTop: 4,
   },
   spinner: {

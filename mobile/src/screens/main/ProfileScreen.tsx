@@ -10,7 +10,8 @@ import { Button } from '@/components/Button';
 import { Screen } from '@/components/Screen';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { logout } from '@/store/authSlice';
-import { colors, radius, spacing, typography } from '@/theme';
+import { useTheme } from '@/theme';
+import { radius, spacing, typography } from '@/theme';
 import type { RootStackParamList } from '@/navigation/types';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -19,6 +20,7 @@ export function ProfileScreen() {
   const navigation = useNavigation<Nav>();
   const dispatch = useAppDispatch();
   const user = useAppSelector((s) => s.auth.user);
+  const { colors } = useTheme();
   const [loggingOut, setLoggingOut] = useState(false);
 
   const myProfiles = useQuery({
@@ -39,36 +41,40 @@ export function ProfileScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.header}>
           {primary?.main_profile_picture ? (
-            <Image source={{ uri: uploadsUrl(primary.main_profile_picture) }} style={styles.avatar} />
+            <Image source={{ uri: uploadsUrl(primary.main_profile_picture) }} style={[styles.avatar, { backgroundColor: colors.primarySoft }]} />
           ) : (
-            <View style={[styles.avatar, styles.avatarPlaceholder]}>
+            <View style={[styles.avatar, styles.avatarPlaceholder, { backgroundColor: colors.primarySoft }]}>
               <Ionicons name="person" size={40} color={colors.inkFaint} />
             </View>
           )}
-          <Text style={styles.username}>{user?.username ?? 'Member'}</Text>
-          <Text style={styles.email}>{user?.email}</Text>
+          <Text style={[styles.username, { color: colors.ink }]}>{user?.username ?? 'Member'}</Text>
+          <Text style={[styles.email, { color: colors.inkSoft }]}>{user?.email}</Text>
           <View style={styles.badgeRow}>
-            <View style={styles.roleBadge}>
-              <Text style={styles.roleText}>{user?.role ?? 'regular'}</Text>
+            <View style={[styles.roleBadge, { backgroundColor: colors.primarySoft }]}>
+              <Text style={[styles.roleText, { color: colors.primaryDark }]}>{user?.role ?? 'regular'}</Text>
             </View>
             {user?.is_approved === 1 && (
-              <View style={[styles.roleBadge, styles.approvedBadge]}>
-                <Text style={[styles.roleText, styles.approvedText]}>Approved</Text>
+              <View style={[styles.roleBadge, styles.approvedBadge, { backgroundColor: colors.successSoft }]}>
+                <Text style={[styles.roleText, styles.approvedText, { color: colors.success }]}>Approved</Text>
               </View>
             )}
           </View>
         </View>
 
-        <Text style={styles.sectionTitle}>My profiles</Text>
+        <Text style={[styles.sectionTitle, { color: colors.inkFaint }]}>My profiles</Text>
         {myProfiles.data && myProfiles.data.length > 0 ? (
           myProfiles.data.map((p) => (
             <Pressable
               key={p.id}
-              style={({ pressed }) => [styles.profileRow, pressed && styles.pressed]}
+              style={({ pressed }) => [
+                styles.profileRow,
+                { backgroundColor: colors.surface, borderColor: colors.border },
+                pressed && styles.pressed,
+              ]}
               onPress={() => navigation.navigate('ProfileDetail', { profileId: p.id })}
             >
-              <Text style={styles.profileName}>{p.name}</Text>
-              <Text style={styles.profileMeta}>
+              <Text style={[styles.profileName, { color: colors.ink }]}>{p.name}</Text>
+              <Text style={[styles.profileMeta, { color: colors.inkSoft }]}>
                 {p.age} yrs · {p.status} {p.is_verified === 1 ? '· Verified' : ''}
               </Text>
             </Pressable>
@@ -76,7 +82,7 @@ export function ProfileScreen() {
         ) : (
           <View style={styles.noProfile}>
             <Ionicons name="person-add-outline" size={40} color={colors.inkFaint} />
-            <Text style={styles.noProfileText}>
+            <Text style={[styles.noProfileText, { color: colors.inkFaint }]}>
               You haven't created a profile yet
             </Text>
             <Button
@@ -125,7 +131,6 @@ const styles = StyleSheet.create({
     width: 96,
     height: 96,
     borderRadius: 48,
-    backgroundColor: colors.primarySoft,
     marginBottom: spacing.md,
   },
   avatarPlaceholder: {
@@ -134,11 +139,9 @@ const styles = StyleSheet.create({
   },
   username: {
     ...typography.title,
-    color: colors.ink,
   },
   email: {
     ...typography.caption,
-    color: colors.inkSoft,
     marginTop: 2,
   },
   badgeRow: {
@@ -147,36 +150,27 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
   },
   roleBadge: {
-    backgroundColor: colors.primarySoft,
     borderRadius: radius.pill,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
   },
   roleText: {
     ...typography.label,
-    color: colors.primaryDark,
     fontWeight: '700',
     textTransform: 'capitalize',
   },
-  approvedBadge: {
-    backgroundColor: colors.successSoft,
-  },
-  approvedText: {
-    color: colors.success,
-  },
+  approvedBadge: {},
+  approvedText: {},
   sectionTitle: {
     ...typography.caption,
     fontWeight: '700',
     textTransform: 'uppercase',
-    color: colors.inkFaint,
     marginTop: spacing.md,
     marginBottom: spacing.sm,
   },
   profileRow: {
-    backgroundColor: colors.surface,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.border,
     padding: spacing.md,
     marginBottom: spacing.sm,
   },
@@ -186,11 +180,9 @@ const styles = StyleSheet.create({
   profileName: {
     ...typography.body,
     fontWeight: '700',
-    color: colors.ink,
   },
   profileMeta: {
     ...typography.caption,
-    color: colors.inkSoft,
     marginTop: 2,
   },
   noProfile: {
@@ -200,7 +192,6 @@ const styles = StyleSheet.create({
   },
   noProfileText: {
     ...typography.body,
-    color: colors.inkFaint,
     textAlign: 'center',
     marginBottom: spacing.xs,
   },

@@ -11,7 +11,8 @@ import { Button } from '@/components/Button';
 import { Spinner } from '@/components/Spinner';
 import { Screen } from '@/components/Screen';
 import { useAppSelector } from '@/store/hooks';
-import { colors, radius, spacing, typography } from '@/theme';
+import { useTheme } from '@/theme';
+import { radius, spacing, typography } from '@/theme';
 import type { Profile } from '@/types';
 import type { RootStackParamList } from '@/navigation/types';
 
@@ -21,6 +22,7 @@ export function ProfileDetailScreen() {
   const route = useRoute<DetailRoute>();
   const { profileId } = route.params;
   const user = useAppSelector((s) => s.auth.user);
+  const { colors } = useTheme();
 
   const [interestMsg, setInterestMsg] = useState('');
   const [sending, setSending] = useState(false);
@@ -99,7 +101,7 @@ export function ProfileDetailScreen() {
       <Screen>
         <View style={styles.center}>
           <Ionicons name="person-outline" size={48} color={colors.inkFaint} />
-          <Text style={styles.emptyText}>Profile not found.</Text>
+          <Text style={[styles.emptyText, { color: colors.inkFaint }]}>Profile not found.</Text>
         </View>
       </Screen>
     );
@@ -114,30 +116,34 @@ export function ProfileDetailScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.photoWrap}>
           {photoUrl ? (
-            <Image source={{ uri: photoUrl }} style={styles.photo} />
+            <Image source={{ uri: photoUrl }} style={[styles.photo, { backgroundColor: colors.primarySoft }]} />
           ) : (
-            <View style={[styles.photo, styles.photoPlaceholder]}>
+            <View style={[styles.photo, styles.photoPlaceholder, { backgroundColor: colors.primarySoft }]}>
               <Ionicons name="person" size={64} color={colors.inkFaint} />
             </View>
           )}
           {isOwnProfile && (
-            <Pressable style={styles.editPhotoBtn} onPress={uploadPhoto} disabled={uploading}>
+            <Pressable
+              style={[styles.editPhotoBtn, { backgroundColor: colors.primary }]}
+              onPress={uploadPhoto}
+              disabled={uploading}
+            >
               <Ionicons name="camera" size={18} color={colors.white} />
             </Pressable>
           )}
         </View>
 
         <View style={styles.header}>
-          <Text style={styles.name}>{p.name}</Text>
+          <Text style={[styles.name, { color: colors.ink }]}>{p.name}</Text>
           {p.is_verified === 1 && (
-            <View style={styles.verifiedBadge}>
+            <View style={[styles.verifiedBadge, { backgroundColor: colors.successSoft }]}>
               <Ionicons name="shield-checkmark" size={14} color={colors.success} />
-              <Text style={styles.verifiedText}>Verified</Text>
+              <Text style={[styles.verifiedText, { color: colors.success }]}>Verified</Text>
             </View>
           )}
         </View>
 
-        <Text style={styles.subtitle}>
+        <Text style={[styles.subtitle, { color: colors.inkSoft }]}>
           {p.age} yrs · {p.height_feet}'{p.height_inches ?? 0}" · {p.gender === 'M' ? 'Male' : 'Female'}
         </Text>
 
@@ -167,8 +173,8 @@ export function ProfileDetailScreen() {
 
         {p.about_me ? (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>About</Text>
-            <Text style={styles.aboutText}>{p.about_me}</Text>
+            <Text style={[styles.sectionTitle, { color: colors.inkFaint }]}>About</Text>
+            <Text style={[styles.aboutText, { color: colors.ink }]}>{p.about_me}</Text>
           </View>
         ) : null}
 
@@ -184,7 +190,10 @@ export function ProfileDetailScreen() {
             ) : (
               <View style={styles.interestRow}>
                 <TextInput
-                  style={styles.interestInput}
+                  style={[
+                    styles.interestInput,
+                    { borderColor: colors.border, color: colors.ink, backgroundColor: colors.surface },
+                  ]}
                   placeholder="Add a personal message..."
                   placeholderTextColor={colors.inkFaint}
                   value={interestMsg}
@@ -223,11 +232,12 @@ export function ProfileDetailScreen() {
 }
 
 function MetaRow({ icon, label, value }: { icon: string; label: string; value: string }) {
+  const { colors } = useTheme();
   return (
     <View style={metaStyles.row}>
       <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={16} color={colors.inkSoft} />
-      <Text style={metaStyles.label}>{label}</Text>
-      <Text style={metaStyles.value}>{value}</Text>
+      <Text style={[metaStyles.label, { color: colors.inkSoft }]}>{label}</Text>
+      <Text style={[metaStyles.value, { color: colors.ink }]}>{value}</Text>
     </View>
   );
 }
@@ -241,12 +251,10 @@ const metaStyles = StyleSheet.create({
   },
   label: {
     ...typography.caption,
-    color: colors.inkSoft,
     minWidth: 100,
   },
   value: {
     ...typography.body,
-    color: colors.ink,
     flex: 1,
   },
 });
@@ -265,7 +273,6 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     ...typography.body,
-    color: colors.inkFaint,
   },
   photoWrap: {
     position: 'relative',
@@ -275,7 +282,6 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 320,
     borderRadius: radius.lg,
-    backgroundColor: colors.primarySoft,
   },
   photoPlaceholder: {
     alignItems: 'center',
@@ -288,7 +294,6 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
@@ -304,25 +309,21 @@ const styles = StyleSheet.create({
   },
   name: {
     ...typography.display,
-    color: colors.ink,
   },
   verifiedBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: colors.successSoft,
     borderRadius: radius.pill,
     paddingHorizontal: 8,
     paddingVertical: 3,
   },
   verifiedText: {
     ...typography.label,
-    color: colors.success,
     fontWeight: '700',
   },
   subtitle: {
     ...typography.body,
-    color: colors.inkSoft,
     marginTop: spacing.xs,
     marginBottom: spacing.lg,
   },
@@ -336,12 +337,10 @@ const styles = StyleSheet.create({
     ...typography.caption,
     fontWeight: '700',
     textTransform: 'uppercase',
-    color: colors.inkFaint,
     marginBottom: spacing.sm,
   },
   aboutText: {
     ...typography.body,
-    color: colors.ink,
     lineHeight: 22,
   },
   actions: {
@@ -361,12 +360,9 @@ const styles = StyleSheet.create({
   interestInput: {
     flex: 1,
     borderWidth: 1,
-    borderColor: colors.border,
     borderRadius: radius.md,
     paddingHorizontal: spacing.md,
     paddingVertical: 10,
     fontSize: typography.body.fontSize,
-    color: colors.ink,
-    backgroundColor: colors.surface,
   },
 });

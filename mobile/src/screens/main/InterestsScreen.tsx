@@ -7,13 +7,15 @@ import { Ionicons } from '@expo/vector-icons';
 import { interestApi } from '@/api/interests';
 import { InterestRow } from '@/components/InterestRow';
 import { Screen } from '@/components/Screen';
-import { colors, spacing, typography } from '@/theme';
+import { useTheme } from '@/theme';
+import { spacing, typography } from '@/theme';
 import type { RootStackParamList } from '@/navigation/types';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 export function InterestsScreen() {
   const navigation = useNavigation<Nav>();
+  const { colors } = useTheme();
   const [refreshing, setRefreshing] = useState(false);
 
   const data = useQuery({
@@ -57,26 +59,22 @@ export function InterestsScreen() {
         )}
         renderSectionHeader={({ section }) => (
           <View style={styles.sectionHeaderRow}>
-            <Text style={styles.sectionHeader}>{section.title}</Text>
+            <Text style={[styles.sectionHeader, { color: colors.inkFaint }]}>{section.title}</Text>
             {section.title === 'Received' && receivedCount > 0 && (
-              <View style={styles.countBadge}>
-                <Text style={styles.countText}>{receivedCount}</Text>
+              <View style={[styles.countBadge, { backgroundColor: colors.primary }]}>
+                <Text style={[styles.countText, { color: colors.white }]}>{receivedCount}</Text>
               </View>
             )}
           </View>
         )}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
         ListEmptyComponent={
           <View style={styles.emptyWrap}>
-            {data.isLoading ? (
-              <Ionicons name="heart-outline" size={48} color={colors.inkFaint} />
-            ) : (
-              <Ionicons name="heart-outline" size={48} color={colors.inkFaint} />
-            )}
-            <Text style={styles.emptyTitle}>
+            <Ionicons name="heart-outline" size={48} color={colors.inkFaint} />
+            <Text style={[styles.emptyTitle, { color: colors.inkSoft }]}>
               {data.isLoading ? 'Loading...' : 'No interests yet'}
             </Text>
-            <Text style={styles.emptyHint}>
+            <Text style={[styles.emptyHint, { color: colors.inkFaint }]}>
               {data.isLoading
                 ? 'Fetching your interests'
                 : 'Send an interest from a profile you like to get started'}
@@ -104,10 +102,8 @@ const styles = StyleSheet.create({
     ...typography.caption,
     fontWeight: '700',
     textTransform: 'uppercase',
-    color: colors.inkFaint,
   },
   countBadge: {
-    backgroundColor: colors.primary,
     borderRadius: 10,
     minWidth: 20,
     height: 20,
@@ -117,7 +113,6 @@ const styles = StyleSheet.create({
   },
   countText: {
     ...typography.label,
-    color: colors.white,
     fontWeight: '700',
   },
   emptyWrap: {
@@ -127,12 +122,10 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     ...typography.title,
-    color: colors.inkSoft,
     marginTop: spacing.sm,
   },
   emptyHint: {
     ...typography.body,
-    color: colors.inkFaint,
     textAlign: 'center',
     maxWidth: 260,
   },

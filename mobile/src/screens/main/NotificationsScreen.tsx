@@ -4,9 +4,11 @@ import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { notificationApi } from '@/api/notifications';
 import { Screen } from '@/components/Screen';
-import { colors, radius, spacing, typography } from '@/theme';
+import { useTheme } from '@/theme';
+import { radius, spacing, typography } from '@/theme';
 
 export function NotificationsScreen() {
+  const { colors } = useTheme();
   const [refreshing, setRefreshing] = useState(false);
 
   const data = useQuery({
@@ -33,7 +35,11 @@ export function NotificationsScreen() {
         contentContainerStyle={styles.list}
         renderItem={({ item }) => (
           <Pressable
-            style={[styles.row, item.is_read === 0 && styles.rowUnread]}
+            style={[
+              styles.row,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+              item.is_read === 0 && { borderColor: colors.primary, backgroundColor: colors.primarySoft },
+            ]}
             onPress={async () => {
               if (item.is_read === 0) {
                 await notificationApi.markRead(item.id);
@@ -41,7 +47,7 @@ export function NotificationsScreen() {
               }
             }}
           >
-            <View style={styles.iconWrap}>
+            <View style={[styles.iconWrap, { backgroundColor: colors.background }]}>
               <Ionicons
                 name={item.type === 'interest_accepted' ? 'checkmark-done' : 'heart'}
                 size={18}
@@ -49,27 +55,27 @@ export function NotificationsScreen() {
               />
             </View>
             <View style={styles.details}>
-              <Text style={styles.message}>{item.message}</Text>
-              <Text style={styles.time}>{new Date(item.created_at).toLocaleString()}</Text>
+              <Text style={[styles.message, { color: colors.ink }]}>{item.message}</Text>
+              <Text style={[styles.time, { color: colors.inkFaint }]}>{new Date(item.created_at).toLocaleString()}</Text>
             </View>
-            {item.is_read === 0 && <View style={styles.dot} />}
+            {item.is_read === 0 && <View style={[styles.dot, { backgroundColor: colors.primary }]} />}
           </Pressable>
         )}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
         ListHeaderComponent={
           (data.data?.length ?? 0) > 0 ? (
             <Pressable onPress={markAll} style={styles.markAll}>
-              <Text style={styles.markAllText}>Mark all as read</Text>
+              <Text style={[styles.markAllText, { color: colors.primary }]}>Mark all as read</Text>
             </Pressable>
           ) : null
         }
         ListEmptyComponent={
           <View style={styles.emptyWrap}>
             <Ionicons name="notifications-outline" size={48} color={colors.inkFaint} />
-            <Text style={styles.emptyTitle}>
+            <Text style={[styles.emptyTitle, { color: colors.inkSoft }]}>
               {data.isLoading ? 'Loading...' : 'No notifications yet'}
             </Text>
-            <Text style={styles.emptyHint}>
+            <Text style={[styles.emptyHint, { color: colors.inkFaint }]}>
               {data.isLoading
                 ? 'Fetching notifications'
                 : 'When someone shows interest or accepts yours, you will see it here'}
@@ -89,23 +95,16 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surface,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.border,
     padding: spacing.md,
     marginBottom: spacing.sm,
     gap: spacing.md,
-  },
-  rowUnread: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primarySoft,
   },
   iconWrap: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: colors.white,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -114,18 +113,15 @@ const styles = StyleSheet.create({
   },
   message: {
     ...typography.body,
-    color: colors.ink,
   },
   time: {
     ...typography.label,
-    color: colors.inkFaint,
     marginTop: 2,
   },
   dot: {
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: colors.primary,
   },
   markAll: {
     alignSelf: 'flex-end',
@@ -134,7 +130,6 @@ const styles = StyleSheet.create({
   },
   markAllText: {
     ...typography.caption,
-    color: colors.primary,
     fontWeight: '700',
   },
   emptyWrap: {
@@ -144,12 +139,10 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     ...typography.title,
-    color: colors.inkSoft,
     marginTop: spacing.sm,
   },
   emptyHint: {
     ...typography.body,
-    color: colors.inkFaint,
     textAlign: 'center',
     maxWidth: 260,
   },

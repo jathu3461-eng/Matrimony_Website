@@ -9,7 +9,8 @@ import { Screen } from '@/components/Screen';
 import { ProfileCard } from '@/components/ProfileCard';
 import { profileApi } from '@/api/profiles';
 import { useAppSelector } from '@/store/hooks';
-import { colors, spacing, typography } from '@/theme';
+import { useTheme } from '@/theme';
+import { radius, spacing, typography } from '@/theme';
 import type { RootStackParamList } from '@/navigation/types';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -17,6 +18,7 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 export function HomeScreen() {
   const navigation = useNavigation<Nav>();
   const user = useAppSelector((s) => s.auth.user);
+  const { colors } = useTheme();
   const [refreshing, setRefreshing] = useState(false);
 
   const matches = useQuery({
@@ -40,12 +42,12 @@ export function HomeScreen() {
     <Screen>
       <ScrollView
         contentContainerStyle={styles.content}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
       >
         <View style={styles.hero}>
           <View>
-            <Text style={styles.greeting}>Namaste,</Text>
-            <Text style={styles.name}>{user?.username ?? 'friend'} 👋</Text>
+            <Text style={[styles.greeting, { color: colors.inkSoft }]}>Namaste,</Text>
+            <Text style={[styles.name, { color: colors.ink }]}>{user?.username ?? 'friend'} 👋</Text>
           </View>
           <View style={styles.heroActions}>
             <Button
@@ -57,25 +59,25 @@ export function HomeScreen() {
         </View>
 
         <View style={styles.statsRow}>
-          <View style={styles.statCard}>
+          <View style={[styles.statCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <Ionicons name="people" size={20} color={colors.primary} />
-            <Text style={styles.statNum}>{matches.data?.length ?? 0}</Text>
-            <Text style={styles.statLabel}>Profiles</Text>
+            <Text style={[styles.statNum, { color: colors.ink }]}>{matches.data?.length ?? 0}</Text>
+            <Text style={[styles.statLabel, { color: colors.inkFaint }]}>Profiles</Text>
           </View>
-          <View style={styles.statCard}>
+          <View style={[styles.statCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <Ionicons name="heart" size={20} color="#e0136a" />
-            <Text style={styles.statNum}>New</Text>
-            <Text style={styles.statLabel}>Matches</Text>
+            <Text style={[styles.statNum, { color: colors.ink }]}>New</Text>
+            <Text style={[styles.statLabel, { color: colors.inkFaint }]}>Matches</Text>
           </View>
-          <View style={styles.statCard}>
+          <View style={[styles.statCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <Ionicons name="chatbubble" size={20} color="#2563eb" />
-            <Text style={styles.statNum}>Live</Text>
-            <Text style={styles.statLabel}>Chat</Text>
+            <Text style={[styles.statNum, { color: colors.ink }]}>Live</Text>
+            <Text style={[styles.statLabel, { color: colors.inkFaint }]}>Chat</Text>
           </View>
         </View>
 
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Fresh Matches</Text>
+          <Text style={[styles.sectionTitle, { color: colors.ink }]}>Fresh Matches</Text>
           <Button
             title="View All"
             variant="ghost"
@@ -86,7 +88,7 @@ export function HomeScreen() {
 
         {matches.isLoading ? (
           <View style={styles.emptyWrap}>
-            <Text style={styles.empty}>Loading profiles...</Text>
+            <Text style={[styles.empty, { color: colors.inkFaint }]}>Loading profiles...</Text>
           </View>
         ) : matches.data && matches.data.length > 0 ? (
           matches.data.slice(0, 10).map((p) => (
@@ -97,10 +99,10 @@ export function HomeScreen() {
             />
           ))
         ) : (
-          <View style={styles.emptyCard}>
+          <View style={[styles.emptyCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <Ionicons name="person-add" size={40} color={colors.inkFaint} />
-            <Text style={styles.empty}>No profiles yet.</Text>
-            <Text style={styles.emptyHint}>
+            <Text style={[styles.empty, { color: colors.inkFaint }]}>No profiles yet.</Text>
+            <Text style={[styles.emptyHint, { color: colors.inkFaint }]}>
               Create your profile to start receiving matches
             </Text>
           </View>
@@ -123,12 +125,10 @@ const styles = StyleSheet.create({
   },
   greeting: {
     ...typography.body,
-    color: colors.inkSoft,
   },
   name: {
     fontSize: 22,
     fontWeight: '800',
-    color: colors.ink,
     marginTop: 2,
   },
   heroActions: {},
@@ -140,22 +140,18 @@ const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
-    backgroundColor: colors.surface,
     borderRadius: 14,
     padding: spacing.md,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: colors.border,
     gap: spacing.xs,
   },
   statNum: {
     ...typography.body,
     fontWeight: '700',
-    color: colors.ink,
   },
   statLabel: {
     ...typography.label,
-    color: colors.inkFaint,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -166,7 +162,6 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     ...typography.title,
-    color: colors.ink,
   },
   emptyWrap: {
     paddingVertical: spacing.xl,
@@ -174,13 +169,11 @@ const styles = StyleSheet.create({
   },
   empty: {
     ...typography.body,
-    color: colors.inkFaint,
     textAlign: 'center',
     marginTop: spacing.sm,
   },
   emptyHint: {
     ...typography.caption,
-    color: colors.inkFaint,
     textAlign: 'center',
     marginTop: spacing.xs,
   },
@@ -188,10 +181,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: spacing.xxl,
     marginHorizontal: spacing.lg,
-    backgroundColor: colors.surface,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: colors.border,
     borderStyle: 'dashed',
   },
 });

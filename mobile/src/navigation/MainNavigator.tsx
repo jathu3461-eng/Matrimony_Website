@@ -1,6 +1,6 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '@/theme';
+import { useTheme } from '@/theme';
 import { HomeScreen } from '@/screens/main/HomeScreen';
 import { SearchScreen } from '@/screens/main/SearchScreen';
 import { InterestsScreen } from '@/screens/main/InterestsScreen';
@@ -32,6 +32,7 @@ const ICONS_ACTIVE: Record<keyof MainTabParamList, keyof typeof Ionicons.glyphMa
 
 export function MainNavigator() {
   const unread = useUnreadBadge();
+  const { colors } = useTheme();
 
   return (
     <Tab.Navigator

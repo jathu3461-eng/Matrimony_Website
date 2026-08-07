@@ -1,6 +1,7 @@
 import { ActivityIndicator, Pressable, StyleSheet, Text, ViewStyle, TextStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, radius, typography } from '@/theme';
+import { useTheme } from '@/theme';
+import { radius, typography } from '@/theme';
 
 interface ButtonProps {
   title: string;
@@ -25,6 +26,7 @@ export function Button({
   titleStyle,
   leftIcon,
 }: ButtonProps) {
+  const { colors } = useTheme();
   const isDisabled = disabled || loading;
   const sizeStyles = {
     sm: { paddingVertical: 8, paddingHorizontal: 14 },

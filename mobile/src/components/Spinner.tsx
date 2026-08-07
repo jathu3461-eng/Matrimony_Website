@@ -1,7 +1,9 @@
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
-import { colors, spacing } from '@/theme';
+import { useTheme } from '@/theme';
+import { spacing } from '@/theme';
 
 export function Spinner({ label }: { label?: string }) {
+  const { colors } = useTheme();
   return (
     <View style={styles.center}>
       <ActivityIndicator size="large" color={colors.primary} />

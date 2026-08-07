@@ -1,14 +1,14 @@
 import { useCallback, useMemo, useState } from 'react';
-import { FlatList, Image, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { chatApi } from '@/api/chat';
-import { uploadsUrl } from '@/api/client';
 import { profileApi } from '@/api/profiles';
 import { Screen } from '@/components/Screen';
-import { colors, radius, spacing, typography } from '@/theme';
+import { useTheme } from '@/theme';
+import { radius, spacing, typography } from '@/theme';
 import type { ChatThread } from '@/types';
 import type { RootStackParamList } from '@/navigation/types';
 
@@ -30,6 +30,7 @@ function timeAgo(iso?: string | null): string {
 
 export function ChatListScreen() {
   const navigation = useNavigation<Nav>();
+  const { colors } = useTheme();
   const [refreshing, setRefreshing] = useState(false);
 
   const threads = useQuery({
@@ -80,7 +81,11 @@ export function ChatListScreen() {
         contentContainerStyle={styles.list}
         renderItem={({ item }) => (
           <Pressable
-            style={({ pressed }) => [styles.row, pressed && styles.pressed]}
+            style={({ pressed }) => [
+              styles.row,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+              pressed && styles.pressed,
+            ]}
             onPress={() =>
               navigation.navigate('ChatThread', {
                 profileA: item.myProfileId,
@@ -89,39 +94,39 @@ export function ChatListScreen() {
               })
             }
           >
-            <View style={[styles.avatar, styles.avatarPlaceholder]}>
-              <Text style={styles.avatarText}>
+            <View style={[styles.avatar, styles.avatarPlaceholder, { backgroundColor: colors.primarySoft }]}>
+              <Text style={[styles.avatarText, { color: colors.primary }]}>
                 {(item.otherName ?? '?')[0]?.toUpperCase() ?? '?'}
               </Text>
             </View>
             <View style={styles.details}>
               <View style={styles.rowTop}>
-                <Text style={styles.name} numberOfLines={1}>
+                <Text style={[styles.name, { color: colors.ink }]} numberOfLines={1}>
                   {item.otherName}
                 </Text>
-                <Text style={styles.time}>{timeAgo(item.last_at)}</Text>
+                <Text style={[styles.time, { color: colors.inkFaint }]}>{timeAgo(item.last_at)}</Text>
               </View>
               <View style={styles.rowBottom}>
-                <Text style={styles.last} numberOfLines={1}>
+                <Text style={[styles.last, { color: colors.inkSoft }]} numberOfLines={1}>
                   {item.last_message || 'Start the conversation'}
                 </Text>
                 {item.unread_count > 0 && (
-                  <View style={styles.badge}>
-                    <Text style={styles.badgeText}>{item.unread_count}</Text>
+                  <View style={[styles.badge, { backgroundColor: colors.primary }]}>
+                    <Text style={[styles.badgeText, { color: colors.white }]}>{item.unread_count}</Text>
                   </View>
                 )}
               </View>
             </View>
           </Pressable>
         )}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
         ListEmptyComponent={
           <View style={styles.emptyWrap}>
             <Ionicons name="chatbubble-ellipses-outline" size={48} color={colors.inkFaint} />
-            <Text style={styles.emptyTitle}>
+            <Text style={[styles.emptyTitle, { color: colors.inkSoft }]}>
               {threads.isLoading ? 'Loading...' : 'No conversations yet'}
             </Text>
-            <Text style={styles.emptyHint}>
+            <Text style={[styles.emptyHint, { color: colors.inkFaint }]}>
               {threads.isLoading
                 ? 'Fetching your chats'
                 : 'Send an interest to start chatting with someone special'}
@@ -140,10 +145,8 @@ const styles = StyleSheet.create({
   },
   row: {
     flexDirection: 'row',
-    backgroundColor: colors.surface,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.border,
     padding: spacing.md,
     marginBottom: spacing.sm,
     gap: spacing.md,
@@ -155,7 +158,6 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: colors.primarySoft,
   },
   avatarPlaceholder: {
     alignItems: 'center',
@@ -164,7 +166,6 @@ const styles = StyleSheet.create({
   avatarText: {
     ...typography.body,
     fontWeight: '700',
-    color: colors.primary,
   },
   details: {
     flex: 1,
@@ -177,13 +178,11 @@ const styles = StyleSheet.create({
   name: {
     ...typography.body,
     fontWeight: '700',
-    color: colors.ink,
     flex: 1,
     marginRight: spacing.sm,
   },
   time: {
     ...typography.label,
-    color: colors.inkFaint,
   },
   rowBottom: {
     flexDirection: 'row',
@@ -193,7 +192,6 @@ const styles = StyleSheet.create({
   },
   last: {
     ...typography.caption,
-    color: colors.inkSoft,
     flex: 1,
     marginRight: spacing.sm,
   },
@@ -201,13 +199,11 @@ const styles = StyleSheet.create({
     minWidth: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 6,
   },
   badgeText: {
-    color: colors.white,
     fontSize: 11,
     fontWeight: '700',
   },
@@ -218,12 +214,10 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     ...typography.title,
-    color: colors.inkSoft,
     marginTop: spacing.sm,
   },
   emptyHint: {
     ...typography.body,
-    color: colors.inkFaint,
     textAlign: 'center',
     maxWidth: 260,
   },

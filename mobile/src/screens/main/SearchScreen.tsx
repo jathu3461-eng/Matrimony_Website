@@ -8,7 +8,8 @@ import { profileApi, SearchParams } from '@/api/profiles';
 import { ProfileCard } from '@/components/ProfileCard';
 import { Screen } from '@/components/Screen';
 import { Button } from '@/components/Button';
-import { colors, spacing, typography } from '@/theme';
+import { useTheme } from '@/theme';
+import { spacing, typography } from '@/theme';
 import type { RootStackParamList } from '@/navigation/types';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -21,6 +22,7 @@ const GENDER_FILTERS = [
 
 export function SearchScreen() {
   const navigation = useNavigation<Nav>();
+  const { colors } = useTheme();
   const [query, setQuery] = useState('');
   const [gender, setGender] = useState<'M' | 'F' | undefined>(undefined);
   const [applied, setApplied] = useState<SearchParams>({});
@@ -46,10 +48,10 @@ export function SearchScreen() {
 
   return (
     <Screen>
-      <View style={styles.searchBar}>
+      <View style={[styles.searchBar, { backgroundColor: colors.surface, borderColor: colors.border }]}>
         <Ionicons name="search" size={18} color={colors.inkFaint} />
         <TextInput
-          style={styles.searchInput}
+          style={[styles.searchInput, { color: colors.ink }]}
           placeholder="Name, occupation, city..."
           placeholderTextColor={colors.inkFaint}
           value={query}
@@ -83,20 +85,20 @@ export function SearchScreen() {
             onPress={() => navigation.navigate('ProfileDetail', { profileId: item.id })}
           />
         )}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
         ListHeaderComponent={
           results.data && results.data.length > 0 ? (
-            <Text style={styles.count}>{results.data.length} profiles found</Text>
+            <Text style={[styles.count, { color: colors.inkFaint }]}>{results.data.length} profiles found</Text>
           ) : null
         }
         ListEmptyComponent={
           <View style={styles.emptyWrap}>
             {results.isLoading ? (
-              <Text style={styles.empty}>Searching...</Text>
+              <Text style={[styles.empty, { color: colors.inkFaint }]}>Searching...</Text>
             ) : (
               <>
                 <Ionicons name="search-outline" size={48} color={colors.inkFaint} />
-                <Text style={styles.empty}>
+                <Text style={[styles.empty, { color: colors.inkFaint }]}>
                   {Object.keys(applied).length === 0
                     ? 'Search by name, occupation, or city'
                     : 'No profiles matched your search'}
@@ -114,9 +116,7 @@ const styles = StyleSheet.create({
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: colors.border,
     borderRadius: 12,
     paddingHorizontal: spacing.md,
     marginHorizontal: spacing.md,
@@ -127,7 +127,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     marginLeft: spacing.sm,
     fontSize: typography.body.fontSize,
-    color: colors.ink,
   },
   filterRow: {
     flexDirection: 'row',
@@ -140,7 +139,6 @@ const styles = StyleSheet.create({
   },
   count: {
     ...typography.caption,
-    color: colors.inkFaint,
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.sm,
   },
@@ -151,7 +149,6 @@ const styles = StyleSheet.create({
   },
   empty: {
     ...typography.body,
-    color: colors.inkFaint,
     textAlign: 'center',
   },
 });

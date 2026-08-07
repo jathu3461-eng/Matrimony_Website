@@ -5,38 +5,16 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { Button } from '@/components/Button';
 import { tokenStorage } from '@/services/tokenStorage';
-import { colors, spacing, typography } from '@/theme';
+import { useTheme } from '@/theme';
+import { spacing, typography } from '@/theme';
 import type { RootStackParamList } from '@/navigation/types';
 
 const { width } = Dimensions.get('window');
 
-const SLIDES = [
-  {
-    title: 'Find your\nperfect match',
-    subtitle: 'Browse genuine profiles curated for the Tamil community, worldwide.',
-    icon: 'heart' as const,
-    color: colors.primary,
-    bg: '#fff0f5',
-  },
-  {
-    title: 'Verified\nprofiles only',
-    subtitle: 'Every profile is reviewed by our team so you connect with confidence.',
-    icon: 'shield-checkmark' as const,
-    color: '#16a34a',
-    bg: '#f0fdf4',
-  },
-  {
-    title: 'Meaningful\nconversations',
-    subtitle: 'Send interests, chat safely once you match. Your privacy stays protected.',
-    icon: 'chatbubbles' as const,
-    color: '#2563eb',
-    bg: '#eff6ff',
-  },
-];
-
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 export function OnboardingScreen() {
+  const { colors } = useTheme();
   const [index, setIndex] = useState(0);
   const navigation = useNavigation<Nav>();
   const isLast = index === SLIDES.length - 1;
@@ -48,7 +26,7 @@ export function OnboardingScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: slide.bg }]}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.skipRow}>
         {!isLast && (
           <Button title="Skip" variant="ghost" size="sm" onPress={finish} />
@@ -59,14 +37,21 @@ export function OnboardingScreen() {
         <View style={[styles.iconWrap, { backgroundColor: `${slide.color}18` }]}>
           <Ionicons name={slide.icon} size={64} color={slide.color} />
         </View>
-        <Text style={styles.title}>{slide.title}</Text>
-        <Text style={styles.subtitle}>{slide.subtitle}</Text>
+        <Text style={[styles.title, { color: colors.ink }]}>{slide.title}</Text>
+        <Text style={[styles.subtitle, { color: colors.inkSoft }]}>{slide.subtitle}</Text>
       </View>
 
       <View style={styles.bottom}>
         <View style={styles.dots}>
           {SLIDES.map((_, i) => (
-            <View key={i} style={[styles.dot, i === index && { width: 28, backgroundColor: slide.color }]} />
+            <View
+              key={i}
+              style={[
+                styles.dot,
+                { backgroundColor: colors.borderStrong },
+                i === index && { width: 28, backgroundColor: slide.color },
+              ]}
+            />
           ))}
         </View>
         <Button
@@ -78,6 +63,27 @@ export function OnboardingScreen() {
     </View>
   );
 }
+
+const SLIDES = [
+  {
+    title: 'Find your\nperfect match',
+    subtitle: 'Browse genuine profiles curated for the Tamil community, worldwide.',
+    icon: 'heart' as const,
+    color: '#e0136a',
+  },
+  {
+    title: 'Verified\nprofiles only',
+    subtitle: 'Every profile is reviewed by our team so you connect with confidence.',
+    icon: 'shield-checkmark' as const,
+    color: '#16a34a',
+  },
+  {
+    title: 'Meaningful\nconversations',
+    subtitle: 'Send interests, chat safely once you match. Your privacy stays protected.',
+    icon: 'chatbubbles' as const,
+    color: '#2563eb',
+  },
+];
 
 const styles = StyleSheet.create({
   container: {
@@ -106,7 +112,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 32,
     fontWeight: '800',
-    color: colors.ink,
     textAlign: 'center',
     lineHeight: 40,
     marginBottom: spacing.md,
@@ -114,7 +119,6 @@ const styles = StyleSheet.create({
   subtitle: {
     ...typography.body,
     textAlign: 'center',
-    color: colors.inkSoft,
     lineHeight: 24,
     paddingHorizontal: spacing.lg,
   },
@@ -132,6 +136,5 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: colors.borderStrong,
   },
 });

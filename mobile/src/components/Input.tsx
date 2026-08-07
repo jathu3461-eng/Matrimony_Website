@@ -9,7 +9,8 @@ import {
   ViewStyle,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, radius, spacing, typography } from '@/theme';
+import { useTheme } from '@/theme';
+import { radius, spacing, typography } from '@/theme';
 
 interface InputProps extends TextInputProps {
   label?: string;
@@ -19,15 +20,22 @@ interface InputProps extends TextInputProps {
 }
 
 export function Input({ label, error, containerStyle, secure, style, ...rest }: InputProps) {
+  const { colors } = useTheme();
   const [hidden, setHidden] = useState(secure ?? false);
   const showError = !!error;
 
   return (
     <View style={[styles.container, containerStyle]}>
-      {label && <Text style={styles.label}>{label}</Text>}
-      <View style={[styles.field, showError && styles.fieldError]}>
+      {label && <Text style={[styles.label, { color: colors.inkSoft }]}>{label}</Text>}
+      <View
+        style={[
+          styles.field,
+          { borderColor: colors.border, backgroundColor: colors.surface },
+          showError && { borderColor: colors.error },
+        ]}
+      >
         <TextInput
-          style={[styles.input, style]}
+          style={[styles.input, { color: colors.ink }, style]}
           placeholderTextColor={colors.inkFaint}
           secureTextEntry={hidden}
           {...rest}
@@ -42,7 +50,7 @@ export function Input({ label, error, containerStyle, secure, style, ...rest }: 
           </Pressable>
         )}
       </View>
-      {showError && <Text style={styles.errorText}>{error}</Text>}
+      {showError && <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>}
     </View>
   );
 }
@@ -54,33 +62,25 @@ const styles = StyleSheet.create({
   label: {
     ...typography.caption,
     fontWeight: '600',
-    color: colors.inkSoft,
     marginBottom: spacing.xs + 2,
   },
   field: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: colors.border,
     borderRadius: radius.md,
     paddingHorizontal: spacing.md,
-    backgroundColor: colors.surface,
-  },
-  fieldError: {
-    borderColor: colors.error,
   },
   input: {
     flex: 1,
     paddingVertical: 12,
     fontSize: typography.body.fontSize,
-    color: colors.ink,
   },
   eye: {
     marginLeft: spacing.sm,
   },
   errorText: {
     ...typography.caption,
-    color: colors.error,
     marginTop: 4,
   },
 });
