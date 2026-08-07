@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -16,7 +16,9 @@ import { Screen } from '@/components/Screen';
 import { extractError } from '@/api/client';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { login } from '@/store/authSlice';
-import { colors, spacing, typography } from '@/theme';
+import { validateEmailOrPhone, validatePassword, fieldError } from '@/utils/validation';
+import { useTheme } from '@/theme';
+import { radius, spacing, typography } from '@/theme';
 import type { AuthStackParamList } from '@/navigation/types';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList>;
@@ -24,6 +26,7 @@ type Nav = NativeStackNavigationProp<AuthStackParamList>;
 export function LoginScreen() {
   const navigation = useNavigation<Nav>();
   const dispatch = useAppDispatch();
+  const { colors } = useTheme();
   const { status, error } = useAppSelector((s) => s.auth);
   const loading = status === 'loading';
 
@@ -34,12 +37,17 @@ export function LoginScreen() {
 
   const touch = (field: string) => setTouched((t) => ({ ...t, [field]: true }));
 
-  const emailError = touched.email && !email.trim() ? 'Email or phone is required' : null;
-  const passwordError = touched.password && !password ? 'Password is required' : null;
+  const errors = useMemo(
+    () => ({
+      email: fieldError(email, touched.email, validateEmailOrPhone),
+      password: fieldError(password, touched.password, validatePassword),
+    }),
+    [email, password, touched]
+  );
 
   const submit = async () => {
     setTouched({ email: true, password: true });
-    if (!email.trim() || !password) return;
+    if (errors.email || errors.password) return;
 
     setServerError(null);
     try {
@@ -53,7 +61,7 @@ export function LoginScreen() {
     <Screen>
       <KeyboardAvoidingView
         style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <ScrollView
           contentContainerStyle={styles.content}
@@ -61,16 +69,29 @@ export function LoginScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.header}>
-            <View style={styles.logoWrap}>
+            <View style={[styles.logoWrap, { backgroundColor: colors.primary }]}>
               <Ionicons name="heart" size={32} color={colors.white} />
             </View>
-            <Text style={styles.brand}>Mukurtham</Text>
-            <Text style={styles.tagline}>Matrimony, made meaningful</Text>
+            <Text style={[styles.brand, { color: colors.primary }]}>Mukurtham</Text>
+            <Text style={[styles.tagline, { color: colors.inkSoft }]}>
+              Matrimony, made meaningful
+            </Text>
           </View>
 
-          <View style={styles.card}>
-            <Text style={styles.welcome}>Welcome back</Text>
-            <Text style={styles.hint}>Sign in to continue your journey</Text>
+          <View
+            style={[
+              styles.card,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
+                shadowColor: colors.black,
+              },
+            ]}
+          >
+            <Text style={[styles.welcome, { color: colors.ink }]}>Welcome back</Text>
+            <Text style={[styles.hint, { color: colors.inkFaint }]}>
+              Sign in to continue your journey
+            </Text>
 
             <FormField
               label="Email or phone"
@@ -81,7 +102,7 @@ export function LoginScreen() {
               autoCapitalize="none"
               keyboardType="email-address"
               autoComplete="email"
-              error={emailError}
+              error={errors.email}
               hint="Enter your registered email or phone"
             />
             <FormField
@@ -93,13 +114,15 @@ export function LoginScreen() {
               secure
               autoCapitalize="none"
               onSubmitEditing={submit}
-              error={passwordError}
+              error={errors.password}
             />
 
             {(serverError || error) && (
-              <View style={styles.errorBox}>
+              <View style={[styles.errorBox, { backgroundColor: colors.errorSoft }]}>
                 <Ionicons name="alert-circle" size={16} color={colors.error} />
-                <Text style={styles.errorBoxText}>{serverError || error}</Text>
+                <Text style={[styles.errorBoxText, { color: colors.error }]}>
+                  {serverError || error}
+                </Text>
               </View>
             )}
 
@@ -114,7 +137,7 @@ export function LoginScreen() {
               onPress={() => navigation.navigate('ForgotPassword')}
             />
             <View style={styles.signupRow}>
-              <Text style={styles.signupText}>New here? </Text>
+              <Text style={[styles.signupText, { color: colors.inkSoft }]}>New here? </Text>
               <Button
                 title="Create account"
                 variant="ghost"
@@ -145,11 +168,9 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.md,
-    shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 12,
@@ -158,18 +179,15 @@ const styles = StyleSheet.create({
   brand: {
     fontSize: 28,
     fontWeight: '800',
-    color: colors.primary,
   },
   tagline: {
     ...typography.caption,
-    color: colors.inkSoft,
     marginTop: 2,
   },
   card: {
-    backgroundColor: colors.white,
     borderRadius: 20,
+    borderWidth: 1,
     padding: spacing.lg,
-    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 12,
@@ -178,26 +196,22 @@ const styles = StyleSheet.create({
   },
   welcome: {
     ...typography.title,
-    color: colors.ink,
     marginBottom: spacing.xs,
   },
   hint: {
     ...typography.caption,
-    color: colors.inkFaint,
     marginBottom: spacing.lg,
   },
   errorBox: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
-    backgroundColor: colors.errorSoft,
     borderRadius: 10,
     padding: spacing.sm,
     marginBottom: spacing.md,
   },
   errorBoxText: {
     ...typography.caption,
-    color: colors.error,
     flex: 1,
   },
   footer: {
@@ -210,6 +224,5 @@ const styles = StyleSheet.create({
   },
   signupText: {
     ...typography.body,
-    color: colors.inkSoft,
   },
 });

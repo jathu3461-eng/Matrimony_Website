@@ -15,24 +15,25 @@ import { FormField } from '@/components/FormField';
 import { Screen } from '@/components/Screen';
 import { authApi } from '@/api/auth';
 import { extractError } from '@/api/client';
-import { useAppDispatch } from '@/store/hooks';
-import { login } from '@/store/authSlice';
 import {
   validateUsername,
   validateEmail,
   validatePhone,
   validatePassword,
   validateConfirmPassword,
+  validateBusinessName,
+  fieldError,
   HINTS,
 } from '@/utils/validation';
-import { colors, spacing, typography } from '@/theme';
+import { useTheme } from '@/theme';
+import { radius, spacing, typography } from '@/theme';
 import type { AuthStackParamList } from '@/navigation/types';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList>;
 
 export function RegisterScreen() {
   const navigation = useNavigation<Nav>();
-  const dispatch = useAppDispatch();
+  const { colors } = useTheme();
   const [loading, setLoading] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
 
@@ -49,16 +50,14 @@ export function RegisterScreen() {
 
   const errors = useMemo(
     () => ({
-      username: touched.username ? validateUsername(username) : null,
-      email: touched.email ? validateEmail(email) : null,
-      phone: touched.phone ? validatePhone(phone) : null,
-      password: touched.password ? validatePassword(password) : null,
-      confirm: touched.confirm ? validateConfirmPassword(password, confirm) : null,
+      username: fieldError(username, touched.username, validateUsername),
+      email: fieldError(email, touched.email, validateEmail),
+      phone: fieldError(phone, touched.phone, validatePhone),
+      password: fieldError(password, touched.password, validatePassword),
+      confirm: fieldError(confirm, touched.confirm, (v) => validateConfirmPassword(password, v)),
       businessName:
-        role === 'broker' && touched.businessName
-          ? businessName.trim().length < 2
-            ? 'Business name is required (min 2 characters)'
-            : null
+        role === 'broker'
+          ? fieldError(businessName, touched.businessName, validateBusinessName)
           : null,
     }),
     [username, email, phone, password, confirm, role, businessName, touched]
@@ -114,7 +113,7 @@ export function RegisterScreen() {
     <Screen>
       <KeyboardAvoidingView
         style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <ScrollView
           contentContainerStyle={styles.content}
@@ -122,14 +121,25 @@ export function RegisterScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.header}>
-            <View style={styles.logoWrap}>
+            <View style={[styles.logoWrap, { backgroundColor: colors.primary }]}>
               <Ionicons name="heart" size={24} color={colors.white} />
             </View>
-            <Text style={styles.title}>Create Account</Text>
-            <Text style={styles.subtitle}>Start your journey to find the perfect match</Text>
+            <Text style={[styles.title, { color: colors.ink }]}>Create Account</Text>
+            <Text style={[styles.subtitle, { color: colors.inkFaint }]}>
+              Start your journey to find the perfect match
+            </Text>
           </View>
 
-          <View style={styles.card}>
+          <View
+            style={[
+              styles.card,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
+                shadowColor: colors.black,
+              },
+            ]}
+          >
             <View style={styles.roleRow}>
               <Button
                 title="Regular User"
@@ -155,6 +165,8 @@ export function RegisterScreen() {
               placeholder="e.g. john_95"
               autoCapitalize="none"
               autoCorrect={false}
+              maxLength={30}
+              count
               error={errors.username}
               hint={HINTS.username}
             />
@@ -216,9 +228,9 @@ export function RegisterScreen() {
             )}
 
             {serverError && (
-              <View style={styles.errorBox}>
+              <View style={[styles.errorBox, { backgroundColor: colors.errorSoft }]}>
                 <Ionicons name="alert-circle" size={16} color={colors.error} />
-                <Text style={styles.errorBoxText}>{serverError}</Text>
+                <Text style={[styles.errorBoxText, { color: colors.error }]}>{serverError}</Text>
               </View>
             )}
 
@@ -227,7 +239,9 @@ export function RegisterScreen() {
 
           <View style={styles.footer}>
             <View style={styles.loginRow}>
-              <Text style={styles.loginText}>Already have an account? </Text>
+              <Text style={[styles.loginText, { color: colors.inkSoft }]}>
+                Already have an account?{' '}
+              </Text>
               <Button
                 title="Log in"
                 variant="ghost"
@@ -246,6 +260,7 @@ export function RegisterScreen() {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   content: {
+    flexGrow: 1,
     padding: spacing.xl,
     paddingBottom: spacing.xxl,
   },
@@ -258,25 +273,21 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.md,
   },
   title: {
     ...typography.title,
-    color: colors.ink,
   },
   subtitle: {
     ...typography.caption,
-    color: colors.inkFaint,
     marginTop: spacing.xs,
   },
   card: {
-    backgroundColor: colors.white,
     borderRadius: 20,
+    borderWidth: 1,
     padding: spacing.lg,
-    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 12,
@@ -295,18 +306,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
-    backgroundColor: colors.errorSoft,
     borderRadius: 10,
     padding: spacing.sm,
     marginBottom: spacing.md,
   },
   errorBoxText: {
     ...typography.caption,
-    color: colors.error,
     flex: 1,
   },
   footer: {
     alignItems: 'center',
+    paddingBottom: spacing.md,
   },
   loginRow: {
     flexDirection: 'row',
@@ -314,6 +324,5 @@ const styles = StyleSheet.create({
   },
   loginText: {
     ...typography.body,
-    color: colors.inkSoft,
   },
 });

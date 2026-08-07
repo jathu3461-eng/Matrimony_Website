@@ -16,15 +16,25 @@ import { FormField } from '@/components/FormField';
 import { Screen } from '@/components/Screen';
 import { profileApi } from '@/api/profiles';
 import { extractError } from '@/api/client';
-import { colors, radius, spacing, typography } from '@/theme';
+import {
+  validateName,
+  validateDob,
+  validateHeightFeet,
+  validateHeightInches,
+  validateLongText,
+  validateAboutMe,
+  fieldError,
+  HINTS,
+} from '@/utils/validation';
+import { useTheme } from '@/theme';
+import { radius, spacing, typography } from '@/theme';
 import type { RootStackParamList } from '@/navigation/types';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
-const DOB_RE = /^\d{4}-\d{2}-\d{2}$/;
-
 export function CreateProfileScreen() {
   const navigation = useNavigation<Nav>();
+  const { colors } = useTheme();
   const [loading, setLoading] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
 
@@ -46,31 +56,22 @@ export function CreateProfileScreen() {
 
   const errors = useMemo(
     () => ({
-      name: touched.name ? (!name.trim() ? 'Full name is required' : null) : null,
-      dob: touched.dob
-        ? !dob.trim()
-          ? 'Date of birth is required'
-          : !DOB_RE.test(dob.trim())
-            ? 'Use format YYYY-MM-DD (e.g. 1995-06-15)'
-            : null
-        : null,
-      occupation: touched.occupation
-        ? !occupation.trim()
-          ? 'Occupation is required'
-          : null
-        : null,
-      education: touched.education
-        ? education.trim().length > 0 && education.trim().length < 3
-          ? 'Enter a valid education level'
-          : null
-        : null,
-      city: touched.city
-        ? city.trim().length > 0 && city.trim().length < 2
-          ? 'Enter a valid city'
-          : null
-        : null,
+      name: fieldError(name, touched.name, validateName),
+      dob: fieldError(dob, touched.dob, validateDob),
+      heightFeet: fieldError(heightFeet, touched.heightFeet, validateHeightFeet),
+      heightInches: fieldError(heightInches, touched.heightInches, validateHeightInches),
+      education: fieldError(education, touched.education, (v) =>
+        validateLongText(v, 'Education')
+      ),
+      occupation: fieldError(occupation, touched.occupation, (v) =>
+        validateLongText(v, 'Occupation')
+      ),
+      about: fieldError(about, touched.about, validateAboutMe),
+      city: fieldError(city, touched.city, (v) =>
+        v.length < 2 ? 'Enter at least 2 characters' : null
+      ),
     }),
-    [name, dob, occupation, education, city, touched]
+    [name, dob, heightFeet, heightInches, education, occupation, about, city, touched]
   );
 
   const hasErrors = Object.values(errors).some(Boolean);
@@ -88,7 +89,16 @@ export function CreateProfileScreen() {
   };
 
   const submit = async () => {
-    setTouched({ name: true, dob: true, occupation: true });
+    setTouched({
+      name: true,
+      dob: true,
+      heightFeet: true,
+      heightInches: true,
+      education: true,
+      occupation: true,
+      about: true,
+      city: true,
+    });
     if (hasErrors) return;
 
     setServerError(null);
@@ -130,7 +140,7 @@ export function CreateProfileScreen() {
     <Screen>
       <KeyboardAvoidingView
         style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <ScrollView
           contentContainerStyle={styles.content}
@@ -138,8 +148,10 @@ export function CreateProfileScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.header}>
-            <Text style={styles.title}>Create your profile</Text>
-            <Text style={styles.subtitle}>Fill in your details to find the right match</Text>
+            <Text style={[styles.title, { color: colors.ink }]}>Create your profile</Text>
+            <Text style={[styles.subtitle, { color: colors.inkFaint }]}>
+              Fill in your details to find the right match
+            </Text>
           </View>
 
           <Button
@@ -149,17 +161,21 @@ export function CreateProfileScreen() {
             onPress={pickPhoto}
             leftIcon="camera-outline"
           />
-          {photoUri && <Text style={styles.photoHint}>Photo selected</Text>}
+          {photoUri && (
+            <Text style={[styles.photoHint, { color: colors.success }]}>Photo selected</Text>
+          )}
 
-          <Text style={styles.sectionLabel}>Basic info</Text>
+          <Text style={[styles.sectionLabel, { color: colors.inkFaint }]}>Basic info</Text>
           <FormField
             label="Full name"
             value={name}
             onChangeText={setName}
             onBlur={() => touch('name')}
             placeholder="Your name"
+            maxLength={60}
+            count
             error={errors.name}
-            hint="Your display name on the profile"
+            hint={HINTS.name}
           />
 
           <View style={styles.genderRow}>
@@ -186,8 +202,10 @@ export function CreateProfileScreen() {
             onBlur={() => touch('dob')}
             placeholder="YYYY-MM-DD (e.g. 1995-06-15)"
             keyboardType="numbers-and-punctuation"
+            maxLength={10}
+            count
             error={errors.dob}
-            hint="Format: YYYY-MM-DD"
+            hint={HINTS.dob}
           />
 
           <View style={styles.heightRow}>
@@ -195,21 +213,29 @@ export function CreateProfileScreen() {
               label="Feet"
               value={heightFeet}
               onChangeText={setHeightFeet}
+              onBlur={() => touch('heightFeet')}
               keyboardType="number-pad"
               containerStyle={styles.heightInput}
               placeholder="5"
+              error={errors.heightFeet}
+              hint={HINTS.heightFeet}
             />
             <FormField
               label="Inches"
               value={heightInches}
               onChangeText={setHeightInches}
+              onBlur={() => touch('heightInches')}
               keyboardType="number-pad"
               containerStyle={styles.heightInput}
               placeholder="6"
+              error={errors.heightInches}
+              hint={HINTS.heightInches}
             />
           </View>
 
-          <Text style={styles.sectionLabel}>Education & career</Text>
+          <Text style={[styles.sectionLabel, { color: colors.inkFaint }]}>
+            Education & career
+          </Text>
           <FormField
             label="Education"
             value={education}
@@ -217,7 +243,7 @@ export function CreateProfileScreen() {
             onBlur={() => touch('education')}
             placeholder="B.E. Computer Science"
             error={errors.education}
-            hint="Degree or qualification"
+            hint={HINTS.education}
           />
           <FormField
             label="Occupation"
@@ -226,7 +252,7 @@ export function CreateProfileScreen() {
             onBlur={() => touch('occupation')}
             placeholder="Software Engineer"
             error={errors.occupation}
-            hint="Your current job title"
+            hint={HINTS.occupation}
           />
           <FormField
             label="City / State"
@@ -235,38 +261,43 @@ export function CreateProfileScreen() {
             onBlur={() => touch('city')}
             placeholder="Chennai"
             error={errors.city}
-            hint="Where you live"
+            hint={HINTS.city}
           />
 
-          <Text style={styles.sectionLabel}>Lifestyle</Text>
+          <Text style={[styles.sectionLabel, { color: colors.inkFaint }]}>Lifestyle</Text>
           <FormField
             label="Diet"
             value={diet}
             onChangeText={setDiet}
             placeholder="Vegetarian"
-            hint="e.g. Vegetarian, Non-vegetarian, Vegan"
+            hint={HINTS.diet}
           />
           <FormField
             label="Family values"
             value={familyValues}
             onChangeText={setFamilyValues}
             placeholder="Traditional"
-            hint="e.g. Traditional, Moderate, Liberal"
+            hint={HINTS.familyValues}
           />
 
-          <Text style={styles.sectionLabel}>About you</Text>
+          <Text style={[styles.sectionLabel, { color: colors.inkFaint }]}>About you</Text>
           <FormField
             label="About me"
             value={about}
             onChangeText={setAbout}
+            onBlur={() => touch('about')}
             placeholder="Tell others about yourself..."
             multiline
             style={{ minHeight: 80, textAlignVertical: 'top' }}
+            maxLength={2000}
+            count
+            error={errors.about}
+            hint={HINTS.aboutMe}
           />
 
           {serverError && (
-            <View style={styles.errorBox}>
-              <Text style={styles.errorBoxText}>{serverError}</Text>
+            <View style={[styles.errorBox, { backgroundColor: colors.errorSoft }]}>
+              <Text style={[styles.errorBoxText, { color: colors.error }]}>{serverError}</Text>
             </View>
           )}
 
@@ -280,6 +311,7 @@ export function CreateProfileScreen() {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   content: {
+    flexGrow: 1,
     padding: spacing.xl,
     paddingBottom: spacing.xxl,
   },
@@ -288,16 +320,13 @@ const styles = StyleSheet.create({
   },
   title: {
     ...typography.title,
-    color: colors.ink,
   },
   subtitle: {
     ...typography.caption,
-    color: colors.inkFaint,
     marginTop: spacing.xs,
   },
   photoHint: {
     ...typography.caption,
-    color: colors.success,
     marginTop: spacing.xs,
     marginBottom: spacing.sm,
   },
@@ -305,7 +334,6 @@ const styles = StyleSheet.create({
     ...typography.caption,
     fontWeight: '700',
     textTransform: 'uppercase',
-    color: colors.inkFaint,
     marginTop: spacing.lg,
     marginBottom: spacing.sm,
   },
@@ -325,13 +353,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   errorBox: {
-    backgroundColor: colors.errorSoft,
     borderRadius: 10,
     padding: spacing.sm,
     marginBottom: spacing.md,
   },
   errorBoxText: {
     ...typography.caption,
-    color: colors.error,
   },
 });

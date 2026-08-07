@@ -18,7 +18,8 @@ import { authApi } from '@/api/auth';
 import { extractError } from '@/api/client';
 import { useAppDispatch } from '@/store/hooks';
 import { login } from '@/store/authSlice';
-import { colors, radius, spacing, typography } from '@/theme';
+import { useTheme } from '@/theme';
+import { radius, spacing, typography } from '@/theme';
 import type { AuthStackParamList } from '@/navigation/types';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList>;
@@ -31,7 +32,8 @@ export function VerifyOTPScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<OtpRoute>();
   const dispatch = useAppDispatch();
-  const { email, password, username, phone, role, businessName } = route.params;
+  const { colors } = useTheme();
+  const { email, password } = route.params;
 
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [loading, setLoading] = useState(false);
@@ -64,6 +66,7 @@ export function VerifyOTPScreen() {
     const newOtp = [...otp];
     newOtp[index] = text;
     setOtp(newOtp);
+    if (serverError) setServerError(null);
 
     if (text && index < OTP_LENGTH - 1) {
       inputRefs.current[index + 1]?.focus();
@@ -129,8 +132,10 @@ export function VerifyOTPScreen() {
           <View style={styles.successIcon}>
             <Ionicons name="checkmark-circle" size={64} color={colors.success} />
           </View>
-          <Text style={styles.successTitle}>Verified!</Text>
-          <Text style={styles.successHint}>Your account has been verified successfully</Text>
+          <Text style={[styles.successTitle, { color: colors.success }]}>Verified!</Text>
+          <Text style={[styles.successHint, { color: colors.inkSoft }]}>
+            Your account has been verified successfully
+          </Text>
         </View>
       </Screen>
     );
@@ -140,7 +145,7 @@ export function VerifyOTPScreen() {
     <Screen>
       <KeyboardAvoidingView
         style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <ScrollView
           contentContainerStyle={styles.content}
@@ -148,13 +153,13 @@ export function VerifyOTPScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.header}>
-            <View style={styles.iconWrap}>
+            <View style={[styles.iconWrap, { backgroundColor: colors.primarySoft }]}>
               <Ionicons name="mail-open-outline" size={32} color={colors.primary} />
             </View>
-            <Text style={styles.title}>Verify your email</Text>
-            <Text style={styles.subtitle}>
+            <Text style={[styles.title, { color: colors.ink }]}>Verify your email</Text>
+            <Text style={[styles.subtitle, { color: colors.inkSoft }]}>
               We sent a 6-digit code to{'\n'}
-              <Text style={styles.email}>{email}</Text>
+              <Text style={[styles.email, { color: colors.ink }]}>{email}</Text>
             </Text>
           </View>
 
@@ -163,7 +168,11 @@ export function VerifyOTPScreen() {
               <TextInput
                 key={i}
                 ref={(r) => { inputRefs.current[i] = r; }}
-                style={[styles.otpBox, digit ? styles.otpBoxFilled : null]}
+                style={[
+                  styles.otpBox,
+                  { borderColor: colors.border, backgroundColor: colors.surface, color: colors.ink },
+                  digit && { borderColor: colors.primary, backgroundColor: colors.primarySoft },
+                ]}
                 value={digit}
                 onChangeText={(t) => handleOtpChange(t, i)}
                 onKeyPress={({ nativeEvent }) => handleKeyPress(nativeEvent.key, i)}
@@ -175,18 +184,25 @@ export function VerifyOTPScreen() {
           </View>
 
           {serverError && (
-            <View style={styles.errorBox}>
+            <View style={[styles.errorBox, { backgroundColor: colors.errorSoft }]}>
               <Ionicons name="alert-circle" size={16} color={colors.error} />
-              <Text style={styles.errorText}>{serverError}</Text>
+              <Text style={[styles.errorText, { color: colors.error }]}>{serverError}</Text>
             </View>
           )}
 
           <Button title="Verify" onPress={verify} loading={loading} size="lg" />
 
           <View style={styles.resendRow}>
-            <Text style={styles.resendLabel}>Didn't receive the code? </Text>
+            <Text style={[styles.resendLabel, { color: colors.inkSoft }]}>
+              Didn't receive the code?{' '}
+            </Text>
             <Pressable onPress={resend} disabled={cooldown > 0}>
-              <Text style={[styles.resendLink, cooldown > 0 && styles.resendDisabled]}>
+              <Text
+                style={[
+                  styles.resendLink,
+                  { color: cooldown > 0 ? colors.inkFaint : colors.primary },
+                ]}
+              >
                 {cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend code'}
               </Text>
             </Pressable>
@@ -200,6 +216,7 @@ export function VerifyOTPScreen() {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   content: {
+    flexGrow: 1,
     padding: spacing.xl,
     paddingBottom: spacing.xxl,
     alignItems: 'center',
@@ -213,25 +230,21 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: colors.primarySoft,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.md,
   },
   title: {
     ...typography.title,
-    color: colors.ink,
     marginBottom: spacing.xs,
   },
   subtitle: {
     ...typography.body,
-    color: colors.inkSoft,
     textAlign: 'center',
     lineHeight: 20,
   },
   email: {
     fontWeight: '700',
-    color: colors.ink,
   },
   otpRow: {
     flexDirection: 'row',
@@ -243,22 +256,14 @@ const styles = StyleSheet.create({
     height: 56,
     borderRadius: radius.md,
     borderWidth: 2,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
     textAlign: 'center',
     fontSize: 24,
     fontWeight: '700',
-    color: colors.ink,
-  },
-  otpBoxFilled: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primarySoft,
   },
   errorBox: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
-    backgroundColor: colors.errorSoft,
     borderRadius: 10,
     padding: spacing.sm,
     marginBottom: spacing.md,
@@ -266,7 +271,6 @@ const styles = StyleSheet.create({
   },
   errorText: {
     ...typography.caption,
-    color: colors.error,
     flex: 1,
   },
   resendRow: {
@@ -276,15 +280,10 @@ const styles = StyleSheet.create({
   },
   resendLabel: {
     ...typography.body,
-    color: colors.inkSoft,
   },
   resendLink: {
     ...typography.body,
-    color: colors.primary,
     fontWeight: '700',
-  },
-  resendDisabled: {
-    color: colors.inkFaint,
   },
   successWrap: {
     flex: 1,
@@ -297,12 +296,10 @@ const styles = StyleSheet.create({
   },
   successTitle: {
     ...typography.display,
-    color: colors.success,
     marginBottom: spacing.xs,
   },
   successHint: {
     ...typography.body,
-    color: colors.inkSoft,
     textAlign: 'center',
   },
 });

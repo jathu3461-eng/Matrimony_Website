@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -18,9 +18,12 @@ import { extractError } from '@/api/client';
 import {
   validateEmail,
   validatePassword,
+  validateConfirmPassword,
+  fieldError,
   HINTS,
 } from '@/utils/validation';
-import { colors, spacing, typography } from '@/theme';
+import { useTheme } from '@/theme';
+import { radius, spacing, typography } from '@/theme';
 import type { AuthStackParamList } from '@/navigation/types';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList>;
@@ -28,6 +31,7 @@ type Step = 'email' | 'otp' | 'password';
 
 export function ForgotPasswordScreen() {
   const navigation = useNavigation<Nav>();
+  const { colors } = useTheme();
   const [step, setStep] = useState<Step>('email');
   const [loading, setLoading] = useState(false);
 
@@ -41,18 +45,21 @@ export function ForgotPasswordScreen() {
 
   const touch = (f: string) => setTouched((t) => ({ ...t, [f]: true }));
 
-  const emailError = touched.email ? validateEmail(email) : null;
-  const otpError = touched.otp && otp.trim().length < 4 ? 'Enter the 6-digit code' : null;
-  const passwordError = touched.password ? validatePassword(newPassword) : null;
-  const confirmError = touched.confirm
-    ? newPassword !== confirm
-      ? 'Passwords do not match'
-      : null
-    : null;
+  const errors = useMemo(
+    () => ({
+      email: fieldError(email, touched.email, validateEmail),
+      otp: fieldError(otp, touched.otp, (v) => (v.length < 4 ? 'Enter the 6-digit code' : null)),
+      password: fieldError(newPassword, touched.password, validatePassword),
+      confirm: fieldError(confirm, touched.confirm, (v) =>
+        validateConfirmPassword(newPassword, v)
+      ),
+    }),
+    [email, otp, newPassword, confirm, touched]
+  );
 
   const requestOtp = async () => {
     setTouched({ email: true });
-    if (validateEmail(email)) return;
+    if (errors.email) return;
 
     setServerError(null);
     setLoading(true);
@@ -68,7 +75,7 @@ export function ForgotPasswordScreen() {
 
   const verifyOtp = async () => {
     setTouched({ otp: true });
-    if (otp.trim().length < 4) return;
+    if (errors.otp) return;
 
     setServerError(null);
     setLoading(true);
@@ -84,7 +91,7 @@ export function ForgotPasswordScreen() {
 
   const resetPassword = async () => {
     setTouched({ password: true, confirm: true });
-    if (validatePassword(newPassword) || newPassword !== confirm) return;
+    if (errors.password || errors.confirm) return;
 
     setServerError(null);
     setLoading(true);
@@ -117,7 +124,7 @@ export function ForgotPasswordScreen() {
     <Screen>
       <KeyboardAvoidingView
         style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <ScrollView
           contentContainerStyle={styles.content}
@@ -125,11 +132,20 @@ export function ForgotPasswordScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.header}>
-            <Text style={styles.title}>{stepTitle}</Text>
-            <Text style={styles.subtitle}>{stepHint}</Text>
+            <Text style={[styles.title, { color: colors.ink }]}>{stepTitle}</Text>
+            <Text style={[styles.subtitle, { color: colors.inkFaint }]}>{stepHint}</Text>
           </View>
 
-          <View style={styles.card}>
+          <View
+            style={[
+              styles.card,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
+                shadowColor: colors.black,
+              },
+            ]}
+          >
             {step === 'email' && (
               <FormField
                 label="Email"
@@ -139,7 +155,7 @@ export function ForgotPasswordScreen() {
                 placeholder="name@example.com"
                 autoCapitalize="none"
                 keyboardType="email-address"
-                error={emailError}
+                error={errors.email}
                 hint={HINTS.email}
               />
             )}
@@ -153,7 +169,8 @@ export function ForgotPasswordScreen() {
                 placeholder="123456"
                 keyboardType="number-pad"
                 maxLength={6}
-                error={otpError}
+                count
+                error={errors.otp}
                 hint="Enter the 6-digit code from your email"
               />
             )}
@@ -168,7 +185,7 @@ export function ForgotPasswordScreen() {
                   placeholder="Create new password"
                   secure
                   autoCapitalize="none"
-                  error={passwordError}
+                  error={errors.password}
                   hint={HINTS.password}
                 />
                 <FormField
@@ -179,22 +196,26 @@ export function ForgotPasswordScreen() {
                   placeholder="Re-enter password"
                   secure
                   autoCapitalize="none"
-                  error={confirmError}
+                  error={errors.confirm}
                   hint={HINTS.confirm}
                 />
               </>
             )}
 
             {serverError && (
-              <View style={styles.errorBox}>
+              <View style={[styles.errorBox, { backgroundColor: colors.errorSoft }]}>
                 <Ionicons name="alert-circle" size={16} color={colors.error} />
-                <Text style={styles.errorBoxText}>{serverError}</Text>
+                <Text style={[styles.errorBoxText, { color: colors.error }]}>{serverError}</Text>
               </View>
             )}
 
             <Button
               title={
-                step === 'email' ? 'Send Code' : step === 'otp' ? 'Verify Code' : 'Reset Password'
+                step === 'email'
+                  ? 'Send Code'
+                  : step === 'otp'
+                    ? 'Verify Code'
+                    : 'Reset Password'
               }
               onPress={step === 'email' ? requestOtp : step === 'otp' ? verifyOtp : resetPassword}
               loading={loading}
@@ -210,6 +231,7 @@ export function ForgotPasswordScreen() {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   content: {
+    flexGrow: 1,
     padding: spacing.xl,
     paddingBottom: spacing.xxl,
   },
@@ -219,18 +241,15 @@ const styles = StyleSheet.create({
   },
   title: {
     ...typography.title,
-    color: colors.ink,
   },
   subtitle: {
     ...typography.caption,
-    color: colors.inkFaint,
     marginTop: spacing.xs,
   },
   card: {
-    backgroundColor: colors.white,
     borderRadius: 20,
+    borderWidth: 1,
     padding: spacing.lg,
-    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 12,
@@ -240,14 +259,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
-    backgroundColor: colors.errorSoft,
     borderRadius: 10,
     padding: spacing.sm,
     marginBottom: spacing.md,
   },
   errorBoxText: {
     ...typography.caption,
-    color: colors.error,
     flex: 1,
   },
 });
