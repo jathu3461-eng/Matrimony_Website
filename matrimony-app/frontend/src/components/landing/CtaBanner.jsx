@@ -25,7 +25,7 @@ export default function CtaBanner() {
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: '-80px' }}
         transition={{ duration: 0.7, ease: 'easeOut' }}
-        className="glass-cta relative overflow-hidden rounded-[28px] lg:h-[360px]"
+        className="glass-cta relative overflow-hidden rounded-[28px]"
       >
         {/* Animated glow decorations */}
         <motion.div
@@ -44,7 +44,7 @@ export default function CtaBanner() {
         <div className="absolute -right-20 top-1/2 -translate-y-1/2 w-64 h-64 rounded-full border border-white/60 pointer-events-none" />
         <div className="absolute -right-10 top-1/2 -translate-y-1/2 w-40 h-40 rounded-full border border-white/50 pointer-events-none" />
 
-        <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-[45fr_55fr] relative z-10">
+        <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-[1fr_auto] relative z-10">
           {/* ── Left: copy (45%) ── */}
           <div className="order-2 md:order-1 lg:order-1 px-7 pt-2 pb-9 lg:py-10 lg:pl-12 flex flex-col justify-center">
             <motion.span
@@ -113,7 +113,7 @@ export default function CtaBanner() {
           </div>
 
           {/* ── Right: illustration (55%) ── */}
-          <div className="order-1 md:order-2 lg:order-2 relative h-52 sm:h-64 md:h-72 lg:h-full lg:min-h-0 overflow-hidden flex items-center justify-center">
+          <div className="order-1 md:order-2 lg:order-2 relative h-52 sm:h-64 md:h-72 lg:h-auto lg:w-[380px] overflow-hidden flex items-center justify-center shrink-0">
             <img
               src={uploadsUrl('auth-couple.png')}
               alt="Wedding couple"
