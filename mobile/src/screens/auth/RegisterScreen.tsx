@@ -93,7 +93,8 @@ export function RegisterScreen() {
         navigation.navigate('Login');
         return;
       }
-      // Navigate to OTP verification
+      // Navigate to OTP verification (otpSent tells the screen whether the
+      // signup response already triggered the verification email)
       navigation.navigate('VerifyOTP', {
         email: email.trim(),
         password,
@@ -101,6 +102,7 @@ export function RegisterScreen() {
         phone: phone.trim(),
         role,
         ...(role === 'broker' ? { businessName: businessName.trim() } : {}),
+        otpSent: result.verification?.sent ?? false,
       });
     } catch (err) {
       setServerError(extractError(err, 'Unable to create account.'));

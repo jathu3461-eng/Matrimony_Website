@@ -1,69 +1,52 @@
-const tls = require('tls');
+const nodemailer = require('nodemailer');
 
 const SMTP_HOST = process.env.SMTP_HOST || 'smtp.gmail.com';
-const SMTP_PORT = Number(process.env.SMTP_PORT) || 465;
+const SMTP_PORT = Number(process.env.SMTP_PORT) || 587;
+const SMTP_SECURE = process.env.SMTP_SECURE
+  ? process.env.SMTP_SECURE === 'true'
+  : SMTP_PORT === 465;
 const SMTP_USER = process.env.SMTP_USER || '';
 const SMTP_PASS = process.env.SMTP_PASS || '';
 
-function smtpSend({ to, subject, html }) {
-  return new Promise((resolve, reject) => {
-    if (!SMTP_USER || !SMTP_PASS) {
-      return reject(new Error('SMTP not configured'));
-    }
+// Treat example/placeholder credentials as "not configured" so we can fall
+// back to demo mode instead of failing with an opaque auth error.
+function isPlaceholder(value) {
+  return !value || /your(_|\s)/i.test(value);
+}
 
-    const sock = tls.connect({ host: SMTP_HOST, port: SMTP_PORT, rejectUnauthorized: false });
-    let step = 0;
-    let buf = '';
+let transporter = null;
 
-    function send(line) { sock.write(line + '\r\n'); }
+function isMailConfigured() {
+  return Boolean(SMTP_USER) && Boolean(SMTP_PASS) && !isPlaceholder(SMTP_USER) && !isPlaceholder(SMTP_PASS);
+}
 
-    function runStep() {
-      switch (step) {
-        case 0: send('EHLO ' + SMTP_HOST); break;
-        case 1: send('AUTH LOGIN'); break;
-        case 2: send(Buffer.from(SMTP_USER).toString('base64')); break;
-        case 3: send(Buffer.from(SMTP_PASS).toString('base64')); break;
-        case 4: send('MAIL FROM:<' + SMTP_USER + '>'); break;
-        case 5: send('RCPT TO:<' + to + '>'); break;
-        case 6: send('DATA'); break;
-        case 7:
-          send('From: ' + (process.env.SMTP_FROM || SMTP_USER) + '\r\n' +
-               'To: ' + to + '\r\n' +
-               'Subject: ' + subject + '\r\n' +
-               'MIME-Version: 1.0\r\n' +
-               'Content-Type: text/html; charset=UTF-8\r\n' +
-               '\r\n' +
-               html + '\r\n.');
-          break;
-        case 8: send('QUIT'); sock.end(); resolve(); break;
-      }
-    }
-
-    sock.on('data', (data) => {
-      buf += data.toString();
-      if (buf.match(/\r\n$/)) {
-        const code = parseInt(buf.substring(0, 3), 10);
-        buf = '';
-        if (code >= 400 && step !== 0) {
-          sock.destroy();
-          return reject(new Error('SMTP error ' + code));
-        }
-        step++;
-        runStep();
-      }
+function getTransporter() {
+  if (!transporter) {
+    transporter = nodemailer.createTransport({
+      host: SMTP_HOST,
+      port: SMTP_PORT,
+      secure: SMTP_SECURE, // 465 = implicit TLS; 587 uses STARTTLS automatically
+      auth: { user: SMTP_USER, pass: SMTP_PASS },
     });
-
-    sock.on('error', (err) => { reject(err); });
-    sock.on('secure', () => { step = 0; runStep(); });
-  });
+  }
+  return transporter;
 }
 
 async function sendMail({ to, subject, html }) {
+  if (!isMailConfigured()) {
+    console.warn('[email] SMTP is not configured — set SMTP_USER / SMTP_PASS in backend/.env');
+    return false;
+  }
   try {
-    await smtpSend({ to, subject, html });
+    await getTransporter().sendMail({
+      from: process.env.SMTP_FROM || SMTP_USER,
+      to,
+      subject,
+      html,
+    });
     return true;
   } catch (err) {
-    console.error('Email send failed:', err.message);
+    console.error('[email] Send failed:', err.message);
     return false;
   }
 }
@@ -75,7 +58,7 @@ function otpEmailTemplate(otp) {
     '<h2 style="color:#e0136a;margin:8px 0 0;">Mukurtham Matrimony</h2>' +
     '</div>' +
     '<h3 style="color:#1e1e2d;text-align:center;margin-bottom:8px;">Your Verification Code</h3>' +
-    '<p style="color:#666;text-align:center;font-size:14px;">Use the code below to reset your password. It expires in 10 minutes.</p>' +
+    '<p style="color:#666;text-align:center;font-size:14px;">Use the code below to verify your account. It expires in 30 minutes.</p>' +
     '<div style="text-align:center;margin:28px 0;">' +
     '<span style="display:inline-block;font-size:36px;font-weight:800;letter-spacing:12px;color:#e0136a;background:#fdf2f7;padding:16px 32px;border-radius:12px;">' + otp + '</span>' +
     '</div>' +
@@ -113,4 +96,4 @@ function unbannedEmailTemplate() {
     '</div>';
 }
 
-module.exports = { sendMail, otpEmailTemplate, bannedEmailTemplate, unbannedEmailTemplate };
+module.exports = { sendMail, isMailConfigured, otpEmailTemplate, bannedEmailTemplate, unbannedEmailTemplate };
