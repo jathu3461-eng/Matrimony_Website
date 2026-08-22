@@ -14,7 +14,7 @@ const {
 } = require('../middleware/auth');
 const { rateLimit, clientIp } = require('../middleware/rateLimit');
 const { logAdminLogin } = require('../utils/adminLogger');
-const { sendMail, isMailConfigured, otpEmailTemplate } = require('../utils/email');
+const { sendMail, otpEmailTemplate } = require('../utils/email');
 
 const router = express.Router();
 
@@ -50,27 +50,6 @@ function validateSignup(body) {
   return errors;
 }
 
-// Generates a 6-digit OTP, persists it, and emails it to the user.
-// Returns { sent } plus a demo_otp in non-production when SMTP is not
-// configured, so local testing still works without email credentials.
-async function issueSignupOtp(user) {
-  const otp = crypto.randomInt(100000, 999999).toString();
-  const expires = String(Date.now() + 30 * 60 * 1000);
-  await db.run('UPDATE users SET reset_otp = ?, reset_otp_expires = ? WHERE id = ?', [otp, expires, user.id]);
-
-  const emailSent = await sendMail({
-    to: user.email,
-    subject: 'Mukurtham Matrimony — Email Verification Code',
-    html: otpEmailTemplate(otp),
-  });
-
-  const result = { sent: Boolean(emailSent) };
-  if (!emailSent && !isMailConfigured() && process.env.NODE_ENV !== 'production') {
-    result.demo_otp = otp;
-  }
-  return result;
-}
-
 // POST /api/auth/signup
 router.post('/signup', async (req, res) => {
   try {
@@ -99,15 +78,11 @@ router.post('/signup', async (req, res) => {
 
     const user = await db.get('SELECT * FROM users WHERE id = ?', [info.lastInsertRowid]);
 
-    // Send the email verification code immediately so the OTP screen has a
-    // real code waiting — previously no email was ever sent on signup.
-    const verification = await issueSignupOtp(user);
-
     if (role === 'regular') {
       setAuthCookie(res, user);
-      return res.status(201).json({ user: sanitize(user), status: 'active', verification });
+      return res.status(201).json({ user: sanitize(user), status: 'active' });
     }
-    return res.status(201).json({ status: 'pending_approval', message: 'Account Created. Waiting for Email Verification & Admin Approval', verification });
+    return res.status(201).json({ status: 'pending_approval', message: 'Account Created. Waiting for Email Verification & Admin Approval' });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });
@@ -385,9 +360,18 @@ router.post('/signup/verify/request', async (req, res) => {
       return res.status(400).json({ errors: { email: 'Email is already verified' } });
     }
 
-    const result = await issueSignupOtp(user);
-    if (!result.sent) {
-      return res.status(500).json({ error: 'Could not send verification email. Please try again later.', ...(result.demo_otp ? { demo_otp: result.demo_otp } : {}) });
+    const otp = crypto.randomInt(100000, 999999).toString();
+    const expires = String(Date.now() + 30 * 60 * 1000);
+    await db.run('UPDATE users SET reset_otp = ?, reset_otp_expires = ? WHERE id = ?', [otp, expires, user.id]);
+
+    const emailSent = await sendMail({
+      to: user.email,
+      subject: 'Mukurtham Matrimony — Email Verification Code',
+      html: otpEmailTemplate(otp),
+    }).catch(() => false);
+
+    if (!emailSent) {
+      return res.status(500).json({ error: 'Could not send verification email. Please try again later.' });
     }
     res.json({ message: 'Verification code sent to your email' });
   } catch (err) {

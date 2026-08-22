@@ -21,7 +21,6 @@ interface SignupResult {
   user?: User;
   status?: 'active' | 'pending_approval';
   message?: string;
-  verification?: { sent: boolean; demo_otp?: string };
 }
 
 export const authApi = {

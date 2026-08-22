@@ -11,7 +11,6 @@ export type AuthStackParamList = {
     phone: string;
     role: 'regular' | 'broker';
     businessName?: string;
-    otpSent?: boolean;
   };
 };
 

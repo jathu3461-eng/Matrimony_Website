@@ -33,7 +33,7 @@ export function VerifyOTPScreen() {
   const route = useRoute<OtpRoute>();
   const dispatch = useAppDispatch();
   const { colors } = useTheme();
-  const { email, password, otpSent } = route.params;
+  const { email, password } = route.params;
 
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [loading, setLoading] = useState(false);
@@ -48,16 +48,6 @@ export function VerifyOTPScreen() {
     const timer = setInterval(() => setCooldown((c) => c - 1), 1000);
     return () => clearInterval(timer);
   }, [cooldown]);
-
-  // Signup only marks the code as sent when the email actually went out.
-  // If it didn't (or this screen was opened directly), request it now.
-  useEffect(() => {
-    if (otpSent) return;
-    authApi.requestSignupOtp(email).catch((err) => {
-      setServerError(extractError(err, 'Could not send the code. Tap "Resend code" to try again.'));
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const handleOtpChange = (text: string, index: number) => {
     if (text.length > 1) {
