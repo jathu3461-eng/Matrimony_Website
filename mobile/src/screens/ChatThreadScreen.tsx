@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import {
   FlatList,
   Keyboard,
-  KeyboardAvoidingView,
   Platform,
   Pressable,
   StyleSheet,
@@ -34,7 +33,7 @@ export function ChatThreadScreen() {
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [inputHeight, setInputHeight] = useState(44);
   const flatListRef = useRef<FlatList>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -53,24 +52,11 @@ export function ChatThreadScreen() {
       ? profileB
       : profileA;
 
-  useEffect(() => {
-    const showSub = Keyboard.addListener(
-      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
-      (e) => setKeyboardHeight(e.endCoordinates.height),
-    );
-    const hideSub = Keyboard.addListener(
-      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
-      () => setKeyboardHeight(0),
-    );
-    return () => { showSub.remove(); hideSub.remove(); };
-  }, []);
-
   const loadMessages = async () => {
     try {
       const data = await chatApi.history(profileA, profileB);
       setMessages(data);
     } catch {
-      // keep stale messages
     } finally {
       setLoading(false);
     }
@@ -85,18 +71,27 @@ export function ChatThreadScreen() {
   }, [profileA, profileB]);
 
   const scrollToBottom = () => {
-    setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
+    setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 50);
   };
 
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
+  useEffect(() => {
+    const showSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      () => scrollToBottom(),
+    );
+    return () => { showSub.remove(); };
+  }, []);
+
   const sendMessage = async () => {
     const trimmed = text.trim();
     if (!trimmed || sending) return;
     setSending(true);
     setText('');
+    setInputHeight(44);
     try {
       const msg = await chatApi.send(profileA, profileB, trimmed, senderProfileId);
       setMessages((prev) => [...prev, msg]);
@@ -116,64 +111,69 @@ export function ChatThreadScreen() {
   if (loading) return <Spinner />;
 
   return (
-    <View style={[styles.flex, { backgroundColor: colors.background }]}>
-      <FlatList
-        ref={flatListRef}
-        data={messages}
-        keyExtractor={(item) => String(item.id)}
-        contentContainerStyle={[
-          styles.list,
-          { paddingBottom: keyboardHeight > 0 ? 8 : spacing.md },
-        ]}
-        onContentSizeChange={scrollToBottom}
-        onLayout={scrollToBottom}
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="interactive"
-        renderItem={({ item }) => {
-          const isMe = Number(item.sender_profile_id) === Number(senderProfileId);
-          return (
-            <View
-              style={[
-                styles.bubble,
-                isMe
-                  ? [styles.bubbleMe, { backgroundColor: colors.primary }]
-                  : [styles.bubbleOther, { backgroundColor: colors.surface, borderColor: colors.border }],
-              ]}
-            >
-              <Text style={[styles.bubbleText, isMe ? { color: colors.white } : { color: colors.ink }]}>
-                {item.message}
-              </Text>
-              <Text
-                style={[styles.bubbleTime, isMe ? { color: colors.white } : { color: colors.inkFaint }]}
+    <View style={[styles.root, { backgroundColor: colors.background }]}>
+      <View style={styles.chatArea}>
+        <FlatList
+          ref={flatListRef}
+          data={messages}
+          keyExtractor={(item) => String(item.id)}
+          contentContainerStyle={styles.list}
+          onContentSizeChange={scrollToBottom}
+          onLayout={scrollToBottom}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+          renderItem={({ item }) => {
+            const isMe = Number(item.sender_profile_id) === Number(senderProfileId);
+            return (
+              <View
+                style={[
+                  styles.bubble,
+                  isMe
+                    ? [styles.bubbleMe, { backgroundColor: colors.primary }]
+                    : [styles.bubbleOther, { backgroundColor: colors.surface, borderColor: colors.border }],
+                ]}
               >
-                {formatTime(item.sent_at)}
-              </Text>
-            </View>
-          );
-        }}
-        ListEmptyComponent={
-          <Text style={[styles.empty, { color: colors.inkFaint }]}>No messages yet. Say hello!</Text>
-        }
-      />
+                <Text style={[styles.bubbleText, isMe ? { color: colors.white } : { color: colors.ink }]}>
+                  {item.message}
+                </Text>
+                <Text
+                  style={[styles.bubbleTime, isMe ? { color: 'rgba(255,255,255,0.7)' } : { color: colors.inkFaint }]}
+                >
+                  {formatTime(item.sent_at)}
+                </Text>
+              </View>
+            );
+          }}
+          ListEmptyComponent={
+            <Text style={[styles.empty, { color: colors.inkFaint }]}>No messages yet. Say hello!</Text>
+          }
+        />
+      </View>
 
-      <View
-        style={[
-          styles.inputRow,
-          {
-            borderTopColor: colors.border,
-            backgroundColor: colors.surface,
-            paddingBottom: Platform.OS === 'ios' ? spacing.sm : spacing.sm,
-          },
-        ]}
-      >
+      <View style={[styles.inputBar, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
+        <Pressable style={styles.emojiBtn}>
+          <Ionicons name="happy-outline" size={24} color={colors.inkFaint} />
+        </Pressable>
         <TextInput
-          style={[styles.input, { borderColor: colors.border, color: colors.ink, backgroundColor: colors.background }]}
+          style={[
+            styles.input,
+            {
+              borderColor: colors.border,
+              color: colors.ink,
+              backgroundColor: colors.background,
+              height: Math.max(44, inputHeight),
+            },
+          ]}
           placeholder="Type a message..."
           placeholderTextColor={colors.inkFaint}
           value={text}
           onChangeText={setText}
           multiline
           maxLength={2000}
+          onContentSizeChange={(e) => {
+            const h = Math.min(e.nativeEvent.contentSize.height, 100);
+            setInputHeight(Math.max(44, h));
+          }}
           onFocus={scrollToBottom}
         />
         <Pressable
@@ -181,15 +181,16 @@ export function ChatThreadScreen() {
           disabled={!text.trim() || sending}
           style={({ pressed }) => [
             styles.sendBtn,
-            { backgroundColor: colors.primary },
-            (!text.trim() || sending) && { backgroundColor: colors.border },
+            {
+              backgroundColor: text.trim() ? colors.primary : colors.border,
+            },
             pressed && { opacity: 0.8 },
           ]}
         >
           <Ionicons
-            name="send"
+            name={text.trim() ? 'send' : 'mic'}
             size={20}
-            color={!text.trim() || sending ? colors.inkFaint : colors.white}
+            color={text.trim() ? colors.white : colors.inkFaint}
           />
         </Pressable>
       </View>
@@ -198,10 +199,17 @@ export function ChatThreadScreen() {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1 },
+  root: {
+    flex: 1,
+  },
+  chatArea: {
+    flex: 1,
+  },
   list: {
     padding: spacing.md,
     paddingBottom: spacing.sm,
+    flexGrow: 1,
+    justifyContent: 'flex-end',
   },
   bubble: {
     maxWidth: '78%',
@@ -228,26 +236,34 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-end',
     opacity: 0.75,
   },
-  inputRow: {
+  inputBar: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    gap: spacing.sm,
-    padding: spacing.sm,
-    borderTopWidth: 1,
+    gap: spacing.xs,
+    paddingHorizontal: spacing.sm,
+    paddingTop: spacing.xs,
+    paddingBottom: spacing.sm,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  emojiBtn: {
+    width: 36,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   input: {
     flex: 1,
     borderWidth: 1,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.md,
+    borderRadius: 22,
+    paddingHorizontal: 16,
     paddingVertical: 10,
     fontSize: typography.body.fontSize,
     maxHeight: 100,
   },
   sendBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
   },
