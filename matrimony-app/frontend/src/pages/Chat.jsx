@@ -61,10 +61,10 @@ function formatLastSeen(ts) {
 
 function MessageStatus({ msg }) {
   let icon = null;
-  let cls = "text-[var(--ink-faint)]";
+  let cls = "text-white/60";
   if (msg._error) {
     return (
-      <span className="inline-flex items-center gap-1 text-[var(--error)]" title="Not delivered — tap to retry">
+      <span className="inline-flex items-center gap-1 text-red-300" title="Not delivered — tap to retry">
         <RefreshCw className="w-3.5 h-3.5" aria-hidden="true" />
       </span>
     );
@@ -73,7 +73,7 @@ function MessageStatus({ msg }) {
     icon = <Clock className="w-3.5 h-3.5" aria-hidden="true" />;
   } else if (msg.read_at) {
     icon = <CheckCheck className="w-3.5 h-3.5" aria-hidden="true" />;
-    cls = "text-[var(--primary)]";
+    cls = "text-[#4FC3F7]";
   } else if (msg.delivered_at) {
     icon = <CheckCheck className="w-3.5 h-3.5" aria-hidden="true" />;
   } else {
@@ -89,7 +89,6 @@ function MessageStatus({ msg }) {
 export default function Chat() {
   const { user } = useAuth();
   const {
-    socket,
     connected,
     threads,
     onlineUsers,
@@ -118,6 +117,7 @@ export default function Chat() {
 
   const bottomRef = useRef(null);
   const scrollRef = useRef(null);
+  const inputRef = useRef(null);
   const activeThreadRef = useRef(null);
   const myProfileIdRef = useRef(null);
   const messagesRef = useRef([]);
@@ -126,6 +126,7 @@ export default function Chat() {
   const typingTimerRef = useRef(null);
   const openKeyRef = useRef(null);
   const nearBottomRef = useRef(true);
+  const chatContainerRef = useRef(null);
 
   myProfileIdRef.current = myProfileId;
   messagesRef.current = messages;
@@ -151,6 +152,36 @@ export default function Chat() {
     (msg) => myProfileIds.some((id) => id === msg.sender_profile_id),
     [myProfileIds]
   );
+
+  // ── Mobile keyboard handling via visualViewport ───────────────────────
+  useEffect(() => {
+    const container = chatContainerRef.current;
+    if (!container) return;
+
+    const updateViewport = () => {
+      if (window.visualViewport) {
+        const vp = window.visualViewport;
+        container.style.setProperty("--chat-vv-height", `${vp.height}px`);
+        container.style.setProperty("--chat-vv-offset", `${vp.offsetTop}px`);
+      }
+    };
+
+    const vv = window.visualViewport;
+    if (vv) {
+      vv.addEventListener("resize", updateViewport);
+      vv.addEventListener("scroll", updateViewport);
+    }
+    window.addEventListener("resize", updateViewport);
+    updateViewport();
+
+    return () => {
+      if (vv) {
+        vv.removeEventListener("resize", updateViewport);
+        vv.removeEventListener("scroll", updateViewport);
+      }
+      window.removeEventListener("resize", updateViewport);
+    };
+  }, []);
 
   // Load my profiles once (needed to pick the sender identity).
   useEffect(() => {
@@ -239,7 +270,6 @@ export default function Chat() {
     const onMessage = (msg) => {
       const cur = activeThreadRef.current;
       if (!cur || msg.thread_id !== cur.thread_id) return;
-      // My own message from another device / ack echo → replace the optimistic one.
       const known = new Set(messagesRef.current.map((m) => m.id));
       if (known.has(msg.id)) return;
       setMessages((prev) => {
@@ -247,7 +277,6 @@ export default function Chat() {
         return [...withoutTemp, msg];
       });
       setTypingName(null);
-      // The receiver marks the thread as read immediately while it's open.
       markThreadRead({ profileA: cur.sender_profile_id, profileB: cur.receiver_profile_id });
       requestAnimationFrame(() => {
         const el = scrollRef.current;
@@ -441,22 +470,31 @@ export default function Chat() {
   const otherLastSeen = other ? onlineUsers[String(other.otherUserId)]?.lastSeen : null;
 
   return (
-    <div className="h-[100dvh] flex flex-col">
-      <div className="px-5 py-3 flex items-center gap-3 border-b border-[var(--border)] grad-primary shrink-0">
-        <button onClick={() => navigate("/dashboard")} className="text-white/80 hover:text-white text-xl font-bold mr-1" aria-label="Back to dashboard">
-          ←
+    <div ref={chatContainerRef} className="chat-root">
+      {/* ══════ TOP HEADER — Pink gradient ══════ */}
+      <header className="chat-top-header">
+        <button
+          onClick={() => navigate("/dashboard")}
+          className="chat-top-back"
+          aria-label="Back to dashboard"
+        >
+          <ArrowLeft className="w-5 h-5" />
         </button>
-        <MessagesSquare className="w-6 h-6 text-white" aria-hidden="true" />
-        <div className="flex-1">
-          <h1 className="text-white font-extrabold text-lg leading-tight">Messages</h1>
-          <p className="text-white/70 text-xs">
+        <div className="chat-top-icon">
+          <MessagesSquare className="w-6 h-6 text-white" />
+        </div>
+        <div className="chat-top-title">
+          <h1>Messages</h1>
+          <p>
             {connected ? (
-              <span className="inline-flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-300" /> Connected
+              <span className="chat-status-connected">
+                <span className="chat-status-dot-green" />
+                Connected
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-white/50 animate-pulse" /> Reconnecting…
+              <span className="chat-status-disconnected">
+                <span className="chat-status-dot-pulse" />
+                Reconnecting…
               </span>
             )}
           </p>
@@ -464,36 +502,37 @@ export default function Chat() {
         <button
           type="button"
           onClick={toggleSound}
-          className="text-white/80 hover:text-white p-2 rounded-full hover:bg-white/10 transition-colors"
+          className="chat-top-sound-btn"
           aria-label={soundEnabled ? "Mute message sounds" : "Enable message sounds"}
         >
-          {soundEnabled ? <Volume2 className="w-5 h-5" aria-hidden="true" /> : <VolumeX className="w-5 h-5" aria-hidden="true" />}
+          {soundEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
         </button>
-      </div>
+      </header>
 
-      <div className="flex flex-1 overflow-hidden" style={{ minHeight: 0 }}>
-        {/* Conversation list */}
+      {/* ══════ MAIN CONTENT ══════ */}
+      <div className="chat-main">
+        {/* ── Sidebar: Conversation list ── */}
         <aside
-          className={`shrink-0 border-r border-[var(--border)] bg-[var(--surface-glass)] flex-col overflow-hidden ${activeThread ? "hidden md:flex" : "flex"} w-full md:w-80`}
+          className={`chat-sidebar ${activeThread ? "chat-sidebar-hidden-mobile" : "chat-sidebar-show-mobile"}`}
         >
-          <div className="p-4 border-b border-[var(--border)] shrink-0">
-            <h2 className="font-bold text-[var(--ink)] text-sm">Your Chats</h2>
-            <p className="text-xs text-[var(--ink-faint)] mt-0.5">
+          <div className="chat-sidebar-header">
+            <h2>Your Chats</h2>
+            <p>
               {threads.length} {threads.length === 1 ? "connection" : "connections"}
             </p>
           </div>
 
           {threads.length === 0 ? (
-            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+            <div className="chat-sidebar-empty">
               <div className="text-5xl mb-3">💌</div>
-              <h3 className="font-bold text-[var(--ink)] text-sm mb-1">No chats yet</h3>
-              <p className="text-xs text-[var(--ink-faint)] mb-4">Chat unlocks when someone accepts your interest</p>
+              <h3>No chats yet</h3>
+              <p>Chat unlocks when someone accepts your interest</p>
               <Link to="/search">
                 <Button size="sm">Browse Profiles</Button>
               </Link>
             </div>
           ) : (
-            <div className="flex-1 overflow-y-auto">
+            <div className="chat-sidebar-list">
               {threads.map((thread) => {
                 const side = otherSide(thread);
                 const online = !!onlineUsers[String(side.otherUserId)]?.online;
@@ -503,30 +542,28 @@ export default function Chat() {
                     key={thread.thread_id}
                     whileHover={{ x: 2 }}
                     onClick={() => openThread(thread)}
-                    className={`w-full flex items-center gap-3 p-4 border-b border-[var(--border)] text-left transition-colors ${
-                      active ? "bg-[var(--primary-soft)] border-l-4 border-l-[var(--primary)]" : "hover:bg-[var(--primary-soft)]/60"
-                    }`}
+                    className={`chat-thread-item ${active ? "chat-thread-item-active" : ""}`}
                   >
-                    <div className="relative shrink-0">
-                      <div className="w-11 h-11 rounded-full flex items-center justify-center text-lg font-bold text-white shadow-md grad-primary">
+                    <div className="chat-thread-avatar-wrap">
+                      <div className="chat-thread-avatar">
                         {side.otherName?.[0]?.toUpperCase() || "?"}
                       </div>
-                      {online && (
-                        <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-[var(--success)] border-2 border-white" aria-label="Online" />
-                      )}
+                      {online && <span className="chat-thread-online-dot" aria-label="Online" />}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="font-bold text-[var(--ink)] text-sm truncate">{side.otherName}</p>
-                        {thread.last_at && <span className="text-[10px] text-[var(--ink-faint)] shrink-0">{formatListDate(thread.last_at)}</span>}
+                    <div className="chat-thread-info">
+                      <div className="chat-thread-info-top">
+                        <p className="chat-thread-name">{side.otherName}</p>
+                        {thread.last_at && <span className="chat-thread-date">{formatListDate(thread.last_at)}</span>}
                       </div>
-                      <div className="flex items-center gap-1">
+                      <div className="chat-thread-info-bottom">
                         {thread.unread_count === 0 && thread.last_message && myProfileIds.includes(thread.last_sender_profile_id) && (
-                          <MessageStatus msg={{ delivered_at: true }} />
+                          <span className="chat-thread-tick-sent">
+                            <CheckCheck className="w-3.5 h-3.5" />
+                          </span>
                         )}
-                        <p className={`text-xs truncate mt-0.5 flex-1 ${thread.unread_count > 0 ? "text-[var(--ink)] font-semibold" : "text-[var(--ink-faint)]"}`}>
+                        <p className={`chat-thread-preview ${thread.unread_count > 0 ? "chat-thread-preview-unread" : ""}`}>
                           {typingThreads[thread.thread_id] ? (
-                            <span className="text-[var(--primary)] font-semibold">{typingThreads[thread.thread_id]} is typing…</span>
+                            <span className="chat-thread-typing">{typingThreads[thread.thread_id]} is typing…</span>
                           ) : (
                             thread.last_message || "No messages yet — say hello!"
                           )}
@@ -534,7 +571,7 @@ export default function Chat() {
                       </div>
                     </div>
                     {thread.unread_count > 0 && (
-                      <span className="w-5 h-5 rounded-full grad-primary text-white text-[9px] font-extrabold flex items-center justify-center shrink-0">
+                      <span className="chat-thread-unread-badge">
                         {thread.unread_count}
                       </span>
                     )}
@@ -545,54 +582,62 @@ export default function Chat() {
           )}
         </aside>
 
-        {/* Chat pane */}
-        <main className={`flex-1 flex-col ${!activeThread ? "hidden md:flex" : "flex"} min-w-0`}>
+        {/* ── Chat pane ── */}
+        <main className={`chat-pane ${!activeThread ? "chat-pane-hidden-mobile" : "chat-pane-show-mobile"}`}>
           {!activeThread || !other ? (
-            <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
+            <div className="chat-empty-state">
               <div className="text-7xl mb-4">💬</div>
-              <h3 className="font-bold text-[var(--ink)] text-lg mb-2">Select a conversation</h3>
-              <p className="text-sm text-[var(--ink-faint)]">Choose from your accepted connections on the left</p>
+              <h3>Select a conversation</h3>
+              <p>Choose from your accepted connections on the left</p>
             </div>
           ) : (
             <>
-              <div className="flex items-center gap-3 p-4 border-b border-[var(--border)] bg-[var(--surface-glass)] shrink-0">
-                <button onClick={closeThread} className="md:hidden text-[var(--ink-faint)] text-xl" aria-label="Back to conversations">
+              {/* ── Conversation header ── */}
+              <div className="chat-conv-header">
+                <button onClick={closeThread} className="chat-conv-back-mobile" aria-label="Back to conversations">
                   <ArrowLeft className="w-5 h-5" />
                 </button>
-                <div className="relative shrink-0">
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold shadow grad-primary">
+                <div className="chat-conv-avatar-wrap">
+                  <div className="chat-conv-avatar">
                     {other.otherName?.[0]?.toUpperCase()}
                   </div>
-                  {isOnline && <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-[var(--success)] border-2 border-white" aria-label="Online" />}
+                  {isOnline && <span className="chat-conv-online-dot" aria-label="Online" />}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-bold text-[var(--ink)] text-sm truncate">{other.otherName}</p>
-                  <p className={`text-xs font-semibold ${isOnline ? "text-[var(--success)]" : "text-[var(--ink-faint)]"}`}>
-                    {typingName ? <span className="text-[var(--primary)]">typing…</span> : isOnline ? "Online" : otherLastSeen ? formatLastSeen(otherLastSeen) : "Offline"}
+                <div className="chat-conv-info">
+                  <p className="chat-conv-name">{other.otherName}</p>
+                  <p className={`chat-conv-status ${isOnline ? "chat-conv-status-online" : ""}`}>
+                    {typingName ? (
+                      <span className="chat-conv-typing">typing…</span>
+                    ) : isOnline ? (
+                      "Online"
+                    ) : otherLastSeen ? (
+                      formatLastSeen(otherLastSeen)
+                    ) : (
+                      "Offline"
+                    )}
                   </p>
                 </div>
-                <Link to={`/profile/${other.otherProfileId}`}>
-                  <Button size="sm" variant="soft">
-                    View Profile
-                  </Button>
+                <Link to={`/profile/${other.otherProfileId}`} className="chat-conv-view-profile">
+                  View Profile
                 </Link>
               </div>
 
-              <div ref={scrollRef} onScroll={onScroll} className="flex-1 overflow-y-auto p-4 flex flex-col gap-1" style={{ minHeight: 0 }}>
+              {/* ── Messages area ── */}
+              <div ref={scrollRef} onScroll={onScroll} className="chat-messages-area">
                 {loadingOlder && (
-                  <div className="flex justify-center py-2">
+                  <div className="chat-loading-older">
                     <Spinner className="w-4 h-4" label="" />
                   </div>
                 )}
                 {loadingMsgs ? (
-                  <div className="flex-1 flex items-center justify-center">
+                  <div className="chat-loading-initial">
                     <Spinner label="Loading messages…" />
                   </div>
                 ) : messages.length === 0 ? (
-                  <div className="flex-1 flex flex-col items-center justify-center text-center py-12">
+                  <div className="chat-empty-conversation">
                     <div className="text-5xl mb-3">👋</div>
-                    <p className="font-bold text-[var(--ink)] text-sm mb-1">Start the conversation!</p>
-                    <p className="text-xs text-[var(--ink-faint)]">Say hello to {other.otherName}</p>
+                    <p>Start the conversation!</p>
+                    <p>Say hello to {other.otherName}</p>
                   </div>
                 ) : (
                   <AnimatePresence initial={false}>
@@ -600,38 +645,35 @@ export default function Chat() {
                       const mine = isMine(msg);
                       const prevMsg = messages[idx - 1];
                       const showDate = idx === 0 || formatDate(prevMsg?.sent_at) !== formatDate(msg.sent_at);
-                      const bubbleColor = mine ? { background: "linear-gradient(135deg,#f43f5e,#ec4899)" } : {};
                       return (
                         <div key={msg.id || msg.client_id || idx}>
                           {showDate && (
-                            <div className="flex items-center gap-3 my-3">
-                              <div className="flex-1 h-px bg-[var(--border)]" />
-                              <span className="text-[10px] text-[var(--ink-faint)] font-semibold px-2">{formatDate(msg.sent_at)}</span>
-                              <div className="flex-1 h-px bg-[var(--border)]" />
+                            <div className="chat-date-separator">
+                              <span>{formatDate(msg.sent_at)}</span>
                             </div>
                           )}
                           <motion.div
                             initial={{ opacity: 0, y: 6 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className={`flex ${mine ? "justify-end" : "justify-start"}`}
+                            className={`chat-bubble-row ${mine ? "chat-bubble-row-out" : "chat-bubble-row-in"}`}
                           >
-                            <div className={`max-w-[70%] flex flex-col gap-0.5 ${mine ? "items-end" : "items-start"}`}>
+                            <div className={`chat-bubble-col ${mine ? "chat-bubble-col-out" : "chat-bubble-col-in"}`}>
                               <div
-                                className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed shadow-sm break-words ${
-                                  mine ? "text-white rounded-br-sm" : "bg-[var(--surface)] text-[var(--ink)] border border-[var(--border)] rounded-bl-sm"
-                                } ${msg._temp && !msg._error ? "opacity-60" : ""} ${msg._error ? "opacity-80" : ""}`}
-                                style={mine ? bubbleColor : {}}
+                                className={`chat-bubble ${mine ? "chat-bubble-out" : "chat-bubble-in"} ${
+                                  msg._temp && !msg._error ? "opacity-60" : ""
+                                } ${msg._error ? "opacity-80" : ""}`}
                               >
                                 {msg.message}
                               </div>
-                              <span className="text-[10px] text-[var(--ink-faint)] px-1 inline-flex items-center gap-1">
-                                {formatTime(msg.sent_at)} {mine && <MessageStatus msg={msg} />}
+                              <span className={`chat-bubble-time ${mine ? "chat-bubble-time-out" : "chat-bubble-time-in"}`}>
+                                {formatTime(msg.sent_at)}
+                                {mine && <MessageStatus msg={msg} />}
                               </span>
                               {msg._error && (
                                 <button
                                   type="button"
                                   onClick={() => retrySend(msg)}
-                                  className="text-[10px] text-[var(--error)] font-bold underline"
+                                  className="chat-retry-btn"
                                 >
                                   Not sent — tap to retry
                                 </button>
@@ -646,7 +688,8 @@ export default function Chat() {
                 <div ref={bottomRef} />
               </div>
 
-              <form onSubmit={handleSend} className="p-3 border-t border-[var(--border)] bg-[var(--surface-glass)] flex items-center gap-2 shrink-0">
+              {/* ── Message composer ── */}
+              <form onSubmit={handleSend} className="chat-composer">
                 {myProfiles.length > 1 && (
                   <select
                     value={myProfileId || ""}
@@ -654,7 +697,7 @@ export default function Chat() {
                       setMyProfileId(Number(e.target.value));
                       setTypingLocal(false);
                     }}
-                    className="input-base text-xs !w-auto px-2 py-2"
+                    className="chat-composer-profile-select"
                     aria-label="Send as"
                   >
                     {myProfiles.map((p) => (
@@ -664,25 +707,30 @@ export default function Chat() {
                     ))}
                   </select>
                 )}
-                <input
-                  type="text"
-                  value={newMsg}
-                  onChange={onInputChange}
-                  placeholder="Type a message…"
-                  maxLength={2000}
-                  className="input-base flex-1 !py-3"
-                  style={{ minWidth: 0 }}
-                  aria-label="Message"
-                />
-                <Button
+                <div className="chat-composer-input-wrap">
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    value={newMsg}
+                    onChange={onInputChange}
+                    placeholder="Type a message…"
+                    maxLength={2000}
+                    className="chat-composer-input"
+                    aria-label="Message"
+                  />
+                </div>
+                <button
                   type="submit"
                   disabled={!newMsg.trim() || sending}
-                  loading={sending}
-                  ariaLabel="Send message"
-                  className="!w-11 !h-11 !p-0 !rounded-2xl shrink-0"
+                  className="chat-composer-send"
+                  aria-label="Send message"
                 >
-                  <Send className="w-4 h-4" aria-hidden="true" />
-                </Button>
+                  {sending ? (
+                    <Spinner className="w-5 h-5 text-white" label="" />
+                  ) : (
+                    <Send className="w-5 h-5" />
+                  )}
+                </button>
               </form>
             </>
           )}
