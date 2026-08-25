@@ -66,7 +66,7 @@ export function ChatThreadScreen() {
 
   useEffect(() => {
     loadMessages();
-    pollRef.current = setInterval(loadMessages, 5000);
+    pollRef.current = setInterval(loadMessages, 15000);
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
     };
@@ -97,7 +97,7 @@ export function ChatThreadScreen() {
   return (
     <KeyboardAvoidingView
       style={[styles.flex, { backgroundColor: colors.background }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
       <View style={styles.flex}>

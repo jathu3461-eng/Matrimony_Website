@@ -288,7 +288,7 @@ export function CreateProfileScreen() {
             onBlur={() => touch('about')}
             placeholder="Tell others about yourself..."
             multiline
-            style={{ minHeight: 80, textAlignVertical: 'top' }}
+            style={styles.aboutInput}
             maxLength={2000}
             count
             error={errors.about}
@@ -351,6 +351,10 @@ const styles = StyleSheet.create({
   },
   heightInput: {
     flex: 1,
+  },
+  aboutInput: {
+    minHeight: 80,
+    textAlignVertical: 'top' as const,
   },
   errorBox: {
     borderRadius: 10,

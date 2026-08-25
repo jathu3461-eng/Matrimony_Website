@@ -71,7 +71,7 @@ export function Button({
           {leftIcon && (
             <Ionicons name={leftIcon} size={iconSize} color={textColor} style={styles.icon} />
           )}
-          <Text style={[styles.text, { color: textColor }, titleStyle]}>{title}</Text>
+          <Text style={[styles.text, styles[`text${size.charAt(0).toUpperCase() + size.slice(1)}` as keyof typeof styles], { color: textColor }, titleStyle]}>{title}</Text>
         </>
       )}
     </Pressable>
@@ -94,6 +94,15 @@ const styles = StyleSheet.create({
   text: {
     fontSize: typography.body.fontSize,
     fontWeight: '700',
+  },
+  textSm: {
+    fontSize: 12,
+  },
+  textMd: {
+    fontSize: typography.body.fontSize,
+  },
+  textLg: {
+    fontSize: 16,
   },
   icon: {
     marginRight: 6,

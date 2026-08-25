@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Dimensions, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,8 +8,6 @@ import { tokenStorage } from '@/services/tokenStorage';
 import { useTheme } from '@/theme';
 import { spacing, typography } from '@/theme';
 import type { RootStackParamList } from '@/navigation/types';
-
-const { width } = Dimensions.get('window');
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 

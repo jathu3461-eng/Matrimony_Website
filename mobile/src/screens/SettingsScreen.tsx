@@ -39,7 +39,7 @@ export function SettingsScreen() {
 
   return (
     <Screen>
-      <ScrollView contentContainerStyle={[styles.content, { backgroundColor: colors.background }]}>
+      <ScrollView contentContainerStyle={styles.content}>
         <Text style={[styles.title, { color: colors.ink }]}>Settings</Text>
 
         <View style={styles.section}>
@@ -112,7 +112,7 @@ export function SettingsScreen() {
   );
 }
 
-function Row({ icon, label, value, colors }: { icon: string; label: string; value?: string | null; colors: any }) {
+function Row({ icon, label, value, colors }: { icon: string; label: string; value?: string | null; colors: import('@/theme').ThemeColors }) {
   return (
     <View style={[rowStyles.row, { borderBottomColor: colors.border }]}>
       <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={18} color={colors.inkSoft} />

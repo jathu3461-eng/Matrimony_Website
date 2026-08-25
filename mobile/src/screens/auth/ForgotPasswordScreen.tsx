@@ -48,7 +48,7 @@ export function ForgotPasswordScreen() {
   const errors = useMemo(
     () => ({
       email: fieldError(email, touched.email, validateEmail),
-      otp: fieldError(otp, touched.otp, (v) => (v.length < 4 ? 'Enter the 6-digit code' : null)),
+      otp: fieldError(otp, touched.otp, (v) => (v.length < 6 ? 'Enter the 6-digit code' : null)),
       password: fieldError(newPassword, touched.password, validatePassword),
       confirm: fieldError(confirm, touched.confirm, (v) =>
         validateConfirmPassword(newPassword, v)

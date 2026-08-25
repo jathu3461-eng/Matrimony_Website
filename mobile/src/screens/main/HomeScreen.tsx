@@ -65,12 +65,12 @@ export function HomeScreen() {
             <Text style={[styles.statLabel, { color: colors.inkFaint }]}>Profiles</Text>
           </View>
           <View style={[styles.statCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Ionicons name="heart" size={20} color="#e0136a" />
+            <Ionicons name="heart" size={20} color={colors.primary} />
             <Text style={[styles.statNum, { color: colors.ink }]}>New</Text>
             <Text style={[styles.statLabel, { color: colors.inkFaint }]}>Matches</Text>
           </View>
           <View style={[styles.statCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Ionicons name="chatbubble" size={20} color="#2563eb" />
+            <Ionicons name="chatbubble" size={20} color={colors.success} />
             <Text style={[styles.statNum, { color: colors.ink }]}>Live</Text>
             <Text style={[styles.statLabel, { color: colors.inkFaint }]}>Chat</Text>
           </View>

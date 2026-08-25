@@ -63,8 +63,8 @@ const darkColors: ThemeColors = {
   error: '#ef4444',
   errorSoft: '#450a0a',
   warning: '#f59e0b',
-  white: '#1c1c1e',
-  black: '#f5f5f4',
+  white: '#f5f5f4',
+  black: '#1c1c1e',
 };
 
 const STORAGE_KEY = 'theme_mode';

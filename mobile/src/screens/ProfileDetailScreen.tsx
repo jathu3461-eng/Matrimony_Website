@@ -158,7 +158,7 @@ export function ProfileDetailScreen() {
             <MetaRow icon="location" label="Location" value={p.city_or_state} />
           )}
           {p.religion_id && (
-            <MetaRow icon="book" label="Religion" value={`#${p.religion_id}`} />
+            <MetaRow icon="book" label="Religion" value={String(p.religion_id)} />
           )}
           {p.diet && (
             <MetaRow icon="restaurant" label="Diet" value={p.diet} />
@@ -296,7 +296,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,

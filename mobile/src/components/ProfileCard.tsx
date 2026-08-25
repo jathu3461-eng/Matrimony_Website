@@ -75,7 +75,7 @@ export function ProfileCard({ profile, onPress }: ProfileCardProps) {
         ) : null}
 
         {profile.interest_status === 'pending' && (
-          <View style={styles.pendingBadge}>
+          <View style={[styles.pendingBadge, { backgroundColor: '#fef3c7' }]}>
             <Text style={[styles.pendingText, { color: colors.warning }]}>Interest pending</Text>
           </View>
         )}
