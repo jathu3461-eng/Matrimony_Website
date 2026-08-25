@@ -1,5 +1,14 @@
 import { useState } from 'react';
-import { FlatList, RefreshControl, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  FlatList,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -8,9 +17,15 @@ import { profileApi, SearchParams } from '@/api/profiles';
 import { ProfileCard } from '@/components/ProfileCard';
 import { Screen } from '@/components/Screen';
 import { Button } from '@/components/Button';
+import { SelectField } from '@/components/SelectField';
 import { useTheme } from '@/theme';
-import { spacing, typography } from '@/theme';
+import { radius, spacing, typography } from '@/theme';
+import type { ProfileMeta } from '@/types';
 import type { RootStackParamList } from '@/navigation/types';
+import {
+  INCOME_RANGE,
+  MANGLIK,
+} from '@/utils/validation';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -20,24 +35,70 @@ const GENDER_FILTERS = [
   { label: 'Female', value: 'F' as const },
 ];
 
+const AGE_OPTIONS = Array.from({ length: 50 }, (_, i) => ({
+  value: String(i + 18),
+  label: `${i + 18}`,
+}));
+
 export function SearchScreen() {
   const navigation = useNavigation<Nav>();
   const { colors } = useTheme();
   const [query, setQuery] = useState('');
   const [gender, setGender] = useState<'M' | 'F' | undefined>(undefined);
+  const [minAge, setMinAge] = useState('');
+  const [maxAge, setMaxAge] = useState('');
+  const [religionId, setReligionId] = useState('');
+  const [casteId, setCasteId] = useState('');
+  const [countryId, setCountryId] = useState('');
+  const [raasiId, setRaasiId] = useState('');
+  const [starId, setStarId] = useState('');
+  const [incomeRange, setIncomeRange] = useState('');
+  const [manglik, setManglik] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
   const [applied, setApplied] = useState<SearchParams>({});
   const [refreshing, setRefreshing] = useState(false);
+
+  const meta = useQuery({
+    queryKey: ['meta'],
+    queryFn: () => profileApi.getMeta(),
+  });
+
+  const metaData = meta.data as ProfileMeta | undefined;
 
   const results = useQuery({
     queryKey: ['search', applied],
     queryFn: () => profileApi.search(applied),
   });
 
+  const activeFilterCount = [gender, minAge, maxAge, religionId, casteId, countryId, raasiId, starId, incomeRange, manglik].filter(Boolean).length;
+
   const runSearch = () => {
     const params: SearchParams = {};
     if (query.trim()) params.q = query.trim();
     if (gender) params.gender = gender;
+    if (minAge) params.minAge = Number(minAge);
+    if (maxAge) params.maxAge = Number(maxAge);
+    if (religionId) params.religion_id = Number(religionId);
+    if (casteId) params.caste_id = Number(casteId);
+    if (countryId) params.current_country_id = countryId;
+    if (raasiId) params.raasi_id = Number(raasiId);
+    if (starId) params.star_id = Number(starId);
     setApplied(params);
+  };
+
+  const clearAll = () => {
+    setGender(undefined);
+    setMinAge('');
+    setMaxAge('');
+    setReligionId('');
+    setCasteId('');
+    setCountryId('');
+    setRaasiId('');
+    setStarId('');
+    setIncomeRange('');
+    setManglik('');
+    setQuery('');
+    setApplied({});
   };
 
   const onRefresh = async () => {
@@ -48,6 +109,7 @@ export function SearchScreen() {
 
   return (
     <Screen>
+      {/* Search bar */}
       <View style={[styles.searchBar, { backgroundColor: colors.surface, borderColor: colors.border }]}>
         <Ionicons name="search" size={18} color={colors.inkFaint} />
         <TextInput
@@ -62,19 +124,165 @@ export function SearchScreen() {
         />
       </View>
 
-      <View style={styles.filterRow}>
-        {GENDER_FILTERS.map((f) => (
-          <Button
-            key={f.label}
-            title={f.label}
-            variant={gender === f.value ? 'primary' : 'outline'}
-            size="sm"
-            onPress={() => { setGender(f.value); }}
+      {/* Filter toggle + gender row */}
+      <View style={styles.filterHeader}>
+        <Pressable
+          onPress={() => setShowFilters((s) => !s)}
+          style={[styles.filterToggle, { borderColor: colors.border, backgroundColor: colors.surface }]}
+        >
+          <Ionicons name="filter" size={16} color={colors.primary} />
+          <Text style={[styles.filterToggleText, { color: colors.inkSoft }]}>
+            Filters
+            {activeFilterCount > 0 && (
+              <Text style={{ color: colors.primary }}> ({activeFilterCount})</Text>
+            )}
+          </Text>
+          <Ionicons
+            name={showFilters ? 'chevron-up' : 'chevron-down'}
+            size={16}
+            color={colors.inkFaint}
           />
-        ))}
+        </Pressable>
+
+        {activeFilterCount > 0 && (
+          <Button title="Clear All" variant="ghost" size="sm" onPress={clearAll} />
+        )}
+
         <Button title="Search" size="sm" onPress={runSearch} />
       </View>
 
+      {/* Gender chips */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.genderRow}>
+        {GENDER_FILTERS.map((f) => (
+          <Pressable
+            key={f.label}
+            onPress={() => setGender(f.value)}
+            style={[
+              styles.genderChip,
+              {
+                borderColor: gender === f.value ? colors.primary : colors.border,
+                backgroundColor: gender === f.value ? colors.primary : colors.surface,
+              },
+            ]}
+          >
+            <Text
+              style={[
+                styles.genderChipText,
+                { color: gender === f.value ? colors.white : colors.inkSoft },
+              ]}
+            >
+              {f.label}
+            </Text>
+          </Pressable>
+        ))}
+      </ScrollView>
+
+      {/* Expandable filters */}
+      {showFilters && (
+        <ScrollView
+          contentContainerStyle={styles.filterPanel}
+          nestedScrollEnabled
+        >
+          <View style={styles.ageRow}>
+            <View style={styles.ageInput}>
+              <SelectField
+                label="Min Age"
+                options={AGE_OPTIONS}
+                value={minAge}
+                onChange={setMinAge}
+                placeholder="Min"
+              />
+            </View>
+            <View style={styles.ageInput}>
+              <SelectField
+                label="Max Age"
+                options={AGE_OPTIONS}
+                value={maxAge}
+                onChange={setMaxAge}
+                placeholder="Max"
+              />
+            </View>
+          </View>
+
+          <SelectField
+            label="Religion"
+            options={(metaData?.religions || []).map((r) => ({
+              value: String(r.id),
+              label: r.name_en,
+            }))}
+            value={religionId}
+            onChange={setReligionId}
+            placeholder="Any religion"
+          />
+
+          <SelectField
+            label="Caste"
+            options={(metaData?.castes || []).map((c) => ({
+              value: String(c.id),
+              label: c.name_en,
+            }))}
+            value={casteId}
+            onChange={setCasteId}
+            placeholder="Any caste"
+          />
+
+          <SelectField
+            label="Country"
+            options={(metaData?.countries || []).map((c) => ({
+              value: c.code,
+              label: c.name_en,
+            }))}
+            value={countryId}
+            onChange={setCountryId}
+            placeholder="Any country"
+          />
+
+          <View style={styles.ageRow}>
+            <View style={styles.ageInput}>
+              <SelectField
+                label="Raasi"
+                options={(metaData?.raasis || []).map((r) => ({
+                  value: String(r.id),
+                  label: r.name_en,
+                }))}
+                value={raasiId}
+                onChange={setRaasiId}
+                placeholder="Any"
+              />
+            </View>
+            <View style={styles.ageInput}>
+              <SelectField
+                label="Star"
+                options={(metaData?.stars || []).map((s) => ({
+                  value: String(s.id),
+                  label: s.name_en,
+                }))}
+                value={starId}
+                onChange={setStarId}
+                placeholder="Any"
+              />
+            </View>
+          </View>
+
+          <SelectField
+            label="Income Range"
+            options={INCOME_RANGE}
+            value={incomeRange}
+            onChange={setIncomeRange}
+            placeholder="Any income"
+          />
+
+          <SelectField
+            label="Manglik Status"
+            options={MANGLIK}
+            value={manglik}
+            onChange={setManglik}
+            placeholder="Any"
+          />
+        </ScrollView>
+      )}
+
+      {/* Results */}
       <FlatList
         data={results.data ?? []}
         keyExtractor={(item) => String(item.id)}
@@ -128,11 +336,52 @@ const styles = StyleSheet.create({
     marginLeft: spacing.sm,
     fontSize: typography.body.fontSize,
   },
-  filterRow: {
+  filterHeader: {
     flexDirection: 'row',
+    alignItems: 'center',
     gap: spacing.sm,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
+  },
+  filterToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderWidth: 1,
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 6,
+  },
+  filterToggleText: {
+    ...typography.caption,
+    fontWeight: '600',
+  },
+  genderRow: {
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.sm,
+    gap: spacing.sm,
+  },
+  genderChip: {
+    borderWidth: 1.5,
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 6,
+  },
+  genderChipText: {
+    ...typography.caption,
+    fontWeight: '700',
+  },
+  filterPanel: {
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.md,
+    gap: spacing.xs,
+  },
+  ageRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  ageInput: {
+    flex: 1,
   },
   list: {
     paddingBottom: spacing.xxl,
