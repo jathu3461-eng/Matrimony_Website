@@ -90,18 +90,8 @@ export function RegisterScreen() {
       if (result.status === 'pending_approval') {
         setServerError(null);
         alert('Account created! Waiting for admin approval.');
-        navigation.navigate('Login');
-        return;
       }
-      // Navigate to OTP verification
-      navigation.navigate('VerifyOTP', {
-        email: email.trim(),
-        password,
-        username: username.trim(),
-        phone: phone.trim(),
-        role,
-        ...(role === 'broker' ? { businessName: businessName.trim() } : {}),
-      });
+      navigation.navigate('Login');
     } catch (err) {
       setServerError(extractError(err, 'Unable to create account.'));
     } finally {
