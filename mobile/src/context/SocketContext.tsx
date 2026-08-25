@@ -15,6 +15,7 @@ interface SocketContextValue {
   getPresence: (userId: number | string) => PresenceInfo;
   isOnline: (userId: number | string) => boolean;
   subscribe: (event: string, handler: SocketHandler) => () => void;
+  seedPresence: (entries: Record<string | number, { online: boolean; lastSeen?: string | null }>) => void;
 }
 
 const SocketContext = createContext<SocketContextValue>({
@@ -22,6 +23,7 @@ const SocketContext = createContext<SocketContextValue>({
   getPresence: () => ({ online: false, lastSeen: null }),
   isOnline: () => false,
   subscribe: () => () => {},
+  seedPresence: () => {},
 });
 
 export function SocketProvider({ children }: { children: React.ReactNode }) {
@@ -41,6 +43,22 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const bump = () => forceUpdate((n) => n + 1);
+
+  // Merge presence fetched via REST into the live store (instant states).
+  const seedPresence = useCallback(
+    (entries: Record<string | number, { online: boolean; lastSeen?: string | null }>) => {
+      if (!entries) return;
+      for (const [uid, info] of Object.entries(entries)) {
+        if (!info) continue;
+        presenceRef.current.set(String(uid), {
+          online: !!info.online,
+          lastSeen: info.lastSeen ?? null,
+        });
+      }
+      bump();
+    },
+    [],
+  );
 
   // Attach a listener to any socket event; survives reconnects and can be
   // registered before the socket exists (replayed once it connects).
@@ -159,7 +177,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   }, [user]);
 
   return (
-    <SocketContext.Provider value={{ connected, getPresence, isOnline, subscribe }}>
+    <SocketContext.Provider value={{ connected, getPresence, isOnline, subscribe, seedPresence }}>
       {children}
     </SocketContext.Provider>
   );

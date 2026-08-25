@@ -2,7 +2,7 @@ const express = require('express');
 const { db } = require('../db');
 const { requireAuth } = require('../middleware/auth');
 const chatService = require('../services/chatService');
-const { getIO } = require('../socket');
+const { getIO, getPresenceInfos } = require('../socket');
 
 const router = express.Router();
 
@@ -14,6 +14,19 @@ router.get('/threads', requireAuth, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/chat/presence — online states + last seen for all thread partners
+// (REST fallback so presence works even if a socket event was missed)
+router.get('/presence', requireAuth, async (req, res) => {
+  try {
+    const partners = await chatService.getThreadPartners(req.user.id);
+    const presence = await getPresenceInfos(partners);
+    res.json({ ok: true, presence });
+  } catch (err) {
+    console.error('presence error:', err.message);
+    res.status(500).json({ error: 'Failed to load presence' });
   }
 });
 

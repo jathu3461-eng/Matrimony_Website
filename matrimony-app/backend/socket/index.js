@@ -21,16 +21,11 @@ function parseCookies(header) {
   return out;
 }
 
-/** SQLite CURRENT_TIMESTAMP ("YYYY-MM-DD HH:MM:SS" UTC) -> JS ISO string. */
-function sqliteToIso(ts) {
+/** Convert DB timestamp (Date object or string) -> JS ISO string. */
+function toIso(ts) {
   if (!ts) return null;
-  try {
-    const raw = String(ts);
-    const d = new Date(raw.includes('T') ? raw : `${raw.replace(' ', 'T')}Z`);
-    return Number.isNaN(d.getTime()) ? null : d.toISOString();
-  } catch (_) {
-    return null;
-  }
+  const d = ts instanceof Date ? ts : new Date(ts);
+  return Number.isNaN(d.getTime()) ? null : d.toISOString();
 }
 
 function socketUserId(socket) {
@@ -76,6 +71,25 @@ function notifyPartners(userId, payload) {
   chatService.getThreadPartners(userId).then(partners => {
     for (const p of partners) io.to(`user:${p}`).emit('chat:presence', payload);
   }).catch(() => {});
+}
+
+/** Online states + last-seen for a list of user ids (REST fallback source). */
+async function getPresenceInfos(userIds) {
+  const out = {};
+  for (const uid of userIds) {
+    const sockets = presence.get(Number(uid));
+    if (sockets && sockets.size > 0) {
+      out[uid] = { online: true, lastSeen: null };
+      continue;
+    }
+    try {
+      const row = await db.get('SELECT last_seen_at FROM users WHERE id = ?', [Number(uid)]);
+      out[uid] = { online: false, lastSeen: toIso(row && row.last_seen_at) };
+    } catch (_) {
+      out[uid] = { online: false, lastSeen: null };
+    }
+  }
+  return out;
 }
 
 function initSocket(server) {
@@ -262,7 +276,7 @@ function initSocket(server) {
           if (!s || s.size === 0) {
             try {
               const row = await db.get('SELECT last_seen_at FROM users WHERE id = ?', [p]);
-              lastSeen = sqliteToIso(row && row.last_seen_at);
+              lastSeen = toIso(row && row.last_seen_at);
             } catch (_) {}
           }
           onlinePartners[p] = { online: !!(s && s.size > 0), lastSeen };
@@ -293,4 +307,4 @@ function initSocket(server) {
   return io;
 }
 
-module.exports = { initSocket, getIO };
+module.exports = { initSocket, getIO, getPresenceInfos };

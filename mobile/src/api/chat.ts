@@ -12,6 +12,11 @@ export const chatApi = {
     return data.total;
   },
 
+  async presence(): Promise<Record<string, { online: boolean; lastSeen: string | null }>> {
+    const { data } = await api.get<{ ok: boolean; presence: Record<string, { online: boolean; lastSeen: string | null }> }>('/chat/presence');
+    return data.presence ?? {};
+  },
+
   async history(profileA: number | string, profileB: number | string): Promise<ChatMessage[]> {
     const { data } = await api.get<{ messages: ChatMessage[] }>(`/chat/${profileA}/${profileB}`);
     return data.messages;

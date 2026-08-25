@@ -82,7 +82,7 @@ export function ChatThreadScreen() {
   const { profileA, profileB, otherName } = route.params;
   const { colors } = useTheme();
   const user = useAppSelector((s) => s.auth.user);
-  const { connected, isOnline, getPresence, subscribe } = useSocket();
+  const { connected, isOnline, getPresence, subscribe, seedPresence } = useSocket();
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [text, setText] = useState('');
@@ -112,6 +112,21 @@ export function ChatThreadScreen() {
       }
     }).catch(() => {});
   }, [profileA, profileB]);
+
+  // Instant online state via REST the moment we know who we're talking to;
+  // socket events keep it live afterwards.
+  useEffect(() => {
+    if (otherUserId == null) return;
+    let active = true;
+    chatApi.presence()
+      .then((map) => {
+        if (!active) return;
+        const info = map[String(otherUserId)] ?? map[Number(otherUserId)];
+        if (info) seedPresence({ [otherUserId]: info });
+      })
+      .catch(() => {});
+    return () => { active = false; };
+  }, [otherUserId, seedPresence]);
 
   const senderProfileId = myProfiles.includes(Number(profileA))
     ? profileA

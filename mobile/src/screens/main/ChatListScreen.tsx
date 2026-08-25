@@ -31,19 +31,31 @@ export function ChatListScreen() {
   const navigation = useNavigation<Nav>();
   const { colors } = useTheme();
   const [refreshing, setRefreshing] = useState(false);
-  const { isOnline, subscribe } = useSocket();
+  const { isOnline, subscribe, seedPresence } = useSocket();
 
   const threads = useQuery({
     queryKey: ['chat', 'threads'],
     queryFn: () => chatApi.threads(),
   });
 
+  // Instant online dots via REST; socket events keep them live afterwards.
+  useEffect(() => {
+    let active = true;
+    chatApi.presence()
+      .then((map) => { if (active) seedPresence(map); })
+      .catch(() => {});
+    return () => { active = false; };
+  }, [seedPresence]);
+
   // Live updates: refetch the list the moment any chat activity happens.
   useEffect(() => {
     const events = ['chat:message', 'chat:thread', 'chat:seen'];
-    const offs = events.map((evt) => subscribe(evt, () => threads.refetch()));
+    const offs = events.map((evt) => subscribe(evt, () => {
+      threads.refetch();
+      chatApi.presence().then((map) => seedPresence(map)).catch(() => {});
+    }));
     return () => offs.forEach((off) => off());
-  }, [subscribe, threads.refetch]);
+  }, [subscribe, threads.refetch, seedPresence]);
 
   const myProfiles = useQuery({
     queryKey: ['my-profiles'],
@@ -78,6 +90,7 @@ export function ChatListScreen() {
   const onRefresh = async () => {
     setRefreshing(true);
     await Promise.all([threads.refetch(), myProfiles.refetch()]);
+    chatApi.presence().then((map) => seedPresence(map)).catch(() => {});
     setRefreshing(false);
   };
 
