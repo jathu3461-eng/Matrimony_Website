@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { useRoute, RouteProp, useNavigation } from '@react-navigation/native';
+import { useRoute, RouteProp, useNavigation, CompositeNavigationProp } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,10 +18,11 @@ import type { Profile, ProfileMeta } from '@/types';
 import type { RootStackParamList } from '@/navigation/types';
 
 type DetailRoute = RouteProp<RootStackParamList, 'ProfileDetail'>;
+type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 export function ProfileDetailScreen() {
   const route = useRoute<DetailRoute>();
-  const navigation = useNavigation();
+  const navigation = useNavigation<Nav>();
   const { profileId } = route.params;
   const user = useAppSelector((s) => s.auth.user);
   const { colors } = useTheme();
@@ -35,6 +37,11 @@ export function ProfileDetailScreen() {
   const profile = useQuery({
     queryKey: ['profile', profileId],
     queryFn: () => profileApi.getById(profileId),
+  });
+
+  const myProfiles = useQuery({
+    queryKey: ['my-profiles'],
+    queryFn: () => profileApi.mine(),
   });
 
   const meta = useQuery({
@@ -136,6 +143,7 @@ export function ProfileDetailScreen() {
   const isOwnProfile = user?.id === p.owner_user_id;
   const isShortlisted = p.is_shortlisted === 1;
   const interestStatus = p.interest_status;
+  const myProfileId = myProfiles.data?.[0]?.id;
 
   return (
     <Screen>
@@ -268,7 +276,21 @@ export function ProfileDetailScreen() {
                 <Button title="Interest Sent" variant="secondary" disabled size="md" />
               </View>
             ) : interestStatus === 'accepted' ? (
-              <Button title="Start Chat" variant="primary" size="md" leftIcon="chatbubble" onPress={() => {}} />
+              <Button
+                title="Start Chat"
+                variant="primary"
+                size="md"
+                leftIcon="chatbubble"
+                disabled={!myProfileId}
+                onPress={() => {
+                  if (!myProfileId) return;
+                  navigation.navigate('ChatThread', {
+                    profileA: myProfileId,
+                    profileB: p.id,
+                    otherName: p.name,
+                  });
+                }}
+              />
             ) : (
               <View style={styles.interestRow}>
                 <TextInput
