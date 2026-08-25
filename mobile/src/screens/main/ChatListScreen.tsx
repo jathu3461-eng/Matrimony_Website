@@ -13,6 +13,13 @@ import type { RootStackParamList } from '@/navigation/types';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
+const APP_NAME_RE = /mukurtham\s*matrimony/i;
+function sanitizeName(name?: string | null): string {
+  if (!name || !name.trim()) return 'Member';
+  if (APP_NAME_RE.test(name.trim())) return 'Member';
+  return name.trim();
+}
+
 function formatListTime(iso?: string | null): string {
   if (!iso) return '';
   const d = new Date(iso);
@@ -52,7 +59,7 @@ export function ChatListScreen() {
         ? t.sender_profile_id
         : t.receiver_profile_id;
       const otherProfileId = myProfileId === t.sender_profile_id ? t.receiver_profile_id : t.sender_profile_id;
-      const otherName = myProfileId === t.sender_profile_id ? t.receiver_name : t.sender_name;
+      const otherName = sanitizeName(myProfileId === t.sender_profile_id ? t.receiver_name : t.sender_name);
       const isFromMe = Number(t.last_sender_profile_id) === Number(myProfileId);
       return { ...t, myProfileId, otherProfileId, otherName, isFromMe };
     },

@@ -4,6 +4,7 @@ import {
   FlatList,
   Image,
   Keyboard,
+  KeyboardAvoidingView,
   Platform,
   Pressable,
   StyleSheet,
@@ -25,6 +26,13 @@ import type { ChatMessage } from '@/types';
 import type { RootStackParamList } from '@/navigation/types';
 
 type ChatRoute = RouteProp<RootStackParamList, 'ChatThread'>;
+
+const APP_NAME_RE = /mukurtham\s*matrimony/i;
+function sanitizeName(name?: string | null): string {
+  if (!name || !name.trim()) return 'Member';
+  if (APP_NAME_RE.test(name.trim())) return 'Member';
+  return name.trim();
+}
 
 function formatChatDate(iso: string): string {
   const d = new Date(iso);
@@ -62,7 +70,8 @@ const PINK_SOFT = '#ffe4ee';
 export function ChatThreadScreen() {
   const route = useRoute<ChatRoute>();
   const navigation = useNavigation();
-  const { profileA, profileB, otherName } = route.params;
+  const { profileA, profileB, otherName: rawOtherName } = route.params;
+  const otherName = sanitizeName(rawOtherName);
   const { colors } = useTheme();
   const user = useAppSelector((s) => s.auth.user);
 
@@ -190,7 +199,11 @@ export function ChatThreadScreen() {
   if (loading) return <View style={[styles.loadingWrap, { backgroundColor: PINK_BG }]}><Spinner /></View>;
 
   return (
-    <View style={styles.root}>
+    <KeyboardAvoidingView
+      style={styles.root}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 96 : 0}
+    >
       {/* ── Top Header — Pink gradient ── */}
       <View style={styles.topHeader}>
         <Pressable style={styles.topBackBtn} onPress={() => navigation.goBack()}>
@@ -356,7 +369,7 @@ export function ChatThreadScreen() {
           )}
         </Pressable>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
