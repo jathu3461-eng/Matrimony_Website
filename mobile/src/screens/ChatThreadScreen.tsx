@@ -27,13 +27,6 @@ import type { RootStackParamList } from '@/navigation/types';
 
 type ChatRoute = RouteProp<RootStackParamList, 'ChatThread'>;
 
-const APP_NAME_RE = /mukurtham\s*matrimony/i;
-function sanitizeName(name?: string | null): string {
-  if (!name || !name.trim()) return 'Member';
-  if (APP_NAME_RE.test(name.trim())) return 'Member';
-  return name.trim();
-}
-
 function formatChatDate(iso: string): string {
   const d = new Date(iso);
   const now = new Date();
@@ -70,8 +63,7 @@ const PINK_SOFT = '#ffe4ee';
 export function ChatThreadScreen() {
   const route = useRoute<ChatRoute>();
   const navigation = useNavigation();
-  const { profileA, profileB, otherName: rawOtherName } = route.params;
-  const otherName = sanitizeName(rawOtherName);
+  const { profileA, profileB, otherName } = route.params;
   const { colors } = useTheme();
   const user = useAppSelector((s) => s.auth.user);
 
