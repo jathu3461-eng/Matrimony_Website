@@ -31,4 +31,31 @@ export const chatApi = {
     });
     return data.message;
   },
+
+  async sendImage(
+    profileA: number | string,
+    profileB: number | string,
+    imageUri: string,
+    senderProfileId: number | string,
+  ): Promise<ChatMessage> {
+    const ext = imageUri.split('.').pop() || 'jpg';
+    const formData = new FormData();
+    formData.append('sender_profile_id', String(senderProfileId));
+    formData.append('message', '');
+    formData.append('image', {
+      uri: imageUri,
+      name: `chat.${ext}`,
+      type: `image/${ext}`,
+    } as unknown as Blob);
+    const { data } = await api.post<{ message: ChatMessage }>(
+      `/chat/${profileA}/${profileB}`,
+      formData,
+      { headers: { 'Content-Type': 'multipart/form-data' } },
+    );
+    return data.message;
+  },
+
+  async deleteMessage(messageId: number): Promise<void> {
+    await api.delete(`/chat/messages/${messageId}`);
+  },
 };

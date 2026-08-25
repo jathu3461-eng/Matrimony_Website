@@ -253,13 +253,49 @@ export function HomeScreen() {
     );
   };
 
-  const renderMessagesTab = () => (
-    <View style={[styles.emptyCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-      <Text style={styles.emptyEmoji}>💬</Text>
-      <Text style={[styles.emptyTitle, { color: colors.ink }]}>Your Messages</Text>
-      <Text style={[styles.emptyHint, { color: colors.inkFaint }]}>Chat with profiles that have accepted your interest</Text>
-    </View>
-  );
+  const renderMessagesTab = () => {
+    const threadsQuery = useQuery({
+      queryKey: ['chat', 'threads'],
+      queryFn: () => import('@/api/chat').then((m) => m.chatApi.threads()),
+    });
+    const threadData = threadsQuery.data ?? [];
+    if (threadData.length === 0) {
+      return (
+        <View style={[styles.emptyCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Text style={styles.emptyEmoji}>💬</Text>
+          <Text style={[styles.emptyTitle, { color: colors.ink }]}>Your Messages</Text>
+          <Text style={[styles.emptyHint, { color: colors.inkFaint }]}>Chat with profiles that have accepted your interest</Text>
+        </View>
+      );
+    }
+    return (
+      <View style={styles.profileGrid}>
+        {threadData.slice(0, 5).map((t) => {
+          const otherName = t.sender_name;
+          return (
+            <Pressable
+              key={t.thread_id}
+              style={[styles.threadRow, { backgroundColor: colors.surface, borderColor: colors.border }]}
+              onPress={() => (navigation as any).navigate('ChatThread', { profileA: t.sender_profile_id, profileB: t.receiver_profile_id, otherName: t.receiver_name })}
+            >
+              <View style={[styles.threadAvatar, { backgroundColor: colors.primary }]}>
+                <Text style={[styles.threadAvatarText, { color: colors.white }]}>{otherName?.[0] ?? '?'}</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.threadName, { color: colors.ink }]} numberOfLines={1}>{otherName}</Text>
+                <Text style={[styles.threadMsg, { color: colors.inkFaint }]} numberOfLines={1}>{t.last_message || 'Start chatting'}</Text>
+              </View>
+              {t.unread_count > 0 && (
+                <View style={[styles.threadBadge, { backgroundColor: '#25D366' }]}>
+                  <Text style={styles.threadBadgeText}>{t.unread_count}</Text>
+                </View>
+              )}
+            </Pressable>
+          );
+        })}
+      </View>
+    );
+  };
 
   const renderBrokersTab = () => (
     <View style={[styles.emptyCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -387,4 +423,11 @@ const styles = StyleSheet.create({
   emptyEmoji: { fontSize: 40 },
   emptyTitle: { ...typography.title, fontSize: 16 },
   emptyHint: { ...typography.caption, textAlign: 'center', marginBottom: spacing.sm },
+  threadRow: { flexDirection: 'row', alignItems: 'center', borderRadius: radius.md, borderWidth: 1, padding: spacing.md, gap: spacing.md },
+  threadAvatar: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+  threadAvatarText: { fontSize: 18, fontWeight: '700' },
+  threadName: { ...typography.body, fontWeight: '700' },
+  threadMsg: { ...typography.caption, marginTop: 2 },
+  threadBadge: { minWidth: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 7 },
+  threadBadgeText: { color: '#fff', fontSize: 12, fontWeight: '700' },
 });
