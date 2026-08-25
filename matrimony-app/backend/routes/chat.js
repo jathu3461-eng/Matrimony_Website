@@ -106,4 +106,28 @@ router.post('/:profileA/:profileB', requireAuth, async (req, res) => {
   }
 });
 
+// DELETE /api/chat/messages/:id — delete a single message
+router.delete('/messages/:id', requireAuth, async (req, res) => {
+  try {
+    const msgId = Number(req.params.id);
+    const msg = await db.get(
+      'SELECT id, sender_profile_id FROM chat_messages WHERE id = ?',
+      [msgId]
+    );
+    if (!msg) return res.status(404).json({ error: 'Message not found' });
+
+    const profile = await db.get(
+      'SELECT id FROM profiles WHERE id = ? AND owner_user_id = ?',
+      [msg.sender_profile_id, req.user.id]
+    );
+    if (!profile) return res.status(403).json({ error: 'Not authorized to delete this message' });
+
+    await db.run('DELETE FROM chat_messages WHERE id = ?', [msgId]);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
