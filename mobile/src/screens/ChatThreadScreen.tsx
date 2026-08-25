@@ -20,6 +20,7 @@ import { profileApi } from '@/api/profiles';
 import { uploadsUrl } from '@/api/client';
 import { Spinner } from '@/components/Spinner';
 import { useAppSelector } from '@/store/hooks';
+import { useSocket } from '@/context/SocketContext';
 import { useTheme } from '@/theme';
 import { radius, spacing, typography } from '@/theme';
 import type { ChatMessage } from '@/types';
@@ -47,6 +48,19 @@ function getDateKey(iso: string): string {
   return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
 }
 
+function formatLastSeen(ts: string | null): string {
+  if (!ts) return 'Offline';
+  const d = new Date(ts);
+  const diff = Math.max(0, Math.floor((Date.now() - d.getTime()) / 60000));
+  if (diff < 1) return 'last seen just now';
+  if (diff < 60) return `last seen ${diff} min ago`;
+  const hrs = Math.floor(diff / 60);
+  if (hrs < 24) return `last seen ${hrs} hr ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 7) return `last seen ${days} d ago`;
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
 interface DisplayItem {
   type: 'date' | 'message';
   date?: string;
@@ -66,6 +80,7 @@ export function ChatThreadScreen() {
   const { profileA, profileB, otherName } = route.params;
   const { colors } = useTheme();
   const user = useAppSelector((s) => s.auth.user);
+  const { connected, isOnline, getPresence } = useSocket();
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [text, setText] = useState('');
@@ -77,11 +92,22 @@ export function ChatThreadScreen() {
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const [myProfiles, setMyProfiles] = useState<number[]>([]);
+  const [otherUserId, setOtherUserId] = useState<number | null>(null);
   useEffect(() => {
     profileApi.mine().then((profiles) => {
-      setMyProfiles(profiles.map((p) => Number(p.id)));
+      const myIds = new Set(profiles.map((p) => Number(p.id)));
+      setMyProfiles([...myIds]);
+      // Determine which profile is the "other" one
+      const aId = Number(profileA);
+      const bId = Number(profileB);
+      const otherId = myIds.has(aId) ? bId : aId;
+      if (otherId) {
+        profileApi.getById(otherId).then((p) => {
+          setOtherUserId(Number(p.owner_user_id));
+        }).catch(() => {});
+      }
     }).catch(() => {});
-  }, []);
+  }, [profileA, profileB]);
 
   const senderProfileId = myProfiles.includes(Number(profileA))
     ? profileA
@@ -186,6 +212,9 @@ export function ChatThreadScreen() {
     displayItems.push({ type: 'message', message: msg, isMe });
   });
 
+  const otherOnline = otherUserId ? isOnline(otherUserId) : false;
+  const otherPresence = otherUserId ? getPresence(otherUserId) : null;
+
   const initial = (otherName ?? '?')[0]?.toUpperCase() ?? '?';
 
   if (loading) return <View style={[styles.loadingWrap, { backgroundColor: PINK_BG }]}><Spinner /></View>;
@@ -207,8 +236,8 @@ export function ChatThreadScreen() {
         <View style={styles.topTitleWrap}>
           <Text style={styles.topTitle}>Messages</Text>
           <View style={styles.topStatusRow}>
-            <View style={styles.connectedDot} />
-            <Text style={styles.topStatusText}>Connected</Text>
+            <View style={[styles.connectedDot, { backgroundColor: connected ? '#4ade80' : '#fbbf24' }]} />
+            <Text style={styles.topStatusText}>{connected ? 'Connected' : 'Reconnecting…'}</Text>
           </View>
         </View>
         <Pressable style={styles.topSoundBtn}>
@@ -225,11 +254,13 @@ export function ChatThreadScreen() {
           <View style={styles.convAvatar}>
             <Text style={styles.convAvatarText}>{initial}</Text>
           </View>
-          <View style={styles.convOnlineDot} />
+          {otherOnline && <View style={styles.convOnlineDot} />}
         </View>
         <View style={styles.convInfo}>
           <Text style={styles.convName} numberOfLines={1}>{otherName}</Text>
-          <Text style={styles.convStatus}>Online</Text>
+          <Text style={[styles.convStatus, { color: otherOnline ? '#22c55e' : '#b08da6' }]}>
+            {otherOnline ? 'Online' : formatLastSeen(otherPresence?.lastSeen ?? null)}
+          </Text>
         </View>
         <Pressable style={styles.viewProfileBtn}>
           <Text style={styles.viewProfileText}>View Profile</Text>

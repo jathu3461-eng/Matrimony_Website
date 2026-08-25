@@ -6,6 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { chatApi } from '@/api/chat';
 import { profileApi } from '@/api/profiles';
+import { useSocket } from '@/context/SocketContext';
 import { useTheme } from '@/theme';
 import { radius, spacing, typography } from '@/theme';
 import type { ChatThread } from '@/types';
@@ -30,6 +31,7 @@ export function ChatListScreen() {
   const navigation = useNavigation<Nav>();
   const { colors } = useTheme();
   const [refreshing, setRefreshing] = useState(false);
+  const { isOnline } = useSocket();
 
   const threads = useQuery({
     queryKey: ['chat', 'threads'],
@@ -53,8 +55,9 @@ export function ChatListScreen() {
         : t.receiver_profile_id;
       const otherProfileId = myProfileId === t.sender_profile_id ? t.receiver_profile_id : t.sender_profile_id;
       const otherName = myProfileId === t.sender_profile_id ? t.receiver_name : t.sender_name;
+      const otherUserId = myProfileId === t.sender_profile_id ? t.receiver_user_id : t.sender_user_id;
       const isFromMe = Number(t.last_sender_profile_id) === Number(myProfileId);
-      return { ...t, myProfileId, otherProfileId, otherName, isFromMe };
+      return { ...t, myProfileId, otherProfileId, otherName, otherUserId, isFromMe };
     },
     [myProfileIds],
   );
@@ -97,6 +100,7 @@ export function ChatListScreen() {
                   {(item.otherName ?? '?')[0]?.toUpperCase() ?? '?'}
                 </Text>
               </View>
+              {isOnline(item.otherUserId) && <View style={styles.onlineDot} />}
             </View>
 
             <View style={styles.details}>
@@ -167,6 +171,17 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   avatarWrap: { position: 'relative' },
+  onlineDot: {
+    position: 'absolute',
+    bottom: 1,
+    right: 1,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#22c55e',
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
   avatar: {
     width: 52,
     height: 52,

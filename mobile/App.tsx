@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ThemeProvider, useTheme } from '@/theme';
 import { RootNavigator } from '@/navigation/RootNavigator';
+import { SocketProvider } from '@/context/SocketContext';
 import { store } from '@/store';
 
 const queryClient = new QueryClient({
@@ -33,9 +34,11 @@ export default function App() {
       <Provider store={store}>
         <QueryClientProvider client={queryClient}>
           <ThemeProvider>
-            <NavigationContainer>
-              <ThemedApp />
-            </NavigationContainer>
+            <SocketProvider>
+              <NavigationContainer>
+                <ThemedApp />
+              </NavigationContainer>
+            </SocketProvider>
           </ThemeProvider>
         </QueryClientProvider>
       </Provider>
