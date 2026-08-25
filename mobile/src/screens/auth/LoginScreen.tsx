@@ -146,6 +146,10 @@ export function LoginScreen() {
                 onPress={() => navigation.navigate('Register')}
               />
             </View>
+            <View style={[styles.secureBadge, { backgroundColor: colors.successSoft }]}>
+              <Ionicons name="shield-checkmark" size={14} color={colors.success} />
+              <Text style={[styles.secureText, { color: colors.success }]}>Secure & Private</Text>
+            </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -224,5 +228,18 @@ const styles = StyleSheet.create({
   },
   signupText: {
     ...typography.body,
+  },
+  secureBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 6,
+    borderRadius: radius.pill,
+    marginTop: spacing.md,
+  },
+  secureText: {
+    ...typography.label,
+    fontWeight: '700',
   },
 });

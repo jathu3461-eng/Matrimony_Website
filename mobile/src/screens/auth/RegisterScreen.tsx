@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -46,7 +47,16 @@ export function RegisterScreen() {
   const [businessName, setBusinessName] = useState('');
 
   const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const touch = (field: string) => setTouched((t) => ({ ...t, [field]: true }));
+
+  const passwordStrength = useMemo(() => {
+    let score = 0;
+    if (password.length >= 8) score++;
+    if (/[A-Z]/.test(password)) score++;
+    if (/[!@#$%^&*(),.?":{}|<>]/.test(password)) score++;
+    return score;
+  }, [password]);
 
   const errors = useMemo(
     () => ({
@@ -59,8 +69,9 @@ export function RegisterScreen() {
         role === 'broker'
           ? fieldError(businessName, touched.businessName, validateBusinessName)
           : null,
+      terms: !acceptedTerms && touched.terms ? 'You must accept the terms & conditions' : null,
     }),
-    [username, email, phone, password, confirm, role, businessName, touched]
+    [username, email, phone, password, confirm, role, businessName, touched, acceptedTerms]
   );
 
   const hasErrors = Object.values(errors).some(Boolean);
@@ -73,6 +84,7 @@ export function RegisterScreen() {
       password: true,
       confirm: true,
       businessName: true,
+      terms: true,
     });
     if (hasErrors) return;
 
@@ -205,6 +217,89 @@ export function RegisterScreen() {
               hint={HINTS.confirm}
             />
 
+            {/* Password strength meter */}
+            {password.length > 0 && (
+              <View style={styles.strengthContainer}>
+                <View style={styles.strengthBars}>
+                  {[0, 1, 2].map((i) => (
+                    <View
+                      key={i}
+                      style={[
+                        styles.strengthBar,
+                        {
+                          backgroundColor:
+                            i < passwordStrength
+                              ? passwordStrength === 1
+                                ? colors.error
+                                : passwordStrength === 2
+                                  ? colors.warning
+                                  : colors.success
+                              : colors.border,
+                        },
+                      ]}
+                    />
+                  ))}
+                </View>
+                <Text style={[styles.strengthText, { color: colors.inkFaint }]}>
+                  {passwordStrength === 0
+                    ? ''
+                    : passwordStrength === 1
+                      ? 'Weak'
+                      : passwordStrength === 2
+                        ? 'Good'
+                        : 'Strong'}
+                </Text>
+
+                {/* Password checklist */}
+                <View style={styles.checklist}>
+                  {[
+                    { label: 'At least 8 characters', ok: password.length >= 8 },
+                    { label: '1 uppercase letter', ok: /[A-Z]/.test(password) },
+                    { label: '1 special character', ok: /[!@#$%^&*(),.?":{}|<>]/.test(password) },
+                  ].map((rule) => (
+                    <View key={rule.label} style={styles.checkRow}>
+                      <Ionicons
+                        name={rule.ok ? 'checkmark-circle' : 'ellipse-outline'}
+                        size={14}
+                        color={rule.ok ? colors.success : colors.inkFaint}
+                      />
+                      <Text
+                        style={[
+                          styles.checkText,
+                          { color: rule.ok ? colors.success : colors.inkFaint },
+                        ]}
+                      >
+                        {rule.label}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            {/* Terms & Conditions */}
+            <View style={styles.termsRow}>
+              <Pressable
+                onPress={() => setAcceptedTerms((a) => !a)}
+                hitSlop={8}
+              >
+                <Ionicons
+                  name={acceptedTerms ? 'checkbox' : 'square-outline'}
+                  size={22}
+                  color={errors.terms ? colors.error : acceptedTerms ? colors.primary : colors.inkFaint}
+                />
+              </Pressable>
+              <Text style={[styles.termsText, { color: colors.inkSoft }]}>
+                I agree to the{' '}
+                <Text style={{ color: colors.primary, fontWeight: '600' }}>Terms & Conditions</Text>
+                {' '}and{' '}
+                <Text style={{ color: colors.primary, fontWeight: '600' }}>Privacy Policy</Text>
+              </Text>
+            </View>
+            {errors.terms && (
+              <Text style={[styles.termsError, { color: colors.error }]}>{errors.terms}</Text>
+            )}
+
             {role === 'broker' && (
               <FormField
                 label="Business name"
@@ -314,5 +409,48 @@ const styles = StyleSheet.create({
   },
   loginText: {
     ...typography.body,
+  },
+  strengthContainer: {
+    marginBottom: spacing.md,
+  },
+  strengthBars: {
+    flexDirection: 'row',
+    gap: 4,
+    marginBottom: 4,
+  },
+  strengthBar: {
+    flex: 1,
+    height: 4,
+    borderRadius: 2,
+  },
+  strengthText: {
+    ...typography.label,
+    marginBottom: spacing.sm,
+  },
+  checklist: {
+    gap: 4,
+  },
+  checkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  checkText: {
+    ...typography.label,
+  },
+  termsRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+    marginBottom: spacing.xs,
+  },
+  termsText: {
+    ...typography.caption,
+    flex: 1,
+    lineHeight: 20,
+  },
+  termsError: {
+    ...typography.label,
+    marginBottom: spacing.sm,
   },
 });
