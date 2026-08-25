@@ -95,6 +95,11 @@ export function HomeScreen() {
     ]);
   };
 
+  const threadsQuery = useQuery({
+    queryKey: ['chat', 'threads'],
+    queryFn: () => import('@/api/chat').then((m) => m.chatApi.threads()),
+  });
+
   const statCards = [
     { key: 'profiles', icon: 'people' as const, label: 'Profiles', value: profiles.data?.length ?? 0, tab: 'profiles' },
     { key: 'interests', icon: 'heart' as const, label: 'Interests', value: interactions.data?.received.length ?? 0, tab: 'interests', badge: pendingCount > 0 ? `${pendingCount} pending` : undefined },
@@ -254,10 +259,6 @@ export function HomeScreen() {
   };
 
   const renderMessagesTab = () => {
-    const threadsQuery = useQuery({
-      queryKey: ['chat', 'threads'],
-      queryFn: () => import('@/api/chat').then((m) => m.chatApi.threads()),
-    });
     const threadData = threadsQuery.data ?? [];
     if (threadData.length === 0) {
       return (
