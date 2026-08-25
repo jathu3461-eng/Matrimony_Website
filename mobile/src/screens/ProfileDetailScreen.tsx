@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { useRoute, RouteProp } from '@react-navigation/native';
-import { useQuery } from '@tanstack/react-query';
+import { Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useRoute, RouteProp, useNavigation } from '@react-navigation/native';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { profileApi } from '@/api/profiles';
@@ -13,28 +13,54 @@ import { Screen } from '@/components/Screen';
 import { useAppSelector } from '@/store/hooks';
 import { useTheme } from '@/theme';
 import { radius, spacing, typography } from '@/theme';
-import type { Profile } from '@/types';
+import type { Profile, ProfileMeta } from '@/types';
 import type { RootStackParamList } from '@/navigation/types';
 
 type DetailRoute = RouteProp<RootStackParamList, 'ProfileDetail'>;
 
 export function ProfileDetailScreen() {
   const route = useRoute<DetailRoute>();
+  const navigation = useNavigation();
   const { profileId } = route.params;
   const user = useAppSelector((s) => s.auth.user);
   const { colors } = useTheme();
+  const queryClient = useQueryClient();
 
   const [interestMsg, setInterestMsg] = useState('');
   const [sending, setSending] = useState(false);
   const [shortlisting, setShortlisting] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [horoscopeVisible, setHoroscopeVisible] = useState(false);
 
   const profile = useQuery({
     queryKey: ['profile', profileId],
     queryFn: () => profileApi.getById(profileId),
   });
 
+  const meta = useQuery({
+    queryKey: ['meta'],
+    queryFn: () => profileApi.getMeta(),
+  });
+
+  const respondMutation = useMutation({
+    mutationFn: ({ id, status }: { id: number; status: 'accepted' | 'rejected' }) =>
+      interestApi.respond(id, status),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['profile', profileId] });
+      queryClient.invalidateQueries({ queryKey: ['interactions'] });
+    },
+  });
+
   const p = profile.data;
+  const metaData = meta.data as ProfileMeta | undefined;
+
+  const resolveName = (
+    list: Array<{ id: number; name_en: string }> | undefined,
+    id: number | null | undefined,
+  ) => {
+    if (!id || !list) return null;
+    return list.find((r) => r.id === id)?.name_en ?? null;
+  };
 
   const sendInterest = async () => {
     if (!p) return;
@@ -158,16 +184,22 @@ export function ProfileDetailScreen() {
             <MetaRow icon="location" label="Location" value={p.city_or_state} />
           )}
           {p.religion_id && (
-            <MetaRow icon="book" label="Religion" value={String(p.religion_id)} />
+            <MetaRow icon="book" label="Religion" value={resolveName(metaData?.religions, p.religion_id) ?? String(p.religion_id)} />
           )}
-          {p.diet && (
-            <MetaRow icon="restaurant" label="Diet" value={p.diet} />
+          {p.caste_id && (
+            <MetaRow icon="people" label="Caste" value={resolveName(metaData?.castes, p.caste_id) ?? String(p.caste_id)} />
+          )}
+          {p.diet && p.diet !== 'any' && (
+            <MetaRow icon="restaurant" label="Diet" value={p.diet.replace('_', ' ')} />
           )}
           {p.family_values && (
             <MetaRow icon="people" label="Family values" value={p.family_values} />
           )}
+          {p.income_range && (
+            <MetaRow icon="cash" label="Income" value={p.income_range} />
+          )}
           {p.manglik_status && p.manglik_status !== 'no' && (
-            <MetaRow icon="moon" label="Manglik" value={p.manglik_status} />
+            <MetaRow icon="moon" label="Manglik" value={p.manglik_status === 'dont_know' ? "Don't know" : p.manglik_status} />
           )}
         </View>
 
@@ -178,22 +210,69 @@ export function ProfileDetailScreen() {
           </View>
         ) : null}
 
+        {p.horoscope_chart && (
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: colors.inkFaint }]}>Horoscope</Text>
+            <Pressable
+              onPress={() => setHoroscopeVisible(true)}
+              style={[styles.horoscopeBtn, { backgroundColor: colors.primarySoft, borderColor: colors.primary }]}
+            >
+              <Ionicons name="eye" size={18} color={colors.primary} />
+              <Text style={[styles.horoscopeBtnText, { color: colors.primary }]}>View Horoscope Chart</Text>
+            </Pressable>
+          </View>
+        )}
+
+        <Modal visible={horoscopeVisible} transparent animationType="fade" onRequestClose={() => setHoroscopeVisible(false)}>
+          <Pressable style={styles.modalOverlay} onPress={() => setHoroscopeVisible(false)}>
+            <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
+              <Pressable onPress={() => setHoroscopeVisible(false)} style={styles.modalClose}>
+                <Ionicons name="close-circle" size={28} color={colors.inkFaint} />
+              </Pressable>
+              {uploadsUrl(p.horoscope_chart) ? (
+                <Image source={{ uri: uploadsUrl(p.horoscope_chart)! }} style={styles.modalImage} resizeMode="contain" />
+              ) : (
+                <Text style={{ color: colors.inkFaint }}>Horoscope not available</Text>
+              )}
+            </View>
+          </Pressable>
+        </Modal>
+
         {!isOwnProfile && (
           <View style={styles.actions}>
-            {interestStatus === 'pending' ? (
+            {p.interest_direction === 'received' && p.interest_status === 'pending' ? (
+              <View style={styles.respondRow}>
+                <Text style={[styles.respondLabel, { color: colors.ink }]}>This person sent you an interest</Text>
+                <View style={styles.respondActions}>
+                  <Button
+                    title="Accept"
+                    variant="primary"
+                    size="md"
+                    leftIcon="checkmark"
+                    loading={respondMutation.isPending}
+                    onPress={() => respondMutation.mutate({ id: p.interest_id!, status: 'accepted' })}
+                  />
+                  <Button
+                    title="Decline"
+                    variant="secondary"
+                    size="md"
+                    leftIcon="close"
+                    loading={respondMutation.isPending}
+                    onPress={() => respondMutation.mutate({ id: p.interest_id!, status: 'rejected' })}
+                  />
+                </View>
+              </View>
+            ) : interestStatus === 'pending' ? (
               <View style={styles.pendingRow}>
                 <Ionicons name="time-outline" size={18} color={colors.inkFaint} />
                 <Button title="Interest Sent" variant="secondary" disabled size="md" />
               </View>
             ) : interestStatus === 'accepted' ? (
-              <Button title="Start Chat" variant="primary" size="md" leftIcon="chatbubble" disabled />
+              <Button title="Start Chat" variant="primary" size="md" leftIcon="chatbubble" onPress={() => {}} />
             ) : (
               <View style={styles.interestRow}>
                 <TextInput
-                  style={[
-                    styles.interestInput,
-                    { borderColor: colors.border, color: colors.ink, backgroundColor: colors.surface },
-                  ]}
+                  style={[styles.interestInput, { borderColor: colors.border, color: colors.ink, backgroundColor: colors.surface }]}
                   placeholder="Add a personal message..."
                   placeholderTextColor={colors.inkFaint}
                   value={interestMsg}
@@ -364,5 +443,51 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: 10,
     fontSize: typography.body.fontSize,
+  },
+  respondRow: {
+    gap: spacing.sm,
+  },
+  respondLabel: {
+    ...typography.body,
+    fontWeight: '600',
+  },
+  respondActions: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  horoscopeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    borderWidth: 1.5,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 12,
+  },
+  horoscopeBtnText: {
+    ...typography.body,
+    fontWeight: '700',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalContent: {
+    width: '90%',
+    maxHeight: '80%',
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    alignItems: 'center',
+  },
+  modalClose: {
+    alignSelf: 'flex-end',
+    marginBottom: spacing.sm,
+  },
+  modalImage: {
+    width: '100%',
+    height: 400,
+    borderRadius: radius.md,
   },
 });
