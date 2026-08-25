@@ -135,24 +135,19 @@ export default function Chat() {
 
   const myProfileIds = useMemo(() => myProfiles.map((p) => p.id), [myProfiles]);
 
-  const sanitizeName = useCallback((name) => {
-    if (!name) return 'Member';
-    const appName = /mukurtham\s*matrimony/i;
-    if (appName.test(name.trim())) return 'Member';
-    return name.trim();
-  }, []);
-
   const otherSide = useCallback(
     (thread) => {
       const mine = myProfileIds.includes(thread.sender_profile_id) ? thread.sender_profile_id : thread.receiver_profile_id;
       const isSender = mine === thread.sender_profile_id;
       return {
         otherProfileId: isSender ? thread.receiver_profile_id : thread.sender_profile_id,
-        otherName: sanitizeName(isSender ? thread.receiver_name : thread.sender_name),
+        otherName: isSender
+          ? (thread.receiver_name || 'Member').trim()
+          : (thread.sender_name || 'Member').trim(),
         otherUserId: isSender ? thread.receiver_user_id : thread.sender_user_id,
       };
     },
-    [myProfileIds, sanitizeName]
+    [myProfileIds]
   );
 
   const isMine = useCallback(
@@ -162,33 +157,24 @@ export default function Chat() {
 
   // ── Mobile keyboard handling via visualViewport ───────────────────────
   useEffect(() => {
-    const container = chatContainerRef.current;
-    if (!container) return;
-
-    let currentHeight = 0;
-
-    const applyHeight = (h) => {
-      if (h < 100) return;
-      if (h === currentHeight) return;
-      currentHeight = h;
-      container.style.height = h + 'px';
-      container.style.maxHeight = h + 'px';
-    };
+    const root = document.documentElement;
+    const vv = window.visualViewport;
 
     const updateViewport = () => {
-      const vp = window.visualViewport;
-      if (vp) {
-        applyHeight(Math.round(vp.height));
-      } else {
-        applyHeight(window.innerHeight);
+      if (vv) {
+        root.style.setProperty('--visual-viewport-height', `${vv.height}px`);
+        root.style.setProperty('--visual-viewport-offset-top', `${vv.offsetTop}px`);
+      } else if (window.innerHeight) {
+        root.style.setProperty('--visual-viewport-height', `${window.innerHeight}px`);
+        root.style.setProperty('--visual-viewport-offset-top', '0px');
       }
+      // When keyboard opens, scroll messages to bottom so latest is visible.
       requestAnimationFrame(() => {
         const el = scrollRef.current;
         if (el) el.scrollTop = el.scrollHeight;
       });
     };
 
-    const vv = window.visualViewport;
     if (vv) {
       vv.addEventListener('resize', updateViewport);
       vv.addEventListener('scroll', updateViewport);

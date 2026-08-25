@@ -1,13 +1,6 @@
 const { db } = require('../db');
 const { getIO } = require('../socket');
 
-const APP_NAME_RE = /mukurtham\s*matrimony/i;
-function sanitizeName(name) {
-  if (!name) return 'Member';
-  if (APP_NAME_RE.test(name.trim())) return 'Member';
-  return name.trim();
-}
-
 function threadId(profileIdA, profileIdB) {
   const [lo, hi] = [profileIdA, profileIdB].map(Number).sort((a, b) => a - b);
   return `${lo}-${hi}`;
@@ -63,8 +56,8 @@ async function buildThread(profileA, profileB, viewerUserId) {
     thread_id: threadId(profileA, profileB),
     sender_profile_id: a.id,
     receiver_profile_id: b.id,
-    sender_name: sanitizeName(a.name),
-    receiver_name: sanitizeName(b.name),
+    sender_name: a.name,
+    receiver_name: b.name,
     sender_user_id: a.owner_user_id,
     receiver_user_id: b.owner_user_id,
     last_message: last ? last.message : null,
@@ -113,8 +106,8 @@ async function getThreadSummaries(userId) {
     thread_id: threadId(r.sender_profile_id, r.receiver_profile_id),
     sender_profile_id: r.sender_profile_id,
     receiver_profile_id: r.receiver_profile_id,
-    sender_name: sanitizeName(r.sender_name),
-    receiver_name: sanitizeName(r.receiver_name),
+    sender_name: r.sender_name,
+    receiver_name: r.receiver_name,
     sender_user_id: r.sender_user_id,
     receiver_user_id: r.receiver_user_id,
     last_message: r.last_message,

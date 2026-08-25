@@ -779,20 +779,16 @@ button {
    ═══════════════════════════════════════════════════════════ */
 
 /* CSS vars updated by JS visualViewport listener.
-   --chat-vv-height: the visual viewport height (shrinks when keyboard opens)
-   --chat-vv-offset: top offset of the visual viewport (nonzero on iOS) */
+   --visual-viewport-height: the visual viewport height (shrinks when keyboard opens)
+   --visual-viewport-offset-top: top offset of the visual viewport (nonzero on iOS)
+   These are set on document.documentElement by the Chat component. */
 .chat-root {
-  --chat-vv-height: 100dvh;
-  --chat-vv-offset: 0px;
   display: flex;
   flex-direction: column;
   width: 100%;
-  /* JS sets height directly via inline style; these are fallbacks */
-  height: 100dvh;
-  max-height: 100dvh;
+  height: var(--visual-viewport-height, 100dvh);
   overflow: hidden;
   background: #fff0f6;
-  /* Prevent rubber-band / pull-to-refresh on mobile */
   overscroll-behavior: none;
 }
 
