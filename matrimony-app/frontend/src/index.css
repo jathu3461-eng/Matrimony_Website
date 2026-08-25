@@ -778,26 +778,32 @@ button {
    CHAT PAGE — Pink matrimony messaging UI
    ═══════════════════════════════════════════════════════════ */
 
-/* CSS vars updated by JS visualViewport listener */
+/* CSS vars updated by JS visualViewport listener.
+   --chat-vv-height: the visual viewport height (shrinks when keyboard opens)
+   --chat-vv-offset: top offset of the visual viewport (nonzero on iOS) */
 .chat-root {
   --chat-vv-height: 100dvh;
   --chat-vv-offset: 0px;
   display: flex;
   flex-direction: column;
   width: 100%;
-  height: 100dvh;
-  height: 100svh;
+  /* JS sets the real visual-viewport height; dvh is the fallback */
+  height: var(--chat-vv-height, 100dvh);
   overflow: hidden;
   background: #fff0f6;
+  /* Prevent rubber-band / pull-to-refresh on mobile */
+  overscroll-behavior: none;
 }
 
 @supports (height: 100dvh) {
-  .chat-root { height: 100dvh; }
+  .chat-root {
+    height: var(--chat-vv-height, 100dvh);
+  }
 }
-
-/* When visual viewport shrinks (keyboard open), adapt */
 @supports (height: 100svh) {
-  .chat-root { height: 100svh; }
+  .chat-root {
+    height: var(--chat-vv-height, 100svh);
+  }
 }
 
 /* ── TOP HEADER — Pink gradient ───────────────────────── */
@@ -1363,6 +1369,8 @@ button {
   border-top: 1px solid var(--border);
   flex-shrink: 0;
   z-index: 10;
+  /* Prevent iOS zoom on input focus (font-size < 16px triggers zoom) */
+  touch-action: manipulation;
 }
 
 .chat-composer-profile-select {
@@ -1488,12 +1496,15 @@ button {
 
 /* ── Keyboard-open state (visualViewport vars from JS) ─ */
 @media (max-width: 768px) {
-  .chat-root {
-    height: var(--chat-vv-height, 100dvh);
-  }
-
   .chat-messages-area {
     overscroll-behavior: contain;
+    /* Smooth scroll when keyboard opens/closes */
+    scroll-behavior: smooth;
+  }
+
+  .chat-composer-input {
+    /* 16px prevents iOS auto-zoom on focus */
+    font-size: 16px;
   }
 }
 

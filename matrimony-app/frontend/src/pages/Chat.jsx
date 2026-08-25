@@ -159,11 +159,17 @@ export default function Chat() {
     if (!container) return;
 
     const updateViewport = () => {
-      if (window.visualViewport) {
-        const vp = window.visualViewport;
-        container.style.setProperty("--chat-vv-height", `${vp.height}px`);
-        container.style.setProperty("--chat-vv-offset", `${vp.offsetTop}px`);
-      }
+      if (!window.visualViewport) return;
+      const vp = window.visualViewport;
+      const h = Math.round(vp.height);
+      const o = Math.round(vp.offsetTop);
+      container.style.setProperty("--chat-vv-height", `${h}px`);
+      container.style.setProperty("--chat-vv-offset", `${o}px`);
+      // When keyboard opens, scroll messages to bottom so latest is visible.
+      requestAnimationFrame(() => {
+        const el = scrollRef.current;
+        if (el) el.scrollTop = el.scrollHeight;
+      });
     };
 
     const vv = window.visualViewport;
