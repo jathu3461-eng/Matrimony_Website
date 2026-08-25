@@ -115,6 +115,237 @@ export function validateAboutMe(value: string): string | null {
   return null;
 }
 
+// ── Profile wizard step constants (matching website) ──────────────────────────
+export const POSTED_BY = ['Self', 'Son', 'Daughter', 'Brother', 'Sister', 'Relative', 'Friend', 'Client'];
+
+export const DIET_OPTIONS = [
+  { value: 'any', label: 'Any / Flexible' },
+  { value: 'vegetarian', label: 'Vegetarian' },
+  { value: 'non_vegetarian', label: 'Non-Vegetarian' },
+  { value: 'vegan', label: 'Vegan' },
+  { value: 'jain', label: 'Jain' },
+];
+export const FAMILY_VALUES = [
+  { value: 'traditional', label: 'Traditional' },
+  { value: 'moderate', label: 'Moderate' },
+  { value: 'liberal', label: 'Liberal' },
+];
+export const CAREER_GOALS = [
+  { value: 'working', label: 'Career Oriented / Working' },
+  { value: 'home_maker', label: 'Home Maker' },
+  { value: 'open', label: 'Flexible / Open' },
+];
+export const RELOCATE = [
+  { value: 'open', label: 'Open to Relocate' },
+  { value: 'local_only', label: 'Local Only' },
+  { value: 'overseas_only', label: 'Overseas Only' },
+];
+export const INCOME_RANGE = [
+  { value: 'Under $50k', label: 'Under $50k' },
+  { value: '$50k - $100k', label: '$50k - $100k' },
+  { value: '$100k - $150k', label: '$100k - $150k' },
+  { value: '$150k+', label: '$150k+' },
+];
+export const MANGLIK = [
+  { value: 'no', label: 'No Dosham / Non-Manglik' },
+  { value: 'yes', label: 'Chevvai Dosham / Manglik' },
+  { value: 'dont_know', label: "Don't Know" },
+];
+
+// ── Profile form type ────────────────────────────────────────────────────────
+export interface ProfileForm {
+  profile_registered_for: string;
+  name: string;
+  gender: 'M' | 'F' | '';
+  date_of_birth: string;
+  height_feet: string;
+  height_inches: string;
+  education: string;
+  occupation: string;
+  religion_id: string;
+  caste_id: string;
+  sub_religion: string;
+  raasi_id: string;
+  star_id: string;
+  born_country_id: string;
+  current_country_id: string;
+  city_or_state: string;
+  about_me: string;
+  blur_photo: number;
+  blur_horoscope: number;
+  diet: string;
+  family_values: string;
+  career_goals: string;
+  willing_to_relocate: string;
+  income_range: string;
+  manglik_status: string;
+}
+
+export const EMPTY_FORM: ProfileForm = {
+  profile_registered_for: 'Self',
+  name: '',
+  gender: '',
+  date_of_birth: '',
+  height_feet: '5',
+  height_inches: '6',
+  education: '',
+  occupation: '',
+  religion_id: '',
+  caste_id: '',
+  sub_religion: '',
+  raasi_id: '',
+  star_id: '',
+  born_country_id: '',
+  current_country_id: '',
+  city_or_state: '',
+  about_me: '',
+  blur_photo: 0,
+  blur_horoscope: 0,
+  diet: 'any',
+  family_values: 'moderate',
+  career_goals: 'working',
+  willing_to_relocate: 'open',
+  income_range: '$50k - $100k',
+  manglik_status: 'no',
+};
+
+// ── Wizard step definitions ──────────────────────────────────────────────────
+export interface ProfileStepDef {
+  key: string;
+  title: string;
+  hint: string;
+  icon: string;
+  fields: (keyof ProfileForm)[];
+}
+
+export const profileSteps: ProfileStepDef[] = [
+  { key: 'basic', title: 'Basics', hint: 'Who is this profile for?', icon: 'person', fields: ['profile_registered_for', 'name', 'gender', 'date_of_birth'] },
+  { key: 'education', title: 'Education & Career', hint: 'Your academic and professional background', icon: 'school', fields: ['education', 'occupation'] },
+  { key: 'height', title: 'Height', hint: 'Physical details', icon: 'resize', fields: ['height_feet', 'height_inches'] },
+  { key: 'lifestyle', title: 'Lifestyle', hint: 'Day-to-day preferences', icon: 'heart', fields: ['diet', 'family_values', 'career_goals', 'willing_to_relocate'] },
+  { key: 'income', title: 'Income & Dosham', hint: 'Financial and astrological preferences', icon: 'wallet', fields: ['income_range', 'manglik_status'] },
+  { key: 'religion', title: 'Religion & Caste', hint: 'Community details', icon: 'library', fields: ['religion_id', 'caste_id', 'sub_religion'] },
+  { key: 'astrology', title: 'Astrology', hint: 'Raasi and nakshatram', icon: 'star', fields: ['raasi_id', 'star_id'] },
+  { key: 'location', title: 'Location', hint: 'Where you were born and live now', icon: 'location', fields: ['born_country_id', 'current_country_id', 'city_or_state'] },
+  { key: 'media', title: 'Photos & Privacy', hint: 'Upload media and set privacy', icon: 'camera', fields: ['blur_photo', 'blur_horoscope'] },
+  { key: 'bio', title: 'Bio & Review', hint: 'Tell your story', icon: 'document-text', fields: ['about_me'] },
+];
+
+// ── Step validation (mirrors website's Zod schemas) ──────────────────────────
+function validateNameField(v: string): string | null { return validateName(v); }
+function validatePostedBy(v: string): string | null {
+  if (!POSTED_BY.includes(v)) return 'Select who posted this profile';
+  return null;
+}
+function validateGender(v: string): string | null {
+  if (v !== 'M' && v !== 'F') return 'Please select a gender';
+  return null;
+}
+
+export function validateProfileStep(step: number, form: ProfileForm): Record<string, string> {
+  const errors: Record<string, string> = {};
+  const stepDef = profileSteps[step];
+  if (!stepDef) return errors;
+
+  const addError = (field: string, msg: string) => { errors[field] = msg; };
+
+  for (const field of stepDef.fields) {
+    const val = String(form[field] ?? '');
+
+    switch (field) {
+      case 'profile_registered_for': {
+        const e = validatePostedBy(val); if (e) addError(field, e);
+        break;
+      }
+      case 'name': {
+        const e = validateNameField(val); if (e) addError(field, e);
+        break;
+      }
+      case 'gender': {
+        const e = validateGender(val); if (e) addError(field, e);
+        break;
+      }
+      case 'date_of_birth': {
+        const e = validateDob(val); if (e) addError(field, e);
+        break;
+      }
+      case 'height_feet': {
+        const e = validateHeightFeet(val); if (e) addError(field, e);
+        break;
+      }
+      case 'height_inches': {
+        const e = validateHeightInches(val); if (e) addError(field, e);
+        break;
+      }
+      case 'education': {
+        const e = validateLongText(val, 'Education'); if (e) addError(field, e);
+        break;
+      }
+      case 'occupation': {
+        const e = validateLongText(val, 'Occupation'); if (e) addError(field, e);
+        break;
+      }
+      case 'diet': {
+        if (!DIET_OPTIONS.some(o => o.value === val)) addError(field, 'Select a dietary preference');
+        break;
+      }
+      case 'family_values': {
+        if (!FAMILY_VALUES.some(o => o.value === val)) addError(field, 'Select family values');
+        break;
+      }
+      case 'career_goals': {
+        if (!CAREER_GOALS.some(o => o.value === val)) addError(field, 'Select career goals');
+        break;
+      }
+      case 'willing_to_relocate': {
+        if (!RELOCATE.some(o => o.value === val)) addError(field, 'Select relocation preference');
+        break;
+      }
+      case 'income_range': {
+        if (!val) addError(field, 'Select an income range');
+        break;
+      }
+      case 'manglik_status': {
+        if (!MANGLIK.some(o => o.value === val)) addError(field, 'Select an option');
+        break;
+      }
+      case 'religion_id': {
+        if (!val) addError(field, 'Select a religion');
+        break;
+      }
+      case 'caste_id': {
+        if (!val) addError(field, 'Select a caste');
+        break;
+      }
+      case 'raasi_id': {
+        if (!val) addError(field, 'Select a raasi');
+        break;
+      }
+      case 'star_id': {
+        if (!val) addError(field, 'Select a star / nakshatram');
+        break;
+      }
+      case 'born_country_id': {
+        if (!val) addError(field, 'Select a country of birth');
+        break;
+      }
+      case 'current_country_id': {
+        if (!val) addError(field, 'Select a country of residence');
+        break;
+      }
+      case 'city_or_state': {
+        if (val.length < 2) addError(field, 'Enter city or state');
+        break;
+      }
+      case 'about_me': {
+        const e = validateAboutMe(val); if (e) addError(field, e);
+        break;
+      }
+    }
+  }
+  return errors;
+}
+
 // Hint text shown when a field is empty (guides the user on the expected format).
 export const HINTS = {
   username: '4-30 characters, letters/numbers/underscore',
@@ -123,8 +354,8 @@ export const HINTS = {
   password: 'Min 8 chars, 1 uppercase, 1 special character',
   confirm: 'Re-enter your password',
   businessName: 'Your agency name (min 2 characters)',
-  name: 'Your full name',
-  dob: 'YYYY-MM-DD (e.g. 1995-06-15)',
+  name: 'Min 2 characters, letters and spaces only',
+  dob: 'YYYY-MM-DD (e.g. 1995-06-15). Must be 18+',
   heightFeet: '3-7',
   heightInches: '0-11',
   education: 'e.g. B.E. Computer Science',
@@ -133,4 +364,5 @@ export const HINTS = {
   diet: 'e.g. Vegetarian, Non-vegetarian, Vegan',
   familyValues: 'e.g. Traditional, Moderate, Liberal',
   aboutMe: 'Tell your story (minimum 50 characters)',
+  subReligion: 'e.g. Saiva Siddhantam (optional)',
 } as const;
