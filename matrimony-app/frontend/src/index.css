@@ -787,23 +787,13 @@ button {
   display: flex;
   flex-direction: column;
   width: 100%;
-  /* JS sets the real visual-viewport height; dvh is the fallback */
-  height: var(--chat-vv-height, 100dvh);
+  /* JS sets height directly via inline style; these are fallbacks */
+  height: 100dvh;
+  max-height: 100dvh;
   overflow: hidden;
   background: #fff0f6;
   /* Prevent rubber-band / pull-to-refresh on mobile */
   overscroll-behavior: none;
-}
-
-@supports (height: 100dvh) {
-  .chat-root {
-    height: var(--chat-vv-height, 100dvh);
-  }
-}
-@supports (height: 100svh) {
-  .chat-root {
-    height: var(--chat-vv-height, 100svh);
-  }
 }
 
 /* ── TOP HEADER — Pink gradient ───────────────────────── */

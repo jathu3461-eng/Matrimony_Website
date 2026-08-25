@@ -93,6 +93,10 @@ function validateProfile(body) {
   const validPostedBy = ['Self', 'Son', 'Daughter', 'Brother', 'Sister', 'Relative', 'Friend', 'Client'];
   if (!validPostedBy.includes(body.profile_registered_for)) errors.profile_registered_for = 'Please select who this profile is for';
   if (!body.name || body.name.trim().length < 2) errors.name = 'Invalid Format. Full name must be at least 2 characters';
+  const appNamePattern = /mukurtham\s*matrimony/i;
+  if (body.name && appNamePattern.test(body.name.trim())) {
+    errors.name = 'Please enter your real name, not the app name';
+  }
   if (!['M', 'F'].includes(body.gender)) errors.gender = 'Please select a gender';
   if (!body.date_of_birth || isNaN(new Date(body.date_of_birth))) {
     errors.date_of_birth = 'Invalid Format. Expected format: YYYY-MM-DD';

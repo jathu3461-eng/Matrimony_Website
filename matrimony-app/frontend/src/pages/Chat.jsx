@@ -135,17 +135,24 @@ export default function Chat() {
 
   const myProfileIds = useMemo(() => myProfiles.map((p) => p.id), [myProfiles]);
 
+  const sanitizeName = useCallback((name) => {
+    if (!name) return 'Member';
+    const appName = /mukurtham\s*matrimony/i;
+    if (appName.test(name.trim())) return 'Member';
+    return name.trim();
+  }, []);
+
   const otherSide = useCallback(
     (thread) => {
       const mine = myProfileIds.includes(thread.sender_profile_id) ? thread.sender_profile_id : thread.receiver_profile_id;
       const isSender = mine === thread.sender_profile_id;
       return {
         otherProfileId: isSender ? thread.receiver_profile_id : thread.sender_profile_id,
-        otherName: isSender ? thread.receiver_name : thread.sender_name,
+        otherName: sanitizeName(isSender ? thread.receiver_name : thread.sender_name),
         otherUserId: isSender ? thread.receiver_user_id : thread.sender_user_id,
       };
     },
-    [myProfileIds]
+    [myProfileIds, sanitizeName]
   );
 
   const isMine = useCallback(
@@ -158,14 +165,23 @@ export default function Chat() {
     const container = chatContainerRef.current;
     if (!container) return;
 
+    let currentHeight = 0;
+
+    const applyHeight = (h) => {
+      if (h < 100) return;
+      if (h === currentHeight) return;
+      currentHeight = h;
+      container.style.height = h + 'px';
+      container.style.maxHeight = h + 'px';
+    };
+
     const updateViewport = () => {
-      if (!window.visualViewport) return;
       const vp = window.visualViewport;
-      const h = Math.round(vp.height);
-      const o = Math.round(vp.offsetTop);
-      container.style.setProperty("--chat-vv-height", `${h}px`);
-      container.style.setProperty("--chat-vv-offset", `${o}px`);
-      // When keyboard opens, scroll messages to bottom so latest is visible.
+      if (vp) {
+        applyHeight(Math.round(vp.height));
+      } else {
+        applyHeight(window.innerHeight);
+      }
       requestAnimationFrame(() => {
         const el = scrollRef.current;
         if (el) el.scrollTop = el.scrollHeight;
@@ -174,18 +190,18 @@ export default function Chat() {
 
     const vv = window.visualViewport;
     if (vv) {
-      vv.addEventListener("resize", updateViewport);
-      vv.addEventListener("scroll", updateViewport);
+      vv.addEventListener('resize', updateViewport);
+      vv.addEventListener('scroll', updateViewport);
     }
-    window.addEventListener("resize", updateViewport);
+    window.addEventListener('resize', updateViewport);
     updateViewport();
 
     return () => {
       if (vv) {
-        vv.removeEventListener("resize", updateViewport);
-        vv.removeEventListener("scroll", updateViewport);
+        vv.removeEventListener('resize', updateViewport);
+        vv.removeEventListener('scroll', updateViewport);
       }
-      window.removeEventListener("resize", updateViewport);
+      window.removeEventListener('resize', updateViewport);
     };
   }, []);
 
