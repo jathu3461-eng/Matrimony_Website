@@ -21,6 +21,18 @@ function parseCookies(header) {
   return out;
 }
 
+/** SQLite CURRENT_TIMESTAMP ("YYYY-MM-DD HH:MM:SS" UTC) -> JS ISO string. */
+function sqliteToIso(ts) {
+  if (!ts) return null;
+  try {
+    const raw = String(ts);
+    const d = new Date(raw.includes('T') ? raw : `${raw.replace(' ', 'T')}Z`);
+    return Number.isNaN(d.getTime()) ? null : d.toISOString();
+  } catch (_) {
+    return null;
+  }
+}
+
 function socketUserId(socket) {
   return socket.data && socket.data.user ? socket.data.user.id : null;
 }
@@ -108,6 +120,9 @@ function initSocket(server) {
 
     // Join personal room — all devices of the user share this room.
     socket.join(`user:${userId}`);
+
+    // Freshen our own last-seen so partners see accurate info later.
+    try { await db.run('UPDATE users SET last_seen_at = CURRENT_TIMESTAMP WHERE id = ?', [userId]); } catch (_) {}
 
     const sockets = presence.get(userId) || new Set();
     sockets.add(socket.id);
@@ -243,7 +258,14 @@ function initSocket(server) {
         const onlinePartners = {};
         for (const p of partners) {
           const s = presence.get(p);
-          onlinePartners[p] = { online: !!(s && s.size > 0), lastSeen: null };
+          let lastSeen = null;
+          if (!s || s.size === 0) {
+            try {
+              const row = await db.get('SELECT last_seen_at FROM users WHERE id = ?', [p]);
+              lastSeen = sqliteToIso(row && row.last_seen_at);
+            } catch (_) {}
+          }
+          onlinePartners[p] = { online: !!(s && s.size > 0), lastSeen };
         }
         return ack && ack({ ok: true, threads: freshThreads, onlinePartners });
       } catch (err) {

@@ -8,22 +8,27 @@ interface PresenceInfo {
   lastSeen: string | null;
 }
 
+type SocketHandler = (...args: any[]) => void;
+
 interface SocketContextValue {
   connected: boolean;
   getPresence: (userId: number | string) => PresenceInfo;
   isOnline: (userId: number | string) => boolean;
+  subscribe: (event: string, handler: SocketHandler) => () => void;
 }
 
 const SocketContext = createContext<SocketContextValue>({
   connected: false,
   getPresence: () => ({ online: false, lastSeen: null }),
   isOnline: () => false,
+  subscribe: () => () => {},
 });
 
 export function SocketProvider({ children }: { children: React.ReactNode }) {
   const user = useAppSelector((s) => s.auth.user);
   const [connected, setConnected] = useState(false);
   const presenceRef = useRef<Map<string, PresenceInfo>>(new Map());
+  const listenersRef = useRef<Map<string, Set<SocketHandler>>>(new Map());
   const [, forceUpdate] = useState(0);
   const appStateRef = useRef(AppState.currentState);
 
@@ -37,6 +42,24 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
 
   const bump = () => forceUpdate((n) => n + 1);
 
+  // Attach a listener to any socket event; survives reconnects and can be
+  // registered before the socket exists (replayed once it connects).
+  const subscribe = useCallback((event: string, handler: SocketHandler) => {
+    let set = listenersRef.current.get(event);
+    if (!set) {
+      set = new Set();
+      listenersRef.current.set(event, set);
+    }
+    set.add(handler);
+    const s = getSocket();
+    if (s) s.on(event, handler as never);
+    return () => {
+      set!.delete(handler);
+      const sock = getSocket();
+      if (sock) sock.off(event, handler as never);
+    };
+  }, []);
+
   useEffect(() => {
     if (!user) {
       disconnectSocket();
@@ -47,61 +70,77 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     }
 
     let mounted = true;
+    let syncTimer: ReturnType<typeof setInterval> | null = null;
+
+    const applySyncResp = (resp: any) => {
+      if (!mounted || !resp?.ok || !resp.onlinePartners) return;
+      for (const [uid, info] of Object.entries(resp.onlinePartners) as any) {
+        presenceRef.current.set(String(uid), {
+          online: !!info.online,
+          lastSeen: info.lastSeen || null,
+        });
+      }
+      bump();
+    };
+
+    const syncNow = () => {
+      const s = getSocket();
+      s?.emit('chat:sync', {}, applySyncResp);
+    };
 
     const setup = async () => {
       const s = await connectSocket();
       if (!s || !mounted) return;
 
+      // Re-attach any listeners registered before the socket existed.
+      for (const [evt, handlers] of listenersRef.current) {
+        for (const h of handlers) s.on(evt, h as never);
+      }
+
       s.on('connect', () => {
         if (!mounted) return;
         setConnected(true);
-        s.emit('chat:sync', {}, (resp: any) => {
-          if (!mounted) return;
-          if (resp?.ok && resp.onlinePartners) {
-            for (const [uid, info] of Object.entries(resp.onlinePartners) as any) {
-              presenceRef.current.set(String(uid), {
-                online: info.online,
-                lastSeen: info.lastSeen || null,
-              });
-            }
-            bump();
-          }
-        });
+        syncNow();
       });
 
       s.on('disconnect', () => {
         if (!mounted) return;
         setConnected(false);
+        // All partners become unreachable until we reconnect.
+        presenceRef.current.clear();
+        bump();
       });
 
       s.on('chat:presence', (data: { userId: number; online: boolean; lastSeen: string | null }) => {
         if (!mounted) return;
         presenceRef.current.set(String(data.userId), {
           online: data.online,
-          lastSeen: data.lastSeen,
+          lastSeen: data.lastSeen ?? null,
         });
         bump();
       });
+
+      // Whoever just messaged us is obviously online right now.
+      s.on('chat:message', (m: any) => {
+        if (!mounted || m?.sender_user_id == null) return;
+        presenceRef.current.set(String(m.sender_user_id), { online: true, lastSeen: null });
+        bump();
+      });
+
+      // Keep presence fresh while the app stays open (WhatsApp-style).
+      syncTimer = setInterval(syncNow, 30000);
     };
 
     setup();
 
-    // Re-sync presence when app returns to foreground
+    // Re-sync / re-connect when the app returns to the foreground.
     const handleAppState = (next: AppStateStatus) => {
       if (appStateRef.current.match(/inactive|background/) && next === 'active') {
         const s = getSocket();
-        if (s?.connected) {
-          s.emit('chat:sync', {}, (resp: any) => {
-            if (resp?.ok && resp.onlinePartners) {
-              for (const [uid, info] of Object.entries(resp.onlinePartners) as any) {
-                presenceRef.current.set(String(uid), {
-                  online: info.online,
-                  lastSeen: info.lastSeen || null,
-                });
-              }
-              bump();
-            }
-          });
+        if (s && !s.connected) {
+          s.connect(); // same socket instance keeps all handlers attached
+        } else if (s?.connected) {
+          syncNow();
         }
       }
       appStateRef.current = next;
@@ -111,6 +150,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
 
     return () => {
       mounted = false;
+      if (syncTimer) clearInterval(syncTimer);
       sub.remove();
       disconnectSocket();
       setConnected(false);
@@ -119,7 +159,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   }, [user]);
 
   return (
-    <SocketContext.Provider value={{ connected, getPresence, isOnline }}>
+    <SocketContext.Provider value={{ connected, getPresence, isOnline, subscribe }}>
       {children}
     </SocketContext.Provider>
   );

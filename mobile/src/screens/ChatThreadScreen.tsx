@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   Alert,
+  AppState,
   FlatList,
   Image,
   Keyboard,
@@ -21,6 +22,7 @@ import { uploadsUrl } from '@/api/client';
 import { Spinner } from '@/components/Spinner';
 import { useAppSelector } from '@/store/hooks';
 import { useSocket } from '@/context/SocketContext';
+import { getSocket } from '@/services/chatSocket';
 import { useTheme } from '@/theme';
 import { radius, spacing, typography } from '@/theme';
 import type { ChatMessage } from '@/types';
@@ -80,7 +82,7 @@ export function ChatThreadScreen() {
   const { profileA, profileB, otherName } = route.params;
   const { colors } = useTheme();
   const user = useAppSelector((s) => s.auth.user);
-  const { connected, isOnline, getPresence } = useSocket();
+  const { connected, isOnline, getPresence, subscribe } = useSocket();
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [text, setText] = useState('');
@@ -90,6 +92,8 @@ export function ChatThreadScreen() {
   const [selectedMsg, setSelectedMsg] = useState<ChatMessage | null>(null);
   const flatListRef = useRef<FlatList>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [otherTyping, setOtherTyping] = useState(false);
+  const typingSentAtRef = useRef(0);
 
   const [myProfiles, setMyProfiles] = useState<number[]>([]);
   const [otherUserId, setOtherUserId] = useState<number | null>(null);
@@ -131,6 +135,74 @@ export function ChatThreadScreen() {
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, [profileA, profileB]);
 
+  // Mark the conversation as read while it's open (WhatsApp-style blue ticks)
+  useEffect(() => {
+    if (loading) return;
+    const s = getSocket();
+    if (!s) return;
+    const markRead = () => {
+      if (s.connected) {
+        s.emit('chat:read', { profileA: Number(profileA), profileB: Number(profileB) }, () => {});
+      }
+    };
+    markRead();
+    const sub = AppState.addEventListener('change', (st) => {
+      if (st === 'active') markRead();
+    });
+    return () => sub.remove();
+  }, [profileA, profileB, loading, messages.length]);
+
+  // Real-time delivery, seen receipts & typing indicator over the socket
+  useEffect(() => {
+    const pa = Number(profileA);
+    const pb = Number(profileB);
+    const myPair = `${Math.min(pa, pb)}-${Math.max(pa, pb)}`;
+
+    const offMessage = subscribe('chat:message', (m: any) => {
+      if (!m) return;
+      const pair = [Number(m.sender_profile_id), Number(m.receiver_profile_id)]
+        .sort((a, b) => a - b)
+        .join('-');
+      if (pair !== myPair) return;
+      setMessages((prev) =>
+        prev.some((x) => Number(x.id) === Number(m.id))
+          ? prev
+          : [...prev, m as ChatMessage],
+      );
+    });
+
+    const offSeen = subscribe('chat:seen', (payload: any) => {
+      const ids: number[] = Array.isArray(payload?.messageIds)
+        ? payload.messageIds.map(Number)
+        : [];
+      if (ids.length === 0) return;
+      setMessages((prev) =>
+        prev.map((msg) =>
+          ids.includes(Number(msg.id)) && !msg.read_at
+            ? { ...msg, read_at: new Date().toISOString() }
+            : msg,
+        ),
+      );
+    });
+
+    let typingTimer: ReturnType<typeof setTimeout> | null = null;
+    const offTyping = subscribe('chat:typing', (payload: any) => {
+      if (otherUserId == null || Number(payload?.userId) !== Number(otherUserId)) return;
+      setOtherTyping(!!payload?.isTyping);
+      if (typingTimer) clearTimeout(typingTimer);
+      if (payload?.isTyping) {
+        typingTimer = setTimeout(() => setOtherTyping(false), 3500);
+      }
+    });
+
+    return () => {
+      offMessage();
+      offSeen();
+      offTyping();
+      if (typingTimer) clearTimeout(typingTimer);
+    };
+  }, [profileA, profileB, otherUserId, subscribe]);
+
   const scrollToBottom = () => {
     setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 50);
   };
@@ -145,12 +217,36 @@ export function ChatThreadScreen() {
     return () => sub.remove();
   }, []);
 
+  const stopTypingSignal = () => {
+    const s = getSocket();
+    if (s?.connected && typingSentAtRef.current > 0) {
+      typingSentAtRef.current = 0;
+      s.emit('chat:typing', { profileA: Number(profileA), profileB: Number(profileB), isTyping: false }, () => {});
+    }
+  };
+
+  const onTextChange = (value: string) => {
+    setText(value);
+    const s = getSocket();
+    if (!s?.connected) return;
+    if (!value.trim()) {
+      stopTypingSignal();
+      return;
+    }
+    const now = Date.now();
+    if (now - typingSentAtRef.current > 2000) {
+      typingSentAtRef.current = now;
+      s.emit('chat:typing', { profileA: Number(profileA), profileB: Number(profileB), isTyping: true }, () => {});
+    }
+  };
+
   const sendMessage = async () => {
     const trimmed = text.trim();
     if (!trimmed || sending) return;
     setSending(true);
     setText('');
     setInputHeight(44);
+    stopTypingSignal();
     try {
       const msg = await chatApi.send(profileA, profileB, trimmed, senderProfileId);
       setMessages((prev) => [...prev, msg]);
@@ -258,8 +354,12 @@ export function ChatThreadScreen() {
         </View>
         <View style={styles.convInfo}>
           <Text style={styles.convName} numberOfLines={1}>{otherName}</Text>
-          <Text style={[styles.convStatus, { color: otherOnline ? '#22c55e' : '#b08da6' }]}>
-            {otherOnline ? 'Online' : formatLastSeen(otherPresence?.lastSeen ?? null)}
+          <Text style={[styles.convStatus, { color: otherTyping || otherOnline ? '#22c55e' : '#b08da6' }]}>
+            {otherTyping
+              ? 'typing…'
+              : otherOnline
+                ? 'Online'
+                : formatLastSeen(otherPresence?.lastSeen ?? null)}
           </Text>
         </View>
         <Pressable style={styles.viewProfileBtn}>
@@ -299,7 +399,10 @@ export function ChatThreadScreen() {
             if (msg.read_at) {
               return <Ionicons name="checkmark-done" size={16} color="#4FC3F7" />;
             }
-            return <Ionicons name="checkmark-done" size={16} color="rgba(255,255,255,0.6)" />;
+            if ((msg as any).delivered || (msg as any).delivered_at) {
+              return <Ionicons name="checkmark-done" size={16} color="rgba(255,255,255,0.85)" />;
+            }
+            return <Ionicons name="checkmark" size={16} color="rgba(255,255,255,0.6)" />;
           };
 
           return (
@@ -367,7 +470,7 @@ export function ChatThreadScreen() {
             placeholder="Type a message..."
             placeholderTextColor="#b08da6"
             value={text}
-            onChangeText={setText}
+            onChangeText={onTextChange}
             multiline
             maxLength={2000}
             onContentSizeChange={(e) => {

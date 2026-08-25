@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -31,12 +31,19 @@ export function ChatListScreen() {
   const navigation = useNavigation<Nav>();
   const { colors } = useTheme();
   const [refreshing, setRefreshing] = useState(false);
-  const { isOnline } = useSocket();
+  const { isOnline, subscribe } = useSocket();
 
   const threads = useQuery({
     queryKey: ['chat', 'threads'],
     queryFn: () => chatApi.threads(),
   });
+
+  // Live updates: refetch the list the moment any chat activity happens.
+  useEffect(() => {
+    const events = ['chat:message', 'chat:thread', 'chat:seen'];
+    const offs = events.map((evt) => subscribe(evt, () => threads.refetch()));
+    return () => offs.forEach((off) => off());
+  }, [subscribe, threads.refetch]);
 
   const myProfiles = useQuery({
     queryKey: ['my-profiles'],
