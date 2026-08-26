@@ -30,8 +30,8 @@ export function ProfileCard({ profile, onPress }: ProfileCardProps) {
         {photoUrl ? (
           <Image source={{ uri: photoUrl }} style={[styles.photo, { backgroundColor: colors.primarySoft }]} />
         ) : (
-          <View style={[styles.photo, styles.photoPlaceholder, { backgroundColor: colors.primarySoft }]}>
-            <Ionicons name="person" size={32} color={colors.inkFaint} />
+          <View style={[styles.photo, styles.photoPlaceholder, { backgroundColor: colors.primary }]}>
+            <Text style={[styles.photoInitial, { color: colors.white }]}>{(profile.name ?? '?')[0]?.toUpperCase()}</Text>
           </View>
         )}
         {profile.is_verified === 1 && (
@@ -112,11 +112,15 @@ const styles = StyleSheet.create({
   photo: {
     width: 76,
     height: 76,
-    borderRadius: radius.md,
+    borderRadius: 38,
   },
   photoPlaceholder: {
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  photoInitial: {
+    fontSize: 28,
+    fontWeight: '800',
   },
   verifiedDot: {
     position: 'absolute',

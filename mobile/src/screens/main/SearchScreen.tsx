@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   FlatList,
   Pressable,
@@ -86,6 +86,10 @@ export function SearchScreen() {
     setApplied(params);
   };
 
+  useEffect(() => {
+    runSearch();
+  }, [gender]);
+
   const clearAll = () => {
     setGender(undefined);
     setMinAge('');
@@ -147,8 +151,6 @@ export function SearchScreen() {
         {activeFilterCount > 0 && (
           <Button title="Clear All" variant="ghost" size="sm" onPress={clearAll} />
         )}
-
-        <Button title="Search" size="sm" onPress={runSearch} />
       </View>
 
       {/* Gender chips */}

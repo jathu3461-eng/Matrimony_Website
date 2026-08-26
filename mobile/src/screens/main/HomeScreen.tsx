@@ -409,7 +409,7 @@ const styles = StyleSheet.create({
   countBadgeText: { fontSize: 11, fontWeight: '700' },
   interestCard: { borderRadius: radius.md, borderWidth: 1, padding: spacing.md, gap: spacing.sm },
   interestHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  avatarSm: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  avatarSm: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   avatarText: { fontSize: 16, fontWeight: '700' },
   interestName: { ...typography.body, fontWeight: '700' },
   interestMeta: { ...typography.caption },
