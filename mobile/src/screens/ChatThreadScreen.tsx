@@ -15,7 +15,6 @@ import {
 } from 'react-native';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { chatApi } from '@/api/chat';
 import { profileApi } from '@/api/profiles';
@@ -279,27 +278,6 @@ export function ChatThreadScreen() {
     }
   };
 
-  const sendImage = async () => {
-    const res = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      quality: 0.7,
-    });
-    if (res.canceled || !res.assets[0]) return;
-    setSending(true);
-    try {
-      const msg = await chatApi.sendImage(profileA, profileB, res.assets[0].uri, senderProfileId);
-      setMessages((prev) =>
-        prev.some((x) => Number(x.id) === Number(msg.id)) ? prev : [...prev, msg],
-      );
-      scrollToBottom();
-    } catch {
-      Alert.alert('Error', 'Failed to send image.');
-    } finally {
-      setSending(false);
-    }
-  };
-
   const deleteMessage = async (msg: ChatMessage) => {
     setSelectedMsg(null);
     Alert.alert('Delete message', 'Remove this message?', [
@@ -470,9 +448,6 @@ export function ChatThreadScreen() {
 
       {/* ── Composer ── */}
       <View style={styles.composer}>
-        <Pressable style={styles.attachBtn} onPress={sendImage}>
-          <Ionicons name="add-circle" size={28} color={PINK} />
-        </Pressable>
         <View style={styles.composerInputWrap}>
           <TextInput
             style={styles.composerInput}
@@ -764,14 +739,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: '#e5e1dc',
-  },
-  attachBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 3,
   },
   composerInputWrap: {
     flex: 1,
