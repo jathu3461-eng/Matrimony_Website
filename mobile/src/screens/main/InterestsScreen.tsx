@@ -65,7 +65,8 @@ export function InterestsScreen() {
             {received.length > 0 && (
               <>
                 <View style={styles.sectionHeaderRow}>
-                  <Text style={[styles.sectionHeader, { color: colors.inkFaint }]}>Received</Text>
+                  <Text style={[styles.sectionEmoji, { color: colors.primary }]}>♥</Text>
+                  <Text style={[styles.sectionHeader, { color: colors.inkFaint }]}>Interests Received</Text>
                   <View style={[styles.countBadge, { backgroundColor: colors.primary }]}>
                     <Text style={[styles.countText, { color: colors.white }]}>{receivedCount}</Text>
                   </View>
@@ -95,7 +96,8 @@ export function InterestsScreen() {
             {sent.length > 0 && (
               <>
                 <View style={styles.sectionHeaderRow}>
-                  <Text style={[styles.sectionHeader, { color: colors.inkFaint }]}>Sent</Text>
+                  <Text style={[styles.sectionEmoji, { color: colors.inkFaint }]}>✈</Text>
+                  <Text style={[styles.sectionHeader, { color: colors.inkFaint }]}>Interests Sent</Text>
                 </View>
                 {sent.map((item) => (
                   <InterestRow
@@ -137,6 +139,10 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     marginTop: spacing.md,
     marginBottom: spacing.sm,
+  },
+  sectionEmoji: {
+    fontSize: 18,
+    fontWeight: '700',
   },
   sectionHeader: {
     ...typography.caption,

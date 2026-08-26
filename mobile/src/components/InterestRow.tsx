@@ -27,6 +27,36 @@ export function InterestRow({ interest, direction, onPress, onResponded, onSendM
   };
   const status = STATUS_LABEL[interest.status];
 
+  if (interest.status === 'accepted') {
+    return (
+      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <Pressable onPress={onPress} style={({ pressed }) => [styles.cardTop, pressed && styles.pressed]}>
+          {otherPic ? (
+            <Image source={{ uri: uploadsUrl(otherPic) }} style={[styles.avatar, { backgroundColor: colors.primarySoft }]} />
+          ) : (
+            <View style={[styles.avatar, styles.avatarPlaceholder, { backgroundColor: colors.primarySoft }]}>
+              <Ionicons name="person" size={22} color={colors.inkFaint} />
+            </View>
+          )}
+          <View style={styles.details}>
+            <Text style={[styles.name, { color: colors.ink }]}>{otherName ?? 'Profile'}</Text>
+            <Text style={[styles.statusAccepted, { color: colors.success }]}>Accepted</Text>
+            {interest.occupation ? (
+              <Text style={[styles.meta, { color: colors.inkFaint }]}>{interest.occupation}</Text>
+            ) : null}
+          </View>
+        </Pressable>
+        <Pressable
+          onPress={onSendMessage}
+          style={[styles.sendBtn, { backgroundColor: colors.surface, borderColor: colors.primary }]}
+        >
+          <Ionicons name="chatbubble" size={16} color={colors.primary} />
+          <Text style={[styles.sendBtnText, { color: colors.primary }]}>Send Message</Text>
+        </Pressable>
+      </View>
+    );
+  }
+
   return (
     <Pressable
       onPress={onPress}
@@ -76,11 +106,6 @@ export function InterestRow({ interest, direction, onPress, onResponded, onSendM
             <Ionicons name="close" size={18} color={colors.error} />
           </Pressable>
         </View>
-      ) : interest.status === 'accepted' ? (
-        <Pressable onPress={onSendMessage ?? onPress} style={[styles.viewBtn, { backgroundColor: colors.primarySoft }]}>
-          <Ionicons name="chatbubble-outline" size={16} color={colors.primary} />
-          <Text style={[styles.viewBtnText, { color: colors.primary }]}>Send Message</Text>
-        </Pressable>
       ) : (
         status && <Text style={[styles.status, { color: status.color }]}>{status.text}</Text>
       )}
@@ -89,6 +114,31 @@ export function InterestRow({ interest, direction, onPress, onResponded, onSendM
 }
 
 const styles = StyleSheet.create({
+  card: {
+    borderRadius: radius.md,
+    borderWidth: 1,
+    marginBottom: spacing.sm,
+    overflow: 'hidden',
+  },
+  cardTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: spacing.md,
+    gap: spacing.md,
+  },
+  sendBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#e7e5e4',
+    paddingVertical: 14,
+  },
+  sendBtnText: {
+    ...typography.body,
+    fontWeight: '700',
+  },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -124,6 +174,10 @@ const styles = StyleSheet.create({
   meta: {
     ...typography.label,
     marginTop: 2,
+  },
+  statusAccepted: {
+    ...typography.label,
+    fontWeight: '700',
   },
   status: {
     ...typography.label,
