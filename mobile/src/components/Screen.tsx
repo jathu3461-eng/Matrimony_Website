@@ -1,6 +1,8 @@
 import { StyleSheet, View, ViewProps } from 'react-native';
-import { Edge, SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '@/theme';
+
+type Edge = 'top' | 'bottom' | 'left' | 'right';
 
 interface ScreenProps extends ViewProps {
   scrollable?: boolean;
