@@ -119,7 +119,7 @@ export function SearchScreen() {
         <Ionicons name="search" size={18} color={colors.inkFaint} />
         <TextInput
           style={[styles.searchInput, { color: colors.ink }]}
-          placeholder="Name, occupation, city..."
+          placeholder="Search by name..."
           placeholderTextColor={colors.inkFaint}
           value={query}
           onChangeText={setQuery}

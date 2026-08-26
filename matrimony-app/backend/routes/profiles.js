@@ -144,7 +144,7 @@ router.get('/search', async (req, res) => {
     if (star_id) { sql += ' AND p.star_id = ?'; params.push(star_id); }
     if (income_range) { sql += ' AND p.income_range = ?'; params.push(income_range); }
     if (manglik_status) { sql += ' AND p.manglik_status = ?'; params.push(manglik_status); }
-    if (q) { sql += ' AND (p.name LIKE ? OR p.occupation LIKE ? OR p.city_or_state LIKE ?)'; params.push(`%${q}%`, `%${q}%`, `%${q}%`); }
+    if (q) { sql += ' AND p.name LIKE ?'; params.push(`%${q}%`); }
     sql += ' ORDER BY p.created_at DESC LIMIT 100';
 
     let rows = await db.all(sql, params);
