@@ -24,8 +24,8 @@ export function InterestsScreen() {
   });
 
   const sections = useMemo(() => {
-    const received = data.data?.received ?? [];
-    const sent = data.data?.sent ?? [];
+    const received = (data.data?.received ?? []).map((item) => ({ ...item, _section: 'r' }));
+    const sent = (data.data?.sent ?? []).map((item) => ({ ...item, _section: 's' }));
     return [
       { title: 'Received', data: received },
       { title: 'Sent', data: sent },
@@ -44,7 +44,7 @@ export function InterestsScreen() {
     <Screen>
       <SectionList
         sections={sections}
-        keyExtractor={(item, index) => `${item.id}-${index}`}
+        keyExtractor={(item: any) => `${item._section}-${item.id}`}
         contentContainerStyle={styles.list}
         renderItem={({ item, section }) => (
           <InterestRow
