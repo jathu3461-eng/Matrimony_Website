@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -10,6 +11,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '@/components/Button';
 import { FormField } from '@/components/FormField';
 import { Screen } from '@/components/Screen';
@@ -29,6 +31,25 @@ import type { AuthStackParamList } from '@/navigation/types';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList>;
 type Step = 'email' | 'otp' | 'password';
+
+function ForgotHeader({ title }: { title: string }) {
+  const navigation = useNavigation<Nav>();
+  const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
+  return (
+    <View style={[styles.headerBar, { paddingTop: insets.top + 8 }]}>
+      <Pressable
+        onPress={() => navigation.goBack()}
+        style={styles.backBtn}
+        hitSlop={12}
+      >
+        <Ionicons name="arrow-back" size={22} color={colors.ink} />
+      </Pressable>
+      <Text style={[styles.headerTitle, { color: colors.ink }]}>{title}</Text>
+      <View style={styles.backBtn} />
+    </View>
+  );
+}
 
 export function ForgotPasswordScreen() {
   const navigation = useNavigation<Nav>();
@@ -132,10 +153,10 @@ export function ForgotPasswordScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
+          <ForgotHeader title={stepTitle} />
+
           <View style={styles.header}>
             <AnimatedLogo shape="arch" size={90} />
-            <Text style={[styles.title, { color: colors.ink }]}>{stepTitle}</Text>
-            <Text style={[styles.subtitle, { color: colors.inkFaint }]}>{stepHint}</Text>
           </View>
 
           <View
@@ -237,10 +258,27 @@ const styles = StyleSheet.create({
     padding: spacing.xl,
     paddingBottom: spacing.xxl,
   },
+  headerBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 4,
+    marginBottom: spacing.sm,
+  },
+  backBtn: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 20,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+  },
   header: {
     alignItems: 'center',
     marginBottom: spacing.lg,
-    marginTop: spacing.lg,
   },
   title: {
     ...typography.title,

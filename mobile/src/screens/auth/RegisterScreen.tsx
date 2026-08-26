@@ -11,6 +11,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '@/components/Button';
 import { FormField } from '@/components/FormField';
 import { Screen } from '@/components/Screen';
@@ -32,6 +33,25 @@ import { radius, spacing, typography } from '@/theme';
 import type { AuthStackParamList } from '@/navigation/types';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList>;
+
+function RegisterHeader() {
+  const navigation = useNavigation<Nav>();
+  const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
+  return (
+    <View style={[styles.headerBar, { paddingTop: insets.top + 8 }]}>
+      <Pressable
+        onPress={() => navigation.goBack()}
+        style={styles.backBtn}
+        hitSlop={12}
+      >
+        <Ionicons name="arrow-back" size={22} color={colors.ink} />
+      </Pressable>
+      <Text style={[styles.headerTitle, { color: colors.ink }]}>Create Account</Text>
+      <View style={styles.backBtn} />
+    </View>
+  );
+}
 
 export function RegisterScreen() {
   const navigation = useNavigation<Nav>();
@@ -123,9 +143,10 @@ export function RegisterScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
+          <RegisterHeader />
+
           <View style={styles.header}>
             <AnimatedLogo shape="hexagon" size={100} />
-            <Text style={[styles.title, { color: colors.ink }]}>Create Account</Text>
             <Text style={[styles.subtitle, { color: colors.inkFaint }]}>
               Start your journey to find the perfect match
             </Text>
@@ -347,6 +368,24 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     padding: spacing.xl,
     paddingBottom: spacing.xxl,
+  },
+  headerBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 4,
+    marginBottom: spacing.sm,
+  },
+  backBtn: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 20,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '700',
   },
   header: {
     alignItems: 'center',
