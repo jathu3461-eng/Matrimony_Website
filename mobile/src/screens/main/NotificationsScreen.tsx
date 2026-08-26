@@ -1,17 +1,17 @@
 import { useState, useCallback } from 'react';
 import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { notificationApi } from '@/api/notifications';
 import { Screen } from '@/components/Screen';
 import { useTheme } from '@/theme';
 import { radius, spacing, typography } from '@/theme';
+import { badgeEvents } from '@/lib/badgeEvents';
 
 export function NotificationsScreen() {
   const { colors } = useTheme();
   const [refreshing, setRefreshing] = useState(false);
-  const queryClient = useQueryClient();
 
   const data = useQuery({
     queryKey: ['notifications'],
@@ -20,16 +20,15 @@ export function NotificationsScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      const markAndRefresh = async () => {
-        const unread = (data.data ?? []).filter((n) => n.is_read === 0);
-        if (unread.length > 0) {
+      const run = async () => {
+        try {
           await notificationApi.markAllRead();
           data.refetch();
-          queryClient.invalidateQueries({ queryKey: ['notifications-unread'] });
-        }
+          badgeEvents.emit('notifications:read');
+        } catch {}
       };
-      markAndRefresh();
-    }, [data, queryClient])
+      run();
+    }, [])
   );
 
   const onRefresh = async () => {
@@ -41,6 +40,7 @@ export function NotificationsScreen() {
   const markAll = async () => {
     await notificationApi.markAllRead();
     data.refetch();
+    badgeEvents.emit('notifications:read');
   };
 
   return (

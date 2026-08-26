@@ -5,6 +5,7 @@ import { notificationApi } from '@/api/notifications';
 import { interestApi } from '@/api/interests';
 import { useAppSelector } from '@/store/hooks';
 import { useSocket } from '@/context/SocketContext';
+import { badgeEvents } from '@/lib/badgeEvents';
 
 /**
  * Live unread counts for chat, notifications, and pending interests,
@@ -61,10 +62,13 @@ export function useUnreadBadge(pollMs = 30000) {
     ];
     const offs = events.map((evt) => subscribe(evt, () => refresh()));
 
+    const offBadge = badgeEvents.on('notifications:read', refresh);
+
     return () => {
       clearInterval(id);
       appSub.remove();
       offs.forEach((off) => off());
+      offBadge();
     };
   }, [authenticated, pollMs, refresh, subscribe, connected]);
 
