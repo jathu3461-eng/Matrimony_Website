@@ -112,6 +112,18 @@ router.post('/:profileA/:profileB', requireAuth, async (req, res) => {
     if (receiver) io()?.to(`user:${receiver.owner_user_id}`).emit('chat:message', payload);
     chatService.emitThreadUpdate(getIO(), profileA, profileB);
 
+    // Push notification to receiver (best-effort, non-blocking)
+    if (receiver && receiver.owner_user_id !== req.user.id) {
+      try {
+        const { sendPushToUser } = require('../routes/pushNotifications');
+        sendPushToUser(receiver.owner_user_id, {
+          title: senderProfile.name || 'New Message',
+          body: message.trim().slice(0, 100),
+          data: { type: 'message', profileA: Number(profileA), profileB: Number(profileB) },
+        });
+      } catch (_) {}
+    }
+
     res.status(201).json({ message: payload, duplicate });
   } catch (err) {
     console.error(err);

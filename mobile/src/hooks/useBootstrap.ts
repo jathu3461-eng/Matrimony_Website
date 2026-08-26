@@ -1,11 +1,13 @@
 import { useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authApi } from '@/api/auth';
-import { useAppDispatch } from '@/store/hooks';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { setAuthenticated, clearAuth } from '@/store/authSlice';
+import { registerPushToken } from '@/services/pushNotifications';
 
 export function useBootstrap() {
   const dispatch = useAppDispatch();
+  const status = useAppSelector((s) => s.auth.status);
 
   useEffect(() => {
     let cancelled = false;
@@ -36,6 +38,8 @@ export function useBootstrap() {
                 expiresAt: Date.now() + 15 * 60 * 1000,
               })
             );
+            // Register push token after successful auth
+            registerPushToken();
           }
         } catch {
           if (!cancelled) dispatch(clearAuth());

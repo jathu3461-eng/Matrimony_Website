@@ -75,6 +75,15 @@ router.post('/send', async (req, res) => {
         profileId: receiver_profile_id,
         message: `${senderName} sent you an Interest Request.`,
       });
+      // Push notification
+      try {
+        const { sendPushToUser } = require('../routes/pushNotifications');
+        sendPushToUser(receiver.owner_user_id, {
+          title: 'New Interest',
+          body: `${senderName} sent you an Interest Request.`,
+          data: { type: 'interest_received', profileId: activeSenderId },
+        });
+      } catch (_) {}
     } catch (_) {}
 
     const interest = await db.get('SELECT * FROM interests WHERE id = ?', [info.lastInsertRowid]);
@@ -163,6 +172,15 @@ router.put('/respond', async (req, res) => {
             message: `You are now connected with ${receiverProf.name}.`,
           });
         }
+        // Push notification to the sender
+        try {
+          const { sendPushToUser } = require('../routes/pushNotifications');
+          sendPushToUser(senderProf.owner_user_id, {
+            title: 'Interest Accepted!',
+            body: `${receiverProf.name} accepted your interest request! You can now chat.`,
+            data: { type: 'interest_accepted', profileId: interest.receiver_profile_id },
+          });
+        } catch (_) {}
       } catch (_) {}
     }
     res.status(200).json({ success: true, message: `Interest ${newStatus} successfully!`, status: newStatus });

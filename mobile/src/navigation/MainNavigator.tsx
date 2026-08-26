@@ -1,4 +1,5 @@
-import { View, Text, StyleSheet } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, Animated, Easing } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -49,14 +50,49 @@ function BadgeIcon({
   badge: number;
   badgeColor: string;
 }) {
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const prevBadge = useRef(badge);
+
+  useEffect(() => {
+    if (badge > prevBadge.current) {
+      Animated.sequence([
+        Animated.timing(scaleAnim, {
+          toValue: 1.3,
+          duration: 150,
+          easing: Easing.out(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(scaleAnim, {
+          toValue: 1,
+          duration: 150,
+          easing: Easing.in(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+    prevBadge.current = badge;
+  }, [badge]);
+
+  if (badge <= 0) {
+    return (
+      <View style={iconStyles.container}>
+        <Ionicons name={focused ? activeIcon : icon} size={size} color={color} />
+      </View>
+    );
+  }
+
   return (
     <View style={iconStyles.container}>
       <Ionicons name={focused ? activeIcon : icon} size={size} color={color} />
-      {badge > 0 && (
-        <View style={[iconStyles.badge, { backgroundColor: badgeColor }]}>
-          <Text style={iconStyles.badgeText}>{badge > 99 ? '99+' : badge}</Text>
-        </View>
-      )}
+      <Animated.View
+        style={[
+          iconStyles.badge,
+          { backgroundColor: badgeColor },
+          { transform: [{ scale: scaleAnim }] },
+        ]}
+      >
+        <Text style={iconStyles.badgeText}>{badge > 99 ? '99+' : badge}</Text>
+      </Animated.View>
     </View>
   );
 }
