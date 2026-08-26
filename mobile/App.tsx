@@ -90,12 +90,12 @@ export default function App() {
           <QueryClientProvider client={queryClient}>
             <ThemeProvider>
               <SocketProvider>
-                <ToastProvider>
                   <NavigationContainer>
-                    <NotificationHandler />
-                    <ThemedApp />
+                    <ToastProvider>
+                      <NotificationHandler />
+                      <ThemedApp />
+                    </ToastProvider>
                   </NavigationContainer>
-                </ToastProvider>
               </SocketProvider>
             </ThemeProvider>
           </QueryClientProvider>
