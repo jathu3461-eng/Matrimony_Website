@@ -236,7 +236,7 @@ export function SplashScreen() {
     Animated.loop(
       Animated.sequence([
         Animated.timing(coupleFloat, {
-          toValue: -6,
+          toValue: -10,
           duration: 1800,
           easing: Easing.inOut(Easing.ease),
           useNativeDriver: true,
@@ -457,13 +457,13 @@ export function SplashScreen() {
                     {
                       rotateY: coupleRotateY.interpolate({
                         inputRange: [-1, 1],
-                        outputRange: ['-10deg', '10deg'],
+                        outputRange: ['-12deg', '12deg'],
                       }),
                     },
                     {
                       rotateX: coupleRotateX.interpolate({
                         inputRange: [-1, 1],
-                        outputRange: ['3deg', '-3deg'],
+                        outputRange: ['5deg', '-5deg'],
                       }),
                     },
                     { perspective: 800 },
@@ -474,7 +474,7 @@ export function SplashScreen() {
               <Image
                 source={require('../../assets/couple.jpg')}
                 style={styles.couple}
-                resizeMode="contain"
+                resizeMode="cover"
               />
             </Animated.View>
           </Animated.View>
@@ -526,8 +526,8 @@ export function SplashScreen() {
   );
 }
 
-const ARCH_W = SCREEN_W * 0.55;
-const ARCH_H = ARCH_W * 1.45;
+const ARCH_W = SCREEN_W * 0.7;
+const ARCH_H = ARCH_W * 1.25;
 
 const styles = StyleSheet.create({
   container: {
@@ -600,9 +600,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: ARCH_W + 16,
     height: ARCH_H + 16,
-    borderRadius: ARCH_W / 2,
-    borderTopLeftRadius: ARCH_W / 2,
-    borderTopRightRadius: ARCH_W / 2,
+    borderRadius: 28,
     backgroundColor: 'transparent',
     borderWidth: 2,
     borderColor: 'rgba(255,200,120,0.4)',
@@ -615,9 +613,7 @@ const styles = StyleSheet.create({
   archFrame: {
     width: ARCH_W,
     height: ARCH_H,
-    borderRadius: ARCH_W / 2,
-    borderTopLeftRadius: ARCH_W / 2,
-    borderTopRightRadius: ARCH_W / 2,
+    borderRadius: 24,
     borderColor: GOLD,
     backgroundColor: 'rgba(255,255,255,0.1)',
     overflow: 'hidden',
