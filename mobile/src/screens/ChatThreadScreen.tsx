@@ -134,6 +134,8 @@ export function ChatThreadScreen() {
       ? profileB
       : profileA;
 
+  const otherProfileId = Number(senderProfileId) === Number(profileA) ? profileB : profileA;
+
   const loadMessages = async () => {
     try {
       const data = await chatApi.history(profileA, profileB);
@@ -340,27 +342,7 @@ export function ChatThreadScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 96 : 0}
     >
-      {/* ── Top Header — Pink gradient ── */}
-      <View style={styles.topHeader}>
-        <Pressable style={styles.topBackBtn} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={22} color="#fff" />
-        </Pressable>
-        <View style={styles.topIconWrap}>
-          <Ionicons name="chatbubbles" size={22} color="#fff" />
-        </View>
-        <View style={styles.topTitleWrap}>
-          <Text style={styles.topTitle}>Messages</Text>
-          <View style={styles.topStatusRow}>
-            <View style={[styles.connectedDot, { backgroundColor: connected ? '#4ade80' : '#fbbf24' }]} />
-            <Text style={styles.topStatusText}>{connected ? 'Connected' : 'Reconnecting…'}</Text>
-          </View>
-        </View>
-        <Pressable style={styles.topSoundBtn}>
-          <Ionicons name="volume-high" size={20} color="#fff" />
-        </Pressable>
-      </View>
-
-      {/* ── Conversation Header — White ── */}
+      {/* ── Conversation Header ── */}
       <View style={styles.convHeader}>
         <Pressable style={styles.convBackBtn} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={20} color={colors.ink} />
@@ -381,7 +363,10 @@ export function ChatThreadScreen() {
                 : formatLastSeen(otherPresence?.lastSeen ?? null)}
           </Text>
         </View>
-        <Pressable style={styles.viewProfileBtn}>
+        <Pressable
+          style={styles.viewProfileBtn}
+          onPress={() => navigation.navigate('ProfileDetail' as never, { profileId: otherProfileId } as never)}
+        >
           <Text style={styles.viewProfileText}>View Profile</Text>
         </Pressable>
       </View>
@@ -439,7 +424,7 @@ export function ChatThreadScreen() {
                   </Text>
                 ) : null}
                 <View style={styles.bubbleMeta}>
-                  <Text style={[styles.bubbleTime, { color: isMe ? 'rgba(255,255,255,0.7)' : '#b08da6' }]}>
+                  <Text style={[styles.bubbleTime, { color: isMe ? 'rgba(255,255,255,0.7)' : '#8a8279' }]}>
                     {formatBubbleTime(msg.sent_at)}
                   </Text>
                   {tickIcon()}
@@ -451,7 +436,7 @@ export function ChatThreadScreen() {
         ListEmptyComponent={
           <View style={styles.emptyWrap}>
             <View style={styles.emptyIconWrap}>
-              <Ionicons name="lock-closed" size={20} color={PINK} />
+              <Ionicons name="lock-closed" size={20} color="#8a8279" />
             </View>
             <Text style={styles.emptyText}>
               Messages are end-to-end encrypted.{'\n'}No one outside of this chat can read them.
@@ -487,7 +472,7 @@ export function ChatThreadScreen() {
           <TextInput
             style={styles.composerInput}
             placeholder="Type a message..."
-            placeholderTextColor="#b08da6"
+            placeholderTextColor="#8a8279"
             value={text}
             onChangeText={onTextChange}
             multiline
@@ -521,79 +506,10 @@ export function ChatThreadScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: PINK_BG,
+    backgroundColor: '#f8f5f0',
   },
   loadingWrap: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  // ── Top Header ──
-  topHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    backgroundColor: PINK,
-    paddingTop: Platform.OS === 'ios' ? 56 : 40,
-    shadowColor: PINK,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  topBackBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  topIconWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.18)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  topTitleWrap: {
-    flex: 1,
-  },
-  topTitle: {
-    color: '#fff',
-    fontSize: 17,
-    fontWeight: '800',
-  },
-  topStatusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginTop: 1,
-  },
-  connectedDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#4ade80',
-    shadowColor: '#4ade80',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.6,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  topStatusText: {
-    color: 'rgba(255,255,255,0.85)',
-    fontSize: 11,
-  },
-  topSoundBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.15)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -603,22 +519,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    paddingHorizontal: 14,
+    paddingHorizontal: 12,
     paddingVertical: 10,
     backgroundColor: '#fff',
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: PINK_BORDER,
+    borderBottomColor: '#e5e1dc',
+    paddingTop: Platform.OS === 'ios' ? 54 : 36,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
+    shadowOpacity: 0.06,
     shadowRadius: 4,
-    elevation: 1,
+    elevation: 2,
   },
   convBackBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    backgroundColor: PINK_SOFT,
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#f3f0ec',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -632,11 +549,6 @@ const styles = StyleSheet.create({
     backgroundColor: PINK,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: PINK,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
-    elevation: 3,
   },
   convAvatarText: {
     color: '#fff',
@@ -669,15 +581,13 @@ const styles = StyleSheet.create({
     color: '#22c55e',
   },
   viewProfileBtn: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
     paddingVertical: 7,
     borderRadius: 999,
-    backgroundColor: PINK_SOFT,
-    borderWidth: 1,
-    borderColor: PINK_BORDER,
+    backgroundColor: PINK,
   },
   viewProfileText: {
-    color: PINK,
+    color: '#fff',
     fontSize: 12,
     fontWeight: '700',
   },
@@ -685,7 +595,7 @@ const styles = StyleSheet.create({
   // ── Messages Area ──
   messagesArea: {
     flex: 1,
-    backgroundColor: PINK_BG,
+    backgroundColor: '#f8f5f0',
   },
   list: {
     padding: 14,
@@ -704,18 +614,18 @@ const styles = StyleSheet.create({
   dateSepLine: {
     flex: 1,
     height: 1,
-    backgroundColor: PINK_BORDER,
+    backgroundColor: '#e5e1dc',
   },
   datePill: {
     borderRadius: 999,
     paddingHorizontal: 14,
     paddingVertical: 4,
-    backgroundColor: '#fce8f1',
+    backgroundColor: '#eae6e1',
   },
   datePillText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#b08da6',
+    color: '#8a8279',
   },
 
   // ── Bubbles ──
@@ -746,7 +656,7 @@ const styles = StyleSheet.create({
   bubbleIn: {
     backgroundColor: '#fff',
     borderWidth: 1,
-    borderColor: PINK_BORDER,
+    borderColor: '#e5e1dc',
     borderBottomLeftRadius: 4,
   },
   bubbleText: {
@@ -780,13 +690,13 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: PINK_SOFT,
+    backgroundColor: '#f3f0ec',
     alignItems: 'center',
     justifyContent: 'center',
   },
   emptyText: {
     fontSize: 12,
-    color: '#b08da6',
+    color: '#8a8279',
     textAlign: 'center',
     lineHeight: 18,
   },
@@ -818,7 +728,7 @@ const styles = StyleSheet.create({
   },
   contextDivider: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: PINK_BORDER,
+    backgroundColor: '#e5e1dc',
     marginBottom: 10,
   },
   contextOption: {
@@ -842,7 +752,7 @@ const styles = StyleSheet.create({
     paddingBottom: Platform.OS === 'ios' ? 30 : 12,
     backgroundColor: '#fff',
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: PINK_BORDER,
+    borderTopColor: '#e5e1dc',
   },
   composerInputWrap: {
     flex: 1,
@@ -851,9 +761,9 @@ const styles = StyleSheet.create({
   },
   composerInput: {
     borderWidth: 1.5,
-    borderColor: PINK_BORDER,
+    borderColor: '#e5e1dc',
     borderRadius: 999,
-    backgroundColor: PINK_BG,
+    backgroundColor: '#f8f5f0',
     paddingHorizontal: 18,
     paddingVertical: 12,
     fontSize: 15,
