@@ -44,7 +44,7 @@ export function InterestsScreen() {
     <Screen>
       <SectionList
         sections={sections}
-        keyExtractor={(item) => String(item.id)}
+        keyExtractor={(item, index) => `${item.id}-${index}`}
         contentContainerStyle={styles.list}
         renderItem={({ item, section }) => (
           <InterestRow

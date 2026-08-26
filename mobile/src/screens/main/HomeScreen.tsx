@@ -168,7 +168,7 @@ export function HomeScreen() {
             </View>
           ) : (
             received.map((i) => (
-              <View key={i.id} style={[styles.interestCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <View key={`received-${i.id}`} style={[styles.interestCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
                 <View style={styles.interestHeader}>
                   <View style={[styles.avatarSm, { backgroundColor: colors.primarySoft }]}>
                     <Text style={[styles.avatarText, { color: colors.primary }]}>{i.sender_name?.[0] ?? '?'}</Text>
@@ -219,7 +219,7 @@ export function HomeScreen() {
             </View>
           ) : (
             sent.map((i) => (
-              <View key={i.id} style={[styles.sentCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <View key={`sent-${i.id}`} style={[styles.sentCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
                 <Text style={[styles.sentTo, { color: colors.ink }]}>To: {i.receiver_name}</Text>
                 <View style={[styles.statusBadge, { backgroundColor: i.status === 'accepted' ? colors.successSoft : i.status === 'pending' ? '#fef3c7' : colors.errorSoft }]}>
                   <Text style={[styles.statusText, { color: i.status === 'accepted' ? colors.success : i.status === 'pending' ? '#d97706' : colors.error }]}>
