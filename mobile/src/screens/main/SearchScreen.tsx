@@ -3,7 +3,6 @@ import {
   FlatList,
   Pressable,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -72,10 +71,11 @@ export function SearchScreen() {
 
   const activeFilterCount = [gender, minAge, maxAge, religionId, casteId, countryId, raasiId, starId, incomeRange, manglik].filter(Boolean).length;
 
-  const runSearch = () => {
+  const applyFilters = (genderOverride?: 'M' | 'F' | undefined) => {
+    const g = genderOverride !== undefined ? genderOverride : gender;
     const params: SearchParams = {};
     if (query.trim()) params.q = query.trim();
-    if (gender) params.gender = gender;
+    if (g) params.gender = g;
     if (minAge) params.minAge = Number(minAge);
     if (maxAge) params.maxAge = Number(maxAge);
     if (religionId) params.religion_id = Number(religionId);
@@ -88,17 +88,7 @@ export function SearchScreen() {
 
   const applyGender = (g: 'M' | 'F' | undefined) => {
     setGender(g);
-    const params: SearchParams = {};
-    if (query.trim()) params.q = query.trim();
-    if (g) params.gender = g;
-    if (minAge) params.minAge = Number(minAge);
-    if (maxAge) params.maxAge = Number(maxAge);
-    if (religionId) params.religion_id = Number(religionId);
-    if (casteId) params.caste_id = Number(casteId);
-    if (countryId) params.current_country_id = countryId;
-    if (raasiId) params.raasi_id = Number(raasiId);
-    if (starId) params.star_id = Number(starId);
-    setApplied(params);
+    applyFilters(g);
   };
 
   const clearAll = () => {
@@ -122,8 +112,8 @@ export function SearchScreen() {
     setRefreshing(false);
   };
 
-  return (
-    <Screen>
+  const header = (
+    <>
       {/* Search bar */}
       <View style={[styles.searchBar, { backgroundColor: colors.surface, borderColor: colors.border }]}>
         <Ionicons name="search" size={18} color={colors.inkFaint} />
@@ -133,13 +123,13 @@ export function SearchScreen() {
           placeholderTextColor={colors.inkFaint}
           value={query}
           onChangeText={setQuery}
-          onSubmitEditing={runSearch}
+          onSubmitEditing={() => applyFilters()}
           returnKeyType="search"
           autoCorrect={false}
         />
       </View>
 
-      {/* Filter toggle + gender row */}
+      {/* Filter toggle + clear */}
       <View style={styles.filterHeader}>
         <Pressable
           onPress={() => setShowFilters((s) => !s)}
@@ -165,7 +155,7 @@ export function SearchScreen() {
       </View>
 
       {/* Gender chips */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.genderRow}>
+      <View style={styles.genderRow}>
         {GENDER_FILTERS.map((f) => (
           <Pressable
             key={f.label}
@@ -188,14 +178,11 @@ export function SearchScreen() {
             </Text>
           </Pressable>
         ))}
-      </ScrollView>
+      </View>
 
       {/* Expandable filters */}
       {showFilters && (
-        <ScrollView
-          contentContainerStyle={styles.filterPanel}
-          nestedScrollEnabled
-        >
+        <View style={styles.filterPanel}>
           <View style={styles.ageRow}>
             <View style={styles.ageInput}>
               <SelectField
@@ -292,10 +279,17 @@ export function SearchScreen() {
             onChange={setManglik}
             placeholder="Any"
           />
-        </ScrollView>
+        </View>
       )}
 
-      {/* Results */}
+      {results.data && results.data.length > 0 && (
+        <Text style={[styles.count, { color: colors.inkFaint }]}>{results.data.length} profiles found</Text>
+      )}
+    </>
+  );
+
+  return (
+    <Screen>
       <FlatList
         data={results.data ?? []}
         keyExtractor={(item) => String(item.id)}
@@ -307,11 +301,7 @@ export function SearchScreen() {
           />
         )}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
-        ListHeaderComponent={
-          results.data && results.data.length > 0 ? (
-            <Text style={[styles.count, { color: colors.inkFaint }]}>{results.data.length} profiles found</Text>
-          ) : null
-        }
+        ListHeaderComponent={header}
         ListEmptyComponent={
           <View style={styles.emptyWrap}>
             {results.isLoading ? (
@@ -370,6 +360,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   genderRow: {
+    flexDirection: 'row',
     paddingHorizontal: spacing.md,
     paddingBottom: spacing.sm,
     gap: spacing.sm,
@@ -378,11 +369,12 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderRadius: radius.pill,
     paddingHorizontal: spacing.md,
-    paddingVertical: 6,
+    paddingVertical: 8,
   },
   genderChipText: {
-    ...typography.caption,
+    ...typography.body,
     fontWeight: '700',
+    fontSize: 13,
   },
   filterPanel: {
     paddingHorizontal: spacing.md,
