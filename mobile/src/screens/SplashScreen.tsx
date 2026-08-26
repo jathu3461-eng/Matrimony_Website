@@ -124,6 +124,10 @@ export function SplashScreen() {
   const taglineOpacity = useRef(new Animated.Value(0)).current;
   const taglineTranslateY = useRef(new Animated.Value(10)).current;
   const dotsOpacity = useRef(new Animated.Value(0)).current;
+  const coupleOpacity = useRef(new Animated.Value(0)).current;
+  const coupleTranslateY = useRef(new Animated.Value(40)).current;
+  const coupleFloat = useRef(new Animated.Value(0)).current;
+  const coupleRotate = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     // Logo entrance
@@ -225,6 +229,57 @@ export function SplashScreen() {
       delay: 1800,
       useNativeDriver: true,
     }).start();
+
+    // Couple entrance
+    Animated.parallel([
+      Animated.spring(coupleTranslateY, {
+        toValue: 0,
+        damping: 10,
+        stiffness: 60,
+        useNativeDriver: true,
+      }),
+      Animated.timing(coupleOpacity, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    // Couple floating bob
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(coupleFloat, {
+          toValue: -8,
+          duration: 1500,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(coupleFloat, {
+          toValue: 0,
+          duration: 1500,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ]),
+    ).start();
+
+    // Couple 3D tilt
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(coupleRotate, {
+          toValue: 1,
+          duration: 2000,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(coupleRotate, {
+          toValue: -1,
+          duration: 2000,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ]),
+    ).start();
   }, []);
 
   const hearts = useMemo(
@@ -273,6 +328,31 @@ export function SplashScreen() {
           <Image
             source={require('../../assets/logo.png')}
             style={styles.logo}
+            resizeMode="contain"
+          />
+        </Animated.View>
+
+        {/* Couple 3D image */}
+        <Animated.View
+          style={[
+            styles.coupleWrap,
+            {
+              opacity: coupleOpacity,
+              transform: [
+                { translateY: Animated.add(coupleTranslateY, coupleFloat) },
+                {
+                  rotateY: coupleRotate.interpolate({
+                    inputRange: [-1, 1],
+                    outputRange: ['-8deg', '8deg'],
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
+          <Image
+            source={require('../../assets/couple.png')}
+            style={styles.couple}
             resizeMode="contain"
           />
         </Animated.View>
@@ -395,6 +475,22 @@ const styles = StyleSheet.create({
   logo: {
     width: 160,
     height: 160,
+  },
+
+  coupleWrap: {
+    marginTop: 12,
+    marginBottom: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.3,
+    shadowRadius: 24,
+    elevation: 15,
+  },
+  couple: {
+    width: 140,
+    height: 140,
   },
 
   brand: {
