@@ -42,8 +42,8 @@ export function MainNavigator() {
         headerShown: true,
         headerStyle: {
           backgroundColor: colors.surface,
-          paddingTop: insets.top,
         },
+        headerStatusBarHeight: insets.top,
         headerTitleStyle: {
           fontWeight: '700',
           fontSize: 18,
