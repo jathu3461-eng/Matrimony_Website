@@ -2,31 +2,37 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import { chatApi } from '@/api/chat';
 import { notificationApi } from '@/api/notifications';
+import { interestApi } from '@/api/interests';
 import { useAppSelector } from '@/store/hooks';
 import { useSocket } from '@/context/SocketContext';
 
 /**
- * Live unread counts for chat and notifications, updated in real-time via
- * socket events with polling fallback. Returns { chat, notif } separately
- * so each tab can show its own badge.
+ * Live unread counts for chat, notifications, and pending interests,
+ * updated in real-time via socket events with polling fallback.
  */
 export function useUnreadBadge(pollMs = 30000) {
   const authenticated = useAppSelector((s) => s.auth.status === 'authenticated');
   const { subscribe, connected } = useSocket();
   const [chatCount, setChatCount] = useState(0);
   const [notifCount, setNotifCount] = useState(0);
+  const [interestCount, setInterestCount] = useState(0);
   const refreshingRef = useRef(false);
 
   const refresh = useCallback(async () => {
     if (refreshingRef.current) return;
     refreshingRef.current = true;
     try {
-      const [chat, notif] = await Promise.all([
+      const [chat, notif, interactions] = await Promise.all([
         chatApi.unread(),
         notificationApi.unreadCount(),
+        interestApi.myInteractions(),
       ]);
       setChatCount(chat);
       setNotifCount(notif);
+      const pendingReceived = interactions.received.filter(
+        (i) => i.status === 'pending',
+      ).length;
+      setInterestCount(pendingReceived);
     } catch {
       // ignore transient errors
     } finally {
@@ -38,6 +44,7 @@ export function useUnreadBadge(pollMs = 30000) {
     if (!authenticated) {
       setChatCount(0);
       setNotifCount(0);
+      setInterestCount(0);
       return;
     }
 
@@ -48,7 +55,10 @@ export function useUnreadBadge(pollMs = 30000) {
       if (st === 'active') refresh();
     });
 
-    const events = ['chat:message', 'chat:thread', 'chat:seen', 'chat:read'];
+    const events = [
+      'chat:message', 'chat:thread', 'chat:seen', 'chat:read',
+      'interest:received', 'interest:responded',
+    ];
     const offs = events.map((evt) => subscribe(evt, () => refresh()));
 
     return () => {
@@ -58,5 +68,5 @@ export function useUnreadBadge(pollMs = 30000) {
     };
   }, [authenticated, pollMs, refresh, subscribe, connected]);
 
-  return { chatCount, notifCount };
+  return { chatCount, notifCount, interestCount };
 }

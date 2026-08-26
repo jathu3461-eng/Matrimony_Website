@@ -87,7 +87,7 @@ const iconStyles = StyleSheet.create({
 });
 
 export function MainNavigator() {
-  const { chatCount, notifCount } = useUnreadBadge();
+  const { chatCount, notifCount, interestCount } = useUnreadBadge();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
 
@@ -122,6 +122,19 @@ export function MainNavigator() {
                 size={size}
                 badge={chatCount}
                 badgeColor="#25D366"
+              />
+            );
+          }
+          if (route.name === 'Interests') {
+            return (
+              <BadgeIcon
+                focused={focused}
+                icon={ICONS.Interests}
+                activeIcon={ICONS_ACTIVE.Interests}
+                color={color}
+                size={size}
+                badge={interestCount}
+                badgeColor={colors.primary}
               />
             );
           }
