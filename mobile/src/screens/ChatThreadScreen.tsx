@@ -14,6 +14,7 @@ import {
   View,
 } from 'react-native';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { chatApi } from '@/api/chat';
@@ -29,6 +30,7 @@ import type { ChatMessage } from '@/types';
 import type { RootStackParamList } from '@/navigation/types';
 
 type ChatRoute = RouteProp<RootStackParamList, 'ChatThread'>;
+type ChatNav = NativeStackNavigationProp<RootStackParamList>;
 
 function formatChatDate(iso: string): string {
   const d = new Date(iso);
@@ -78,7 +80,7 @@ const PINK_SOFT = '#ffe4ee';
 
 export function ChatThreadScreen() {
   const route = useRoute<ChatRoute>();
-  const navigation = useNavigation();
+  const navigation = useNavigation<ChatNav>();
   const { profileA, profileB, otherName } = route.params;
   const { colors } = useTheme();
   const user = useAppSelector((s) => s.auth.user);
@@ -365,7 +367,7 @@ export function ChatThreadScreen() {
         </View>
         <Pressable
           style={styles.viewProfileBtn}
-          onPress={() => navigation.navigate('ProfileDetail' as never, { profileId: otherProfileId } as never)}
+          onPress={() => navigation.navigate('ProfileDetail', { profileId: otherProfileId })}
         >
           <Text style={styles.viewProfileText}>View Profile</Text>
         </Pressable>
