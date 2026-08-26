@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo } from 'react';
-import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View, Alert } from 'react-native';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { useQuery } from '@tanstack/react-query';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { notificationApi } from '@/api/notifications';
@@ -36,7 +36,6 @@ function groupByDate(items: NotificationItem[]): { title: string; data: Notifica
 
 export function NotificationsScreen() {
   const { colors } = useTheme();
-  const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
 
   const data = useQuery({
@@ -53,14 +52,7 @@ export function NotificationsScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      const markAndRefetch = async () => {
-        try {
-          await notificationApi.markAllRead();
-          data.refetch();
-          badgeEvents.emit('notifications:read');
-        } catch {}
-      };
-      markAndRefetch();
+      data.refetch();
     }, [])
   );
 

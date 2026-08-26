@@ -1,13 +1,14 @@
 import 'react-native-gesture-handler';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, useNavigationContainerRef } from '@react-navigation/native';
 import { Provider } from 'react-redux';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ThemeProvider, useTheme } from '@/theme';
 import { RootNavigator } from '@/navigation/RootNavigator';
 import { SocketProvider } from '@/context/SocketContext';
+import { setupNotificationListeners } from '@/services/pushNotifications';
 import { store } from '@/store';
 import { StyleSheet, Text, View } from 'react-native';
 
@@ -57,6 +58,29 @@ function ThemedApp() {
   );
 }
 
+function NotificationHandler() {
+  const navigationRef = useNavigationContainerRef();
+
+  useEffect(() => {
+    const cleanup = setupNotificationListeners(
+      undefined,
+      (response) => {
+        const data = response.notification.request.content.data;
+        if (!data?.type || !navigationRef.current) return;
+
+        if (data.type === 'interest_received' || data.type === 'interest_accepted') {
+          navigationRef.current.navigate('Main', { screen: 'Interests' } as any);
+        } else if (data.type === 'message') {
+          navigationRef.current.navigate('Main', { screen: 'Chat' } as any);
+        }
+      },
+    );
+    return cleanup;
+  }, []);
+
+  return null;
+}
+
 export default function App() {
   return (
     <ErrorBoundary>
@@ -66,6 +90,7 @@ export default function App() {
             <ThemeProvider>
               <SocketProvider>
                 <NavigationContainer>
+                  <NotificationHandler />
                   <ThemedApp />
                 </NavigationContainer>
               </SocketProvider>
