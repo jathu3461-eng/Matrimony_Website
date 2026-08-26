@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
 import {
-  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -15,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Button } from '@/components/Button';
 import { FormField } from '@/components/FormField';
 import { Screen } from '@/components/Screen';
+import { AnimatedLogo } from '@/components/AnimatedLogo';
 import { authApi } from '@/api/auth';
 import { extractError } from '@/api/client';
 import {
@@ -124,11 +124,7 @@ export function RegisterScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.header}>
-            <Image
-              source={require('../../../assets/logo.png')}
-              style={styles.logo}
-              resizeMode="contain"
-            />
+            <AnimatedLogo shape="hexagon" size={100} />
             <Text style={[styles.title, { color: colors.ink }]}>Create Account</Text>
             <Text style={[styles.subtitle, { color: colors.inkFaint }]}>
               Start your journey to find the perfect match
@@ -356,11 +352,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: spacing.lg,
     marginTop: spacing.lg,
-  },
-  logo: {
-    width: 100,
-    height: 100,
-    marginBottom: spacing.md,
   },
   title: {
     ...typography.title,

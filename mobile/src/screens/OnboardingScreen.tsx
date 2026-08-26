@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { Button } from '@/components/Button';
+import { AnimatedLogo } from '@/components/AnimatedLogo';
 import { tokenStorage } from '@/services/tokenStorage';
 import { useTheme } from '@/theme';
 import { spacing, typography } from '@/theme';
@@ -26,11 +27,7 @@ export function OnboardingScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.topRow}>
-        <Image
-          source={require('../../assets/logo.png')}
-          style={styles.logo}
-          resizeMode="contain"
-        />
+        <AnimatedLogo shape="diamond" size={44} />
         {!isLast && (
           <Button title="Skip" variant="ghost" size="sm" onPress={finish} />
         )}
@@ -98,10 +95,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: spacing.md,
     paddingTop: spacing.xxl + spacing.md,
-  },
-  logo: {
-    width: 44,
-    height: 44,
   },
   center: {
     flex: 1,

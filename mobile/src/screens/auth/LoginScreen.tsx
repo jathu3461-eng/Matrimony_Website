@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
 import {
-  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -14,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Button } from '@/components/Button';
 import { FormField } from '@/components/FormField';
 import { Screen } from '@/components/Screen';
+import { AnimatedLogo } from '@/components/AnimatedLogo';
 import { extractError } from '@/api/client';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { login } from '@/store/authSlice';
@@ -70,11 +70,7 @@ export function LoginScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.header}>
-            <Image
-              source={require('../../../assets/logo.png')}
-              style={styles.logo}
-              resizeMode="contain"
-            />
+            <AnimatedLogo shape="squircle" size={120} />
             <Text style={[styles.brand, { color: colors.primary }]}>Mukurtham</Text>
             <Text style={[styles.tagline, { color: colors.inkSoft }]}>
               Matrimony, made meaningful
@@ -170,11 +166,6 @@ const styles = StyleSheet.create({
   header: {
     alignItems: 'center',
     marginBottom: spacing.xl,
-  },
-  logo: {
-    width: 120,
-    height: 120,
-    marginBottom: spacing.md,
   },
   brand: {
     fontSize: 28,

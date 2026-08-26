@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
 import {
-  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -14,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Button } from '@/components/Button';
 import { FormField } from '@/components/FormField';
 import { Screen } from '@/components/Screen';
+import { AnimatedLogo } from '@/components/AnimatedLogo';
 import { authApi } from '@/api/auth';
 import { extractError } from '@/api/client';
 import {
@@ -133,11 +133,7 @@ export function ForgotPasswordScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.header}>
-            <Image
-              source={require('../../../assets/logo.png')}
-              style={styles.logo}
-              resizeMode="contain"
-            />
+            <AnimatedLogo shape="arch" size={90} />
             <Text style={[styles.title, { color: colors.ink }]}>{stepTitle}</Text>
             <Text style={[styles.subtitle, { color: colors.inkFaint }]}>{stepHint}</Text>
           </View>
@@ -245,11 +241,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: spacing.lg,
     marginTop: spacing.lg,
-  },
-  logo: {
-    width: 90,
-    height: 90,
-    marginBottom: spacing.md,
   },
   title: {
     ...typography.title,

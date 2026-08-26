@@ -3,12 +3,12 @@ import {
   Animated,
   Dimensions,
   Easing,
-  Image,
   Platform,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
+import { AnimatedLogo } from '@/components/AnimatedLogo';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 const PRIMARY = '#e0136a';
@@ -157,8 +157,6 @@ function PulsingDot({ delay }: { delay: number }) {
 }
 
 export function SplashScreen() {
-  const logoScale = useRef(new Animated.Value(0)).current;
-  const logoOpacity = useRef(new Animated.Value(0)).current;
   const glowScale = useRef(new Animated.Value(0.8)).current;
   const ringScale = useRef(new Animated.Value(0)).current;
   const ringOpacity = useRef(new Animated.Value(0)).current;
@@ -284,22 +282,6 @@ export function SplashScreen() {
         ]),
       ]),
     ).start();
-
-    // Logo entrance
-    Animated.parallel([
-      Animated.spring(logoScale, {
-        toValue: 1,
-        damping: 8,
-        stiffness: 80,
-        mass: 0.8,
-        useNativeDriver: true,
-      }),
-      Animated.timing(logoOpacity, {
-        toValue: 1,
-        duration: 600,
-        useNativeDriver: true,
-      }),
-    ]).start();
 
     // Glow pulse
     Animated.loop(
@@ -437,19 +419,10 @@ export function SplashScreen() {
       <View style={styles.center}>
         <Animated.View style={[styles.glow, { transform: [{ scale: glowScale }] }]} />
 
-        {/* Logo */}
-        <Animated.View
-          style={[
-            styles.logoWrap,
-            { transform: [{ scale: logoScale }], opacity: logoOpacity },
-          ]}
-        >
-          <Image
-            source={require('../../assets/logo.png')}
-            style={styles.logo}
-            resizeMode="contain"
-          />
-        </Animated.View>
+        {/* Logo — circle shape with 3D animation */}
+        <View style={styles.logoWrap}>
+          <AnimatedLogo shape="circle" size={120} />
+        </View>
 
         {/* Couple arch frame */}
         <Animated.View
@@ -612,25 +585,7 @@ const styles = StyleSheet.create({
     marginTop: -150,
   },
   logoWrap: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.25)',
-    overflow: 'hidden',
     marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.2,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  logo: {
-    width: 100,
-    height: 100,
   },
 
   archOuter: {
