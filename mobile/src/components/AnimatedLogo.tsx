@@ -32,7 +32,6 @@ export function AnimatedLogo({ shape = 'circle', size = 100, animate = true }: A
   const rotateX = useRef(new Animated.Value(0)).current;
   const glowOpacity = useRef(new Animated.Value(0.3)).current;
   const scaleIn = useRef(new Animated.Value(0.6)).current;
-  const borderAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (!animate) {
@@ -116,30 +115,7 @@ export function AnimatedLogo({ shape = 'circle', size = 100, animate = true }: A
         }),
       ]),
     ).start();
-
-    // Border shimmer
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(borderAnim, {
-          toValue: 1,
-          duration: 1400,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: false,
-        }),
-        Animated.timing(borderAnim, {
-          toValue: 0,
-          duration: 1400,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: false,
-        }),
-      ]),
-    ).start();
   }, []);
-
-  const borderWidth = borderAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [1.5, 2.5],
-  });
 
   const getContainerStyle = () => {
     const base: any[] = [
@@ -180,7 +156,7 @@ export function AnimatedLogo({ shape = 'circle', size = 100, animate = true }: A
           ...base,
           {
             borderRadius: size * 0.22,
-            borderWidth,
+            borderWidth: 2,
             borderColor: PRIMARY,
             shadowColor: PRIMARY,
             shadowOffset: { width: 0, height: 4 },
@@ -210,7 +186,7 @@ export function AnimatedLogo({ shape = 'circle', size = 100, animate = true }: A
           ...base,
           {
             borderRadius: size * 0.18,
-            borderWidth,
+            borderWidth: 2,
             borderColor: GOLD,
             shadowColor: GOLD,
             shadowOffset: { width: 0, height: 4 },
@@ -244,7 +220,7 @@ export function AnimatedLogo({ shape = 'circle', size = 100, animate = true }: A
             borderTopRightRadius: size / 2,
             borderBottomLeftRadius: size * 0.05,
             borderBottomRightRadius: size * 0.05,
-            borderWidth,
+            borderWidth: 2,
             borderColor: PRIMARY,
             shadowColor: PRIMARY,
             shadowOffset: { width: 0, height: 6 },
@@ -269,7 +245,7 @@ export function AnimatedLogo({ shape = 'circle', size = 100, animate = true }: A
           ...base,
           {
             borderRadius: size / 2,
-            borderWidth,
+            borderWidth: 2,
             borderColor: PRIMARY,
             shadowColor: PRIMARY,
             shadowOffset: { width: 0, height: 4 },
