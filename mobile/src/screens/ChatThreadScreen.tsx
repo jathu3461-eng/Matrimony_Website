@@ -470,11 +470,14 @@ export function ChatThreadScreen() {
 
       {/* ── Composer ── */}
       <View style={styles.composer}>
+        <Pressable style={styles.attachBtn} onPress={sendImage}>
+          <Ionicons name="add-circle" size={28} color={PINK} />
+        </Pressable>
         <View style={styles.composerInputWrap}>
           <TextInput
             style={styles.composerInput}
-            placeholder="Type a message..."
-            placeholderTextColor="#8a8279"
+            placeholder="Message"
+            placeholderTextColor="#9e9690"
             value={text}
             onChangeText={onTextChange}
             multiline
@@ -486,20 +489,26 @@ export function ChatThreadScreen() {
             onFocus={scrollToBottom}
           />
         </View>
-        <Pressable
-          onPress={sendMessage}
-          disabled={!text.trim() || sending}
-          style={({ pressed }) => [
-            styles.sendBtn,
-            pressed && { opacity: 0.85, transform: [{ scale: 0.95 }] },
-          ]}
-        >
-          {sending ? (
-            <Spinner />
-          ) : (
-            <Ionicons name="send" size={20} color="#fff" />
-          )}
-        </Pressable>
+        {text.trim() ? (
+          <Pressable
+            onPress={sendMessage}
+            disabled={sending}
+            style={({ pressed }) => [
+              styles.sendBtn,
+              pressed && { opacity: 0.85, transform: [{ scale: 0.92 }] },
+            ]}
+          >
+            {sending ? (
+              <Spinner />
+            ) : (
+              <Ionicons name="arrow-up" size={22} color="#fff" />
+            )}
+          </Pressable>
+        ) : (
+          <Pressable style={styles.micBtn}>
+            <Ionicons name="mic" size={22} color={PINK} />
+          </Pressable>
+        )}
       </View>
     </KeyboardAvoidingView>
   );
@@ -748,41 +757,55 @@ const styles = StyleSheet.create({
   composer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    gap: 10,
-    paddingHorizontal: 12,
-    paddingTop: 10,
+    gap: 8,
+    paddingHorizontal: 10,
+    paddingTop: 8,
     paddingBottom: Platform.OS === 'ios' ? 30 : 12,
     backgroundColor: '#fff',
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: '#e5e1dc',
   },
+  attachBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 3,
+  },
   composerInputWrap: {
     flex: 1,
-    minHeight: 44,
+    minHeight: 40,
     justifyContent: 'center',
   },
   composerInput: {
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: '#e5e1dc',
-    borderRadius: 999,
-    backgroundColor: '#f8f5f0',
-    paddingHorizontal: 18,
-    paddingVertical: 12,
+    borderRadius: 20,
+    backgroundColor: '#f5f2ee',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
     fontSize: 15,
     color: '#1c1917',
     maxHeight: 100,
+    lineHeight: 20,
   },
   sendBtn: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: PINK,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: PINK,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.35,
-    shadowRadius: 8,
-    elevation: 4,
+    marginBottom: 2,
+  },
+  micBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: PINK_SOFT,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 2,
   },
 });
