@@ -169,7 +169,7 @@ function initSocket(server) {
         const access = await chatService.verifyThreadAccess(userId, profileA, profileB);
         if (!access.ok) return ack && ack({ ok: false, error: access.error });
 
-        const senderProfile = await db.get('SELECT id, name FROM profiles WHERE id = ? AND owner_user_id = ?', [senderProfileId, userId]);
+        const senderProfile = await db.get('SELECT id, name, photo FROM profiles WHERE id = ? AND owner_user_id = ?', [senderProfileId, userId]);
         if (!senderProfile) return ack && ack({ ok: false, error: 'You do not own the sender profile' });
         if (senderProfileId !== profileA && senderProfileId !== profileB) {
           return ack && ack({ ok: false, error: 'Sender profile is not part of this conversation' });
@@ -200,6 +200,7 @@ function initSocket(server) {
         const payloadForUsers = {
           ...message,
           sender_name: senderProfile.name,
+          sender_photo: senderProfile.photo || null,
           receiver_name: receiver.name,
           sender_user_id: userId,
           receiver_user_id: receiver.owner_user_id,

@@ -15,7 +15,8 @@ interface ToastMessage {
   senderName: string;
   senderPhoto?: string | null;
   text: string;
-  profileId?: number | string;
+  profileA?: number | string;
+  profileB?: number | string;
   threadKey?: string;
 }
 
@@ -158,10 +159,13 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const handlePress = useCallback(
     (msg: ToastMessage) => {
       dismissToast(msg.id);
-      if (msg.profileId) {
+      if (msg.profileA && msg.profileB) {
+        const profileA = Number(msg.profileA);
+        const profileB = Number(msg.profileB);
         (navigation as any).navigate('ChatThread', {
-          profileId: msg.profileId,
-          name: msg.senderName,
+          profileA,
+          profileB,
+          otherName: msg.senderName,
         });
       }
     },
@@ -177,8 +181,9 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       showToast({
         senderName: m.sender_name || 'Someone',
         senderPhoto: m.sender_photo || null,
-        text: m.text || m.content || '📷 Photo',
-        profileId: m.sender_profile_id || m.sender_user_id,
+        text: m.message || m.text || m.content || '📷 Photo',
+        profileA: m.sender_profile_id,
+        profileB: m.receiver_profile_id,
         threadKey: m.thread_key,
       });
     });
