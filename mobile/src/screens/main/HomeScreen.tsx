@@ -133,7 +133,7 @@ export function HomeScreen() {
     return (
       <View style={styles.profileGrid}>
         {profiles.data.map((p) => (
-          <View key={p.id} style={styles.profileItem}>
+          <View key={`profile-${p.id}`} style={styles.profileItem}>
             <ProfileCard profile={p} onPress={() => navigation.navigate('ProfileDetail', { profileId: p.id })} />
             <View style={styles.profileActions}>
               <Button title="Edit" variant="outline" size="sm" leftIcon="pencil" onPress={() => navigation.navigate('CreateProfile')} />
@@ -249,7 +249,7 @@ export function HomeScreen() {
     return (
       <View style={styles.profileGrid}>
         {shortlists.map((s) => (
-          <View key={s.profile_id} style={styles.profileItem}>
+          <View key={`shortlist-${s.profile_id}`} style={styles.profileItem}>
             <ProfileCard profile={{ id: s.profile_id, name: s.profile_name, main_profile_picture: s.profile_pic, age: s.age, occupation: s.occupation, city_or_state: s.city_or_state, height_feet: s.height_feet, height_inches: s.height_inches } as Profile} onPress={() => navigation.navigate('ProfileDetail', { profileId: s.profile_id })} />
             <Button title="Remove" variant="secondary" size="sm" leftIcon="close" onPress={() => removeShortlistMutation.mutate(s.profile_id)} />
           </View>

@@ -65,7 +65,7 @@ export function ProfileScreen() {
         {myProfiles.data && myProfiles.data.length > 0 ? (
           myProfiles.data.map((p) => (
             <Pressable
-              key={p.id}
+              key={`myprofile-${p.id}`}
               style={({ pressed }) => [
                 styles.profileRow,
                 { backgroundColor: colors.surface, borderColor: colors.border },

@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { RefreshControl, SectionList, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -23,14 +23,9 @@ export function InterestsScreen() {
     queryFn: () => interestApi.myInteractions(),
   });
 
-  const sections = useMemo(() => {
-    const received = (data.data?.received ?? []).map((item) => ({ ...item, _section: 'r' }));
-    const sent = (data.data?.sent ?? []).map((item) => ({ ...item, _section: 's' }));
-    return [
-      { title: 'Received', data: received },
-      { title: 'Sent', data: sent },
-    ].filter((s) => s.data.length > 0);
-  }, [data.data]);
+  const received = data.data?.received ?? [];
+  const sent = data.data?.sent ?? [];
+  const receivedCount = received.length;
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -38,50 +33,69 @@ export function InterestsScreen() {
     setRefreshing(false);
   };
 
-  const receivedCount = data.data?.received?.length ?? 0;
-
   return (
     <Screen>
-      <SectionList
-        sections={sections}
-        keyExtractor={(item: any) => `${item._section}-${item.id}`}
+      <ScrollView
         contentContainerStyle={styles.list}
-        renderItem={({ item, section }) => (
-          <InterestRow
-            interest={item}
-            direction={section.title === 'Received' ? 'received' : 'sent'}
-            onResponded={() => data.refetch()}
-            onPress={() => {
-              const id = section.title === 'Received' ? item.sender_id : item.receiver_id;
-              if (id) navigation.navigate('ProfileDetail', { profileId: id });
-            }}
-          />
-        )}
-        renderSectionHeader={({ section }) => (
-          <View style={styles.sectionHeaderRow}>
-            <Text style={[styles.sectionHeader, { color: colors.inkFaint }]}>{section.title}</Text>
-            {section.title === 'Received' && receivedCount > 0 && (
-              <View style={[styles.countBadge, { backgroundColor: colors.primary }]}>
-                <Text style={[styles.countText, { color: colors.white }]}>{receivedCount}</Text>
-              </View>
-            )}
-          </View>
-        )}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
-        ListEmptyComponent={
+        showsVerticalScrollIndicator={false}
+      >
+        {data.isLoading ? (
           <View style={styles.emptyWrap}>
             <Ionicons name="heart-outline" size={48} color={colors.inkFaint} />
-            <Text style={[styles.emptyTitle, { color: colors.inkSoft }]}>
-              {data.isLoading ? 'Loading...' : 'No interests yet'}
-            </Text>
-            <Text style={[styles.emptyHint, { color: colors.inkFaint }]}>
-              {data.isLoading
-                ? 'Fetching your interests'
-                : 'Send an interest from a profile you like to get started'}
-            </Text>
+            <Text style={[styles.emptyTitle, { color: colors.inkSoft }]}>Loading...</Text>
+            <Text style={[styles.emptyHint, { color: colors.inkFaint }]}>Fetching your interests</Text>
           </View>
-        }
-      />
+        ) : received.length === 0 && sent.length === 0 ? (
+          <View style={styles.emptyWrap}>
+            <Ionicons name="heart-outline" size={48} color={colors.inkFaint} />
+            <Text style={[styles.emptyTitle, { color: colors.inkSoft }]}>No interests yet</Text>
+            <Text style={[styles.emptyHint, { color: colors.inkFaint }]}>Send an interest from a profile you like to get started</Text>
+          </View>
+        ) : (
+          <>
+            {received.length > 0 && (
+              <>
+                <View style={styles.sectionHeaderRow}>
+                  <Text style={[styles.sectionHeader, { color: colors.inkFaint }]}>Received</Text>
+                  <View style={[styles.countBadge, { backgroundColor: colors.primary }]}>
+                    <Text style={[styles.countText, { color: colors.white }]}>{receivedCount}</Text>
+                  </View>
+                </View>
+                {received.map((item) => (
+                  <InterestRow
+                    key={`r-${item.id}`}
+                    interest={item}
+                    direction="received"
+                    onResponded={() => data.refetch()}
+                    onPress={() => {
+                      if (item.sender_id) navigation.navigate('ProfileDetail', { profileId: item.sender_id });
+                    }}
+                  />
+                ))}
+              </>
+            )}
+            {sent.length > 0 && (
+              <>
+                <View style={styles.sectionHeaderRow}>
+                  <Text style={[styles.sectionHeader, { color: colors.inkFaint }]}>Sent</Text>
+                </View>
+                {sent.map((item) => (
+                  <InterestRow
+                    key={`s-${item.id}`}
+                    interest={item}
+                    direction="sent"
+                    onResponded={() => data.refetch()}
+                    onPress={() => {
+                      if (item.receiver_id) navigation.navigate('ProfileDetail', { profileId: item.receiver_id });
+                    }}
+                  />
+                ))}
+              </>
+            )}
+          </>
+        )}
+      </ScrollView>
     </Screen>
   );
 }
