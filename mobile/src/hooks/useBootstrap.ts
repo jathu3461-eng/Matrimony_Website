@@ -8,9 +8,6 @@ export function useBootstrap() {
   const dispatch = useAppDispatch();
 
   useEffect(() => {
-    // Move status away from 'idle' immediately so the splash can dismiss.
-    dispatch(clearAuth());
-
     let cancelled = false;
 
     (async () => {
@@ -23,10 +20,11 @@ export function useBootstrap() {
 
         if (cancelled) return;
 
-        // No stored session — already dispatched clearAuth above.
-        if (!userJson || !token || !onboarded) return;
+        if (!userJson || !token || !onboarded) {
+          dispatch(clearAuth());
+          return;
+        }
 
-        // Try to restore session from the server.
         try {
           const fresh = await authApi.me();
           if (!cancelled) {
@@ -40,10 +38,10 @@ export function useBootstrap() {
             );
           }
         } catch {
-          // Token invalid or server unreachable — already cleared above.
+          if (!cancelled) dispatch(clearAuth());
         }
       } catch {
-        // AsyncStorage error — already cleared above.
+        if (!cancelled) dispatch(clearAuth());
       }
     })();
 
