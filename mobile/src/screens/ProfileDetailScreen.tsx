@@ -117,6 +117,29 @@ export function ProfileDetailScreen() {
     setUploading(true);
     try {
       const formData = new FormData();
+      formData.append('profile_registered_for', p.profile_registered_for || 'Self');
+      formData.append('name', p.name || '');
+      formData.append('gender', p.gender || 'M');
+      formData.append('date_of_birth', p.date_of_birth || '');
+      formData.append('height_feet', String(p.height_feet ?? 5));
+      formData.append('height_inches', String(p.height_inches ?? 6));
+      formData.append('education', p.education || '');
+      formData.append('occupation', p.occupation || '');
+      if (p.religion_id) formData.append('religion_id', String(p.religion_id));
+      if (p.caste_id) formData.append('caste_id', String(p.caste_id));
+      if (p.sub_religion) formData.append('sub_religion', p.sub_religion);
+      if (p.raasi_id) formData.append('raasi_id', String(p.raasi_id));
+      if (p.star_id) formData.append('star_id', String(p.star_id));
+      if (p.born_country_id) formData.append('born_country_id', p.born_country_id);
+      if (p.current_country_id) formData.append('current_country_id', p.current_country_id);
+      if (p.city_or_state) formData.append('city_or_state', p.city_or_state);
+      formData.append('about_me', p.about_me || '');
+      formData.append('diet', p.diet || 'any');
+      formData.append('family_values', p.family_values || 'moderate');
+      formData.append('career_goals', p.career_goals || 'working');
+      formData.append('willing_to_relocate', p.willing_to_relocate || 'open');
+      formData.append('income_range', p.income_range || '');
+      formData.append('manglik_status', p.manglik_status || 'no');
       const uri = res.assets[0].uri;
       const ext = uri.split('.').pop() || 'jpg';
       formData.append('main_profile_picture', {
