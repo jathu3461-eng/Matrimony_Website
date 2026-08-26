@@ -264,7 +264,9 @@ export function ChatThreadScreen() {
     stopTypingSignal();
     try {
       const msg = await chatApi.send(profileA, profileB, trimmed, senderProfileId);
-      setMessages((prev) => [...prev, msg]);
+      setMessages((prev) =>
+        prev.some((x) => Number(x.id) === Number(msg.id)) ? prev : [...prev, msg],
+      );
       scrollToBottom();
     } catch {
       setText(trimmed);
@@ -283,7 +285,9 @@ export function ChatThreadScreen() {
     setSending(true);
     try {
       const msg = await chatApi.sendImage(profileA, profileB, res.assets[0].uri, senderProfileId);
-      setMessages((prev) => [...prev, msg]);
+      setMessages((prev) =>
+        prev.some((x) => Number(x.id) === Number(msg.id)) ? prev : [...prev, msg],
+      );
       scrollToBottom();
     } catch {
       Alert.alert('Error', 'Failed to send image.');

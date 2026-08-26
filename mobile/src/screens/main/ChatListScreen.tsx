@@ -97,7 +97,7 @@ export function ChatListScreen() {
   return (
     <FlatList
       data={(threads.data ?? []).map(enrichThread)}
-      keyExtractor={(item) => item.thread_id}
+      keyExtractor={(item) => String(item.thread_id)}
       contentContainerStyle={styles.list}
       renderItem={({ item }) => (
           <Pressable

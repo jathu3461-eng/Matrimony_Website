@@ -275,7 +275,7 @@ export function HomeScreen() {
           const otherName = t.sender_name;
           return (
             <Pressable
-              key={t.thread_id}
+              key={`thread-${String(t.thread_id)}`}
               style={[styles.threadRow, { backgroundColor: colors.surface, borderColor: colors.border }]}
               onPress={() => (navigation as any).navigate('ChatThread', { profileA: t.sender_profile_id, profileB: t.receiver_profile_id, otherName: t.receiver_name })}
             >
