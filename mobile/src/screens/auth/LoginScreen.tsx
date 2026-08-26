@@ -16,7 +16,7 @@ import { Screen } from '@/components/Screen';
 import { extractError } from '@/api/client';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { login } from '@/store/authSlice';
-import { validateEmailOrPhone, validatePassword, fieldError } from '@/utils/validation';
+import { validateEmailOrPhone, validateLoginPassword, fieldError } from '@/utils/validation';
 import { useTheme } from '@/theme';
 import { radius, spacing, typography } from '@/theme';
 import type { AuthStackParamList } from '@/navigation/types';
@@ -40,7 +40,7 @@ export function LoginScreen() {
   const errors = useMemo(
     () => ({
       email: fieldError(email, touched.email, validateEmailOrPhone),
-      password: fieldError(password, touched.password, validatePassword),
+      password: fieldError(password, touched.password, validateLoginPassword),
     }),
     [email, password, touched]
   );

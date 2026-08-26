@@ -1,9 +1,10 @@
-// Validation rules matching the backend exactly (source of truth).
+// Validation rules matching the website frontend exactly (source of truth).
 // Messages mirror what the website shows so the mobile app behaves identically.
 
+export const NAME_RE = /^[\p{L}\p{M}][\p{L}\p{M}'. -]*$/u;
 export const USERNAME_RE = /^[a-zA-Z0-9_]{4,30}$/;
 export const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-export const PHONE_RE = /^\+[1-9]\d{7,14}$/;
+export const PHONE_RE = /^\+?\d[\d\s-]{7,20}$/;
 export const PASSWORD_RE = /^(?=.*[A-Z])(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/;
 export const DOB_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -28,14 +29,13 @@ export function fieldError(
 }
 
 export function validateUsername(value: string): string | null {
-  if (value.length < 4) return 'At least 4 characters';
-  if (value.length > 30) return 'Maximum 30 characters';
-  if (!USERNAME_RE.test(value)) return 'Letters, numbers and underscore only';
+  if (value.length < 2) return 'Enter at least 2 characters';
+  if (value.length > 60) return 'Too long (maximum 60 characters)';
+  if (!NAME_RE.test(value)) return "Letters, spaces, and ' . - only";
   return null;
 }
 
 export function validateEmail(value: string): string | null {
-  if (/\s/.test(value)) return 'Email cannot contain spaces';
   if (!EMAIL_RE.test(value)) return 'Invalid email format (e.g. name@example.com)';
   return null;
 }
@@ -47,11 +47,7 @@ export function validateEmailOrPhone(value: string): string | null {
 }
 
 export function validatePhone(value: string): string | null {
-  if (!value.startsWith('+')) return 'Must start with + (e.g. +14165550198)';
-  const digits = value.slice(1);
-  if (!/^\d+$/.test(digits)) return 'Only digits after +';
-  if (digits.length < 7) return 'At least 8 digits total';
-  if (digits.length > 15) return 'Maximum 16 digits total';
+  if (!PHONE_RE.test(value)) return 'Enter a valid phone number (e.g. +14165550198)';
   return null;
 }
 
@@ -60,6 +56,11 @@ export function validatePassword(value: string): string | null {
   if (!/[A-Z]/.test(value)) return 'Needs at least 1 uppercase letter';
   if (!/[!@#$%^&*(),.?":{}|<>]/.test(value))
     return 'Needs at least 1 special character (!@#$...)';
+  return null;
+}
+
+export function validateLoginPassword(value: string): string | null {
+  if (!value) return 'Required';
   return null;
 }
 
@@ -348,7 +349,7 @@ export function validateProfileStep(step: number, form: ProfileForm): Record<str
 
 // Hint text shown when a field is empty (guides the user on the expected format).
 export const HINTS = {
-  username: '4-30 characters, letters/numbers/underscore',
+  username: 'Letters, spaces, and \' . - only',
   email: 'name@example.com',
   phone: '+14165550198',
   password: 'Min 8 chars, 1 uppercase, 1 special character',

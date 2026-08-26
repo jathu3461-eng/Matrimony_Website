@@ -167,7 +167,7 @@ export function RegisterScreen() {
               placeholder="e.g. john_95"
               autoCapitalize="none"
               autoCorrect={false}
-              maxLength={30}
+              maxLength={60}
               count
               error={errors.username}
               hint={HINTS.username}
