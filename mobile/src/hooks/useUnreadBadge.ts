@@ -6,25 +6,27 @@ import { useAppSelector } from '@/store/hooks';
 import { useSocket } from '@/context/SocketContext';
 
 /**
- * Live unread badge count (chats + notifications).
- * Updates instantly on socket activity (WhatsApp-style), with polling as a
- * safety net for missed events.
+ * Live unread counts for chat and notifications, updated in real-time via
+ * socket events with polling fallback. Returns { chat, notif } separately
+ * so each tab can show its own badge.
  */
-export function useUnreadBadge(pollMs = 60000) {
+export function useUnreadBadge(pollMs = 30000) {
   const authenticated = useAppSelector((s) => s.auth.status === 'authenticated');
   const { subscribe, connected } = useSocket();
-  const [badge, setBadge] = useState(0);
+  const [chatCount, setChatCount] = useState(0);
+  const [notifCount, setNotifCount] = useState(0);
   const refreshingRef = useRef(false);
 
   const refresh = useCallback(async () => {
     if (refreshingRef.current) return;
     refreshingRef.current = true;
     try {
-      const [chatTotal, notifTotal] = await Promise.all([
+      const [chat, notif] = await Promise.all([
         chatApi.unread(),
         notificationApi.unreadCount(),
       ]);
-      setBadge(chatTotal + notifTotal);
+      setChatCount(chat);
+      setNotifCount(notif);
     } catch {
       // ignore transient errors
     } finally {
@@ -34,7 +36,8 @@ export function useUnreadBadge(pollMs = 60000) {
 
   useEffect(() => {
     if (!authenticated) {
-      setBadge(0);
+      setChatCount(0);
+      setNotifCount(0);
       return;
     }
 
@@ -45,7 +48,6 @@ export function useUnreadBadge(pollMs = 60000) {
       if (st === 'active') refresh();
     });
 
-    // Real-time: refresh the moment any chat/notification event arrives.
     const events = ['chat:message', 'chat:thread', 'chat:seen', 'chat:read'];
     const offs = events.map((evt) => subscribe(evt, () => refresh()));
 
@@ -56,5 +58,5 @@ export function useUnreadBadge(pollMs = 60000) {
     };
   }, [authenticated, pollMs, refresh, subscribe, connected]);
 
-  return badge;
+  return { chatCount, notifCount };
 }
