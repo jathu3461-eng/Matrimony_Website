@@ -40,7 +40,12 @@ export function RootNavigator() {
           <Stack.Screen
             name="ProfileDetail"
             component={ProfileDetailScreen}
-            options={{ headerShown: true, title: 'Profile' }}
+            options={{
+              headerShown: true,
+              title: 'Profile',
+              headerStyle: { backgroundColor: colors.surface },
+              headerShadowVisible: true,
+            }}
           />
           <Stack.Screen
             name="ChatThread"

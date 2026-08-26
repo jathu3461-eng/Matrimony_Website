@@ -189,7 +189,7 @@ export function EditProfileScreen() {
   if (profile.isLoading || !p) return <Spinner />;
   if (profile.isError) {
     return (
-      <Screen>
+      <Screen edges={['bottom']}>
         <View style={styles.center}>
           <Text style={{ color: colors.inkFaint }}>Profile not found.</Text>
         </View>
@@ -200,7 +200,7 @@ export function EditProfileScreen() {
   const photoUrl = photoUri || uploadsUrl(p.main_profile_picture);
 
   return (
-    <Screen>
+    <Screen edges={['bottom']}>
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}

@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { notificationApi } from '@/api/notifications';
 import { Screen } from '@/components/Screen';
@@ -10,11 +11,26 @@ import { radius, spacing, typography } from '@/theme';
 export function NotificationsScreen() {
   const { colors } = useTheme();
   const [refreshing, setRefreshing] = useState(false);
+  const queryClient = useQueryClient();
 
   const data = useQuery({
     queryKey: ['notifications'],
     queryFn: () => notificationApi.list(),
   });
+
+  useFocusEffect(
+    useCallback(() => {
+      const markAndRefresh = async () => {
+        const unread = (data.data ?? []).filter((n) => n.is_read === 0);
+        if (unread.length > 0) {
+          await notificationApi.markAllRead();
+          data.refetch();
+          queryClient.invalidateQueries({ queryKey: ['notifications-unread'] });
+        }
+      };
+      markAndRefresh();
+    }, [data, queryClient])
+  );
 
   const onRefresh = async () => {
     setRefreshing(true);

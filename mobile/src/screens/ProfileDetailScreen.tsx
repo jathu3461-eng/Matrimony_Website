@@ -168,7 +168,7 @@ export function ProfileDetailScreen() {
   if (profile.isLoading) return <Spinner />;
   if (profile.isError || !p)
     return (
-      <Screen>
+      <Screen edges={['bottom']}>
         <View style={styles.center}>
           <Ionicons name="person-outline" size={48} color={colors.inkFaint} />
           <Text style={[styles.emptyText, { color: colors.inkFaint }]}>Profile not found.</Text>
@@ -183,7 +183,7 @@ export function ProfileDetailScreen() {
   const myProfileId = myProfiles.data?.[0]?.id;
 
   return (
-    <Screen>
+    <Screen edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.photoWrap}>
           {photoUrl ? (
