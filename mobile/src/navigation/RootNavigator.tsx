@@ -44,7 +44,7 @@ export function RootNavigator() {
           <Stack.Screen
             name="ChatThread"
             component={ChatThreadScreen}
-            options={({ route }) => ({ headerShown: true, title: route.params.otherName })}
+            options={{ headerShown: false }}
           />
           <Stack.Screen
             name="CreateProfile"
