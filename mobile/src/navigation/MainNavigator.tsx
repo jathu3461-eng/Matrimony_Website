@@ -1,4 +1,5 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/theme';
 import { HomeScreen } from '@/screens/main/HomeScreen';
@@ -33,13 +34,28 @@ const ICONS_ACTIVE: Record<keyof MainTabParamList, keyof typeof Ionicons.glyphMa
 export function MainNavigator() {
   const unread = useUnreadBadge();
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
 
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: true,
+        headerStyle: {
+          backgroundColor: colors.surface,
+          paddingTop: insets.top,
+        },
+        headerTitleStyle: {
+          fontWeight: '700',
+          fontSize: 18,
+          color: colors.ink,
+        },
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.inkFaint,
+        tabBarStyle: {
+          height: 60,
+          paddingBottom: 8,
+          paddingTop: 4,
+        },
         tabBarIcon: ({ focused, color, size }) => (
           <Ionicons
             name={focused ? ICONS_ACTIVE[route.name] : ICONS[route.name]}
