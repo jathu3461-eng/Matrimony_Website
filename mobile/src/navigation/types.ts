@@ -23,5 +23,6 @@ export type RootStackParamList = {
   ProfileDetail: { profileId: number | string };
   ChatThread: { profileA: number | string; profileB: number | string; otherName: string };
   CreateProfile: undefined;
+  EditProfile: { profileId: number | string };
   Settings: undefined;
 };

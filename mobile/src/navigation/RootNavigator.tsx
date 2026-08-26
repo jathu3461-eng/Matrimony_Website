@@ -8,6 +8,7 @@ import { ProfileDetailScreen } from '@/screens/ProfileDetailScreen';
 import { ChatThreadScreen } from '@/screens/ChatThreadScreen';
 import { CreateProfileScreen } from '@/screens/CreateProfileScreen';
 import { SettingsScreen } from '@/screens/SettingsScreen';
+import { EditProfileScreen } from '@/screens/EditProfileScreen';
 import { useBootstrap } from '@/hooks/useBootstrap';
 import { useAppSelector } from '@/store/hooks';
 import { useTheme } from '@/theme';
@@ -50,6 +51,11 @@ export function RootNavigator() {
             name="CreateProfile"
             component={CreateProfileScreen}
             options={{ headerShown: true, title: 'Create Profile' }}
+          />
+          <Stack.Screen
+            name="EditProfile"
+            component={EditProfileScreen}
+            options={{ headerShown: true, title: 'Edit Profile' }}
           />
           <Stack.Screen
             name="Settings"

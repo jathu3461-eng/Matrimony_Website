@@ -98,14 +98,20 @@ export function ProfileDetailScreen() {
     }
   };
 
-  const uploadPhoto = async () => {
+  const uploadPhoto = async (useCamera?: boolean) => {
     if (!p) return;
-    const res = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      aspect: [3, 4],
-      quality: 0.8,
-    });
+    const permResult = useCamera
+      ? await ImagePicker.requestCameraPermissionsAsync()
+      : await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (permResult.status !== 'granted') {
+      Alert.alert('Permission needed', useCamera
+        ? 'Please allow camera access to take a photo.'
+        : 'Please allow photo library access to change your profile picture.');
+      return;
+    }
+    const res = useCamera
+      ? await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [3, 4], quality: 0.8 })
+      : await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [3, 4], quality: 0.8 });
     if (res.canceled || !res.assets[0]) return;
 
     setUploading(true);
@@ -126,6 +132,14 @@ export function ProfileDetailScreen() {
     } finally {
       setUploading(false);
     }
+  };
+
+  const showPhotoOptions = () => {
+    Alert.alert('Change Photo', 'Choose an option', [
+      { text: 'Take Photo', onPress: () => uploadPhoto(true) },
+      { text: 'Choose from Library', onPress: () => uploadPhoto(false) },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
   };
 
   if (profile.isLoading) return <Spinner />;
@@ -159,7 +173,7 @@ export function ProfileDetailScreen() {
           {isOwnProfile && (
             <Pressable
               style={[styles.editPhotoBtn, { backgroundColor: colors.primary }]}
-              onPress={uploadPhoto}
+              onPress={showPhotoOptions}
               disabled={uploading}
             >
               <Ionicons name="camera" size={18} color={colors.white} />
@@ -318,12 +332,19 @@ export function ProfileDetailScreen() {
         {isOwnProfile && (
           <View style={styles.actions}>
             <Button
+              title="Edit Profile"
+              variant="primary"
+              size="md"
+              leftIcon="create-outline"
+              onPress={() => navigation.navigate('EditProfile', { profileId: p.id })}
+            />
+            <Button
               title="Edit Photo"
               variant="outline"
               size="md"
               leftIcon="camera-outline"
               loading={uploading}
-              onPress={uploadPhoto}
+              onPress={showPhotoOptions}
             />
           </View>
         )}
