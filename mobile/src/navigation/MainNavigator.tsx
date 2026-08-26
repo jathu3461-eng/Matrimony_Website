@@ -157,7 +157,7 @@ export function MainNavigator() {
                 color={color}
                 size={size}
                 badge={chatCount}
-                badgeColor="#25D366"
+                badgeColor={colors.primary}
               />
             );
           }
@@ -183,7 +183,7 @@ export function MainNavigator() {
                 color={color}
                 size={size}
                 badge={notifCount}
-                badgeColor="#dc2626"
+                badgeColor={colors.primary}
               />
             );
           }
