@@ -197,7 +197,7 @@ export function MainNavigator() {
         },
       })}
     >
-      <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'Mukurtham' }} />
+      <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'Mukurtham', tabBarLabel: 'Home' }} />
       <Tab.Screen name="Search" component={SearchScreen} options={{ title: 'Search' }} />
       <Tab.Screen name="Interests" component={InterestsScreen} options={{ title: 'Interests' }} />
       <Tab.Screen name="Chat" component={ChatListScreen} options={{ title: 'Chat' }} />
