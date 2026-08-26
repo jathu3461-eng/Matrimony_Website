@@ -5,6 +5,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { interestApi } from '@/api/interests';
+import { profileApi } from '@/api/profiles';
 import { InterestRow } from '@/components/InterestRow';
 import { Screen } from '@/components/Screen';
 import { useTheme } from '@/theme';
@@ -22,6 +23,13 @@ export function InterestsScreen() {
     queryKey: ['interests'],
     queryFn: () => interestApi.myInteractions(),
   });
+
+  const myProfiles = useQuery({
+    queryKey: ['my-profiles'],
+    queryFn: () => profileApi.mine(),
+  });
+
+  const myProfileId = myProfiles.data?.[0]?.id;
 
   const received = data.data?.received ?? [];
   const sent = data.data?.sent ?? [];
@@ -71,6 +79,15 @@ export function InterestsScreen() {
                     onPress={() => {
                       if (item.sender_id) navigation.navigate('ProfileDetail', { profileId: item.sender_id });
                     }}
+                    onSendMessage={() => {
+                      if (myProfileId && item.sender_profile_id) {
+                        navigation.navigate('ChatThread', {
+                          profileA: myProfileId,
+                          profileB: item.sender_profile_id,
+                          otherName: item.sender_name || 'Profile',
+                        });
+                      }
+                    }}
                   />
                 ))}
               </>
@@ -88,6 +105,15 @@ export function InterestsScreen() {
                     onResponded={() => data.refetch()}
                     onPress={() => {
                       if (item.receiver_id) navigation.navigate('ProfileDetail', { profileId: item.receiver_id });
+                    }}
+                    onSendMessage={() => {
+                      if (myProfileId && item.receiver_profile_id) {
+                        navigation.navigate('ChatThread', {
+                          profileA: myProfileId,
+                          profileB: item.receiver_profile_id,
+                          otherName: item.receiver_name || 'Profile',
+                        });
+                      }
                     }}
                   />
                 ))}

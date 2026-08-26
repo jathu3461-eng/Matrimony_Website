@@ -11,9 +11,10 @@ interface InterestRowProps {
   direction: 'received' | 'sent';
   onPress?: () => void;
   onResponded?: () => void;
+  onSendMessage?: () => void;
 }
 
-export function InterestRow({ interest, direction, onPress, onResponded }: InterestRowProps) {
+export function InterestRow({ interest, direction, onPress, onResponded, onSendMessage }: InterestRowProps) {
   const { colors } = useTheme();
   const otherName = direction === 'received' ? interest.sender_name : interest.receiver_name;
   const otherPic = direction === 'received' ? interest.sender_pic : interest.receiver_pic;
@@ -76,9 +77,9 @@ export function InterestRow({ interest, direction, onPress, onResponded }: Inter
           </Pressable>
         </View>
       ) : interest.status === 'accepted' ? (
-        <Pressable onPress={onPress} style={[styles.viewBtn, { backgroundColor: colors.primarySoft }]}>
-          <Ionicons name="person-outline" size={16} color={colors.primary} />
-          <Text style={[styles.viewBtnText, { color: colors.primary }]}>View</Text>
+        <Pressable onPress={onSendMessage ?? onPress} style={[styles.viewBtn, { backgroundColor: colors.primarySoft }]}>
+          <Ionicons name="chatbubble-outline" size={16} color={colors.primary} />
+          <Text style={[styles.viewBtnText, { color: colors.primary }]}>Send Message</Text>
         </Pressable>
       ) : (
         status && <Text style={[styles.status, { color: status.color }]}>{status.text}</Text>
