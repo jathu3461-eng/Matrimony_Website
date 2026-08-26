@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import {
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -123,9 +124,11 @@ export function RegisterScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.header}>
-            <View style={[styles.logoWrap, { backgroundColor: colors.primary }]}>
-              <Ionicons name="heart" size={24} color={colors.white} />
-            </View>
+            <Image
+              source={require('../../../assets/logo.png')}
+              style={styles.logo}
+              resizeMode="contain"
+            />
             <Text style={[styles.title, { color: colors.ink }]}>Create Account</Text>
             <Text style={[styles.subtitle, { color: colors.inkFaint }]}>
               Start your journey to find the perfect match
@@ -354,12 +357,9 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
     marginTop: spacing.lg,
   },
-  logoWrap: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
+  logo: {
+    width: 100,
+    height: 100,
     marginBottom: spacing.md,
   },
   title: {

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -25,7 +25,12 @@ export function OnboardingScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={styles.skipRow}>
+      <View style={styles.topRow}>
+        <Image
+          source={require('../../assets/logo.png')}
+          style={styles.logo}
+          resizeMode="contain"
+        />
         {!isLast && (
           <Button title="Skip" variant="ghost" size="sm" onPress={finish} />
         )}
@@ -87,11 +92,16 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  skipRow: {
+  topRow: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: spacing.md,
     paddingTop: spacing.xxl + spacing.md,
+  },
+  logo: {
+    width: 44,
+    height: 44,
   },
   center: {
     flex: 1,
