@@ -8,6 +8,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ThemeProvider, useTheme } from '@/theme';
 import { RootNavigator } from '@/navigation/RootNavigator';
 import { SocketProvider } from '@/context/SocketContext';
+import { ToastProvider } from '@/components/MessageToast';
 import { setupNotificationListeners } from '@/services/pushNotifications';
 import { store } from '@/store';
 import { StyleSheet, Text, View } from 'react-native';
@@ -89,10 +90,12 @@ export default function App() {
           <QueryClientProvider client={queryClient}>
             <ThemeProvider>
               <SocketProvider>
-                <NavigationContainer>
-                  <NotificationHandler />
-                  <ThemedApp />
-                </NavigationContainer>
+                <ToastProvider>
+                  <NavigationContainer>
+                    <NotificationHandler />
+                    <ThemedApp />
+                  </NavigationContainer>
+                </ToastProvider>
               </SocketProvider>
             </ThemeProvider>
           </QueryClientProvider>
