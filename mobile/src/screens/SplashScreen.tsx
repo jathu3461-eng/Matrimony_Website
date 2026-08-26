@@ -472,7 +472,7 @@ export function SplashScreen() {
               ]}
             >
               <Image
-                source={require('../../assets/couple.png')}
+                source={require('../../assets/couple.jpg')}
                 style={styles.couple}
                 resizeMode="contain"
               />
@@ -526,8 +526,8 @@ export function SplashScreen() {
   );
 }
 
-const ARCH_W = SCREEN_W * 0.52;
-const ARCH_H = ARCH_W * 1.35;
+const ARCH_W = SCREEN_W * 0.55;
+const ARCH_H = ARCH_W * 1.45;
 
 const styles = StyleSheet.create({
   container: {
