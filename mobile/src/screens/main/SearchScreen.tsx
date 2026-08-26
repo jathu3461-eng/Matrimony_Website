@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
   FlatList,
   Pressable,
@@ -86,9 +86,20 @@ export function SearchScreen() {
     setApplied(params);
   };
 
-  useEffect(() => {
-    runSearch();
-  }, [gender]);
+  const applyGender = (g: 'M' | 'F' | undefined) => {
+    setGender(g);
+    const params: SearchParams = {};
+    if (query.trim()) params.q = query.trim();
+    if (g) params.gender = g;
+    if (minAge) params.minAge = Number(minAge);
+    if (maxAge) params.maxAge = Number(maxAge);
+    if (religionId) params.religion_id = Number(religionId);
+    if (casteId) params.caste_id = Number(casteId);
+    if (countryId) params.current_country_id = countryId;
+    if (raasiId) params.raasi_id = Number(raasiId);
+    if (starId) params.star_id = Number(starId);
+    setApplied(params);
+  };
 
   const clearAll = () => {
     setGender(undefined);
@@ -158,7 +169,7 @@ export function SearchScreen() {
         {GENDER_FILTERS.map((f) => (
           <Pressable
             key={f.label}
-            onPress={() => setGender(f.value)}
+            onPress={() => applyGender(f.value)}
             style={[
               styles.genderChip,
               {
