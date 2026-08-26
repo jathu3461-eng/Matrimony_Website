@@ -307,4 +307,8 @@ function initSocket(server) {
   return io;
 }
 
-module.exports = { initSocket, getIO, getPresenceInfos };
+// Incremental assignment keeps the same exports object stable even when
+// other modules require this file during its initialisation (circular deps).
+module.exports.initSocket = initSocket;
+module.exports.getIO = getIO;
+module.exports.getPresenceInfos = getPresenceInfos;

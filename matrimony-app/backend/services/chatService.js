@@ -1,5 +1,4 @@
 const { db } = require('../db');
-const { getIO } = require('../socket');
 
 function threadId(profileIdA, profileIdB) {
   const [lo, hi] = [profileIdA, profileIdB].map(Number).sort((a, b) => a - b);

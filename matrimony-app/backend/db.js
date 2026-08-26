@@ -5,6 +5,7 @@ const bcrypt = require('bcryptjs');
 // ─── Connection Pool ──────────────────────────────────────────────────────────
 const pool = mysql.createPool({
   host:     process.env.DB_HOST     || 'localhost',
+  port:     Number(process.env.DB_PORT) || 3306,
   user:     process.env.DB_USER     || 'mukutmzw_dbuser',
   password: process.env.DB_PASSWORD || 'Mukurtham@2026',
   database: process.env.DB_NAME     || 'mukutmzw_matrimony',
@@ -134,10 +135,10 @@ async function initDB() {
         site_favicon TEXT,
         contact_number VARCHAR(50) DEFAULT '+1 (416) 555-0198',
         contact_email VARCHAR(255) DEFAULT 'support@mukurtham.ca',
-        contact_address TEXT DEFAULT '',
-        meta_title TEXT DEFAULT 'Mukurtham Matrimony - Global Sri Lankan Tamil Matches',
-        meta_description TEXT DEFAULT 'Find your ideal bride or groom within the global Sri Lankan Tamil diaspora.',
-        meta_keywords TEXT DEFAULT 'tamil matrimony, srilankan tamil bride, jaffna matrimony, mukurtham',
+        contact_address TEXT,
+        meta_title TEXT,
+        meta_description TEXT,
+        meta_keywords TEXT,
         google_analytics_id TEXT,
         color_primary VARCHAR(20) DEFAULT '#800000',
         color_secondary VARCHAR(20) DEFAULT '#78350f',
