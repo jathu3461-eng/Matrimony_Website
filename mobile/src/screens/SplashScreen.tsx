@@ -541,7 +541,7 @@ const styles = StyleSheet.create({
   bgBottom: {
     ...StyleSheet.absoluteFillObject,
     top: '55%',
-    backgroundColor: '#fdf2f8',
+    backgroundColor: '#fce4ec',
   },
 
   floatingHeart: {
@@ -615,7 +615,7 @@ const styles = StyleSheet.create({
     height: ARCH_H,
     borderRadius: 24,
     borderColor: GOLD,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: '#e0136a',
     overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
