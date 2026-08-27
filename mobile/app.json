@@ -21,7 +21,14 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "ca.mukurtham.app"
+      "bundleIdentifier": "ca.mukurtham.app",
+      "config": {
+        "usesNonExemptEncryption": false
+      },
+      "infoPlist": {
+        "NSCameraUsageDescription": "Mukurtham needs camera access to take profile photos.",
+        "NSPhotoLibraryUsageDescription": "Mukurtham needs photo library access to select profile photos."
+      }
     },
     "android": {
       "package": "ca.mukurtham.app",
@@ -32,10 +39,23 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "softwareKeyboardLayoutMode": "adjustResize",
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE"
+      ],
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "your-project-id"
+      }
     }
   }
 }
