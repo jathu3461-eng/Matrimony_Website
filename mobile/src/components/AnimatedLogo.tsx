@@ -2,7 +2,6 @@ import { useEffect, useRef } from 'react';
 import { Animated, Easing, Image, StyleSheet, View } from 'react-native';
 
 const PRIMARY = '#e0136a';
-const GOLD = '#d4a853';
 
 type Shape = 'circle' | 'diamond' | 'squircle' | 'hexagon' | 'arch';
 
@@ -187,8 +186,8 @@ export function AnimatedLogo({ shape = 'circle', size = 100, animate = true }: A
           {
             borderRadius: size * 0.18,
             borderWidth: 2,
-            borderColor: GOLD,
-            shadowColor: GOLD,
+            borderColor: PRIMARY,
+            shadowColor: PRIMARY,
             shadowOffset: { width: 0, height: 4 },
             shadowOpacity: 0.35,
             shadowRadius: 14,
@@ -284,7 +283,7 @@ export function AnimatedLogo({ shape = 'circle', size = 100, animate = true }: A
           width: size + 20,
           height: size + 20,
           borderRadius: (size + 20) / 2,
-          backgroundColor: shape === 'hexagon' ? 'rgba(212,168,83,0.2)' : 'rgba(224,19,106,0.15)',
+          backgroundColor: 'rgba(224,19,106,0.15)',
           opacity: glowOpacity,
           transform: [{ scale: scaleIn }],
         }}
