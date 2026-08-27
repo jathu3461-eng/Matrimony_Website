@@ -7,7 +7,7 @@ import { Screen } from '@/components/Screen';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { logout } from '@/store/authSlice';
 import { useTheme, ThemeMode } from '@/theme';
-import { radius, spacing, typography } from '@/theme';
+import { radius, spacing, typography, layout } from '@/theme';
 
 const THEME_OPTIONS: { label: string; value: ThemeMode; icon: keyof typeof Ionicons.glyphMap }[] = [
   { label: 'Light', value: 'light', icon: 'sunny' },
@@ -144,7 +144,7 @@ const rowStyles = StyleSheet.create({
 const styles = StyleSheet.create({
   content: {
     padding: spacing.xl,
-    paddingBottom: spacing.xxl,
+    paddingBottom: layout.bottomContentInset,
   },
   title: {
     ...typography.title,

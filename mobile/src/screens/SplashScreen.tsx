@@ -4,11 +4,11 @@ import {
   Dimensions,
   Easing,
   Image,
-  Platform,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AnimatedLogo } from '@/components/AnimatedLogo';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
@@ -158,6 +158,7 @@ function PulsingDot({ delay }: { delay: number }) {
 }
 
 export function SplashScreen() {
+  const insets = useSafeAreaInsets();
   const glowScale = useRef(new Animated.Value(0.8)).current;
   const ringScale = useRef(new Animated.Value(0)).current;
   const ringOpacity = useRef(new Animated.Value(0)).current;
@@ -515,7 +516,7 @@ export function SplashScreen() {
         </Animated.Text>
       </View>
 
-      <Animated.View style={[styles.loadingArea, { opacity: dotsOpacity }]}>
+      <Animated.View style={[styles.loadingArea, { bottom: insets.bottom + 24, opacity: dotsOpacity }]}>
         <View style={styles.dotsRow}>
           <PulsingDot delay={0} />
           <PulsingDot delay={200} />
@@ -679,7 +680,6 @@ const styles = StyleSheet.create({
 
   loadingArea: {
     position: 'absolute',
-    bottom: Platform.OS === 'ios' ? 60 : 40,
     left: 0,
     right: 0,
     alignItems: 'center',

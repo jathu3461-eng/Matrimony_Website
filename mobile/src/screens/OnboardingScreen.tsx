@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Button } from '@/components/Button';
 import { AnimatedLogo } from '@/components/AnimatedLogo';
@@ -14,6 +15,7 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 export function OnboardingScreen() {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const [index, setIndex] = useState(0);
   const navigation = useNavigation<Nav>();
   const isLast = index === SLIDES.length - 1;
@@ -26,7 +28,7 @@ export function OnboardingScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={styles.topRow}>
+      <View style={[styles.topRow, { paddingTop: insets.top + spacing.md }]}>
         <AnimatedLogo shape="diamond" size={44} />
         {!isLast && (
           <Button title="Skip" variant="ghost" size="sm" onPress={finish} />
@@ -94,7 +96,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: spacing.md,
-    paddingTop: spacing.xxl + spacing.md,
   },
   center: {
     flex: 1,

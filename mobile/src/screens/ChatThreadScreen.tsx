@@ -16,6 +16,7 @@ import {
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { chatApi } from '@/api/chat';
 import { profileApi } from '@/api/profiles';
 import { uploadsUrl } from '@/api/client';
@@ -82,6 +83,7 @@ export function ChatThreadScreen() {
   const navigation = useNavigation<ChatNav>();
   const { profileA, profileB, otherName } = route.params;
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const user = useAppSelector((s) => s.auth.user);
   const { connected, isOnline, getPresence, subscribe, seedPresence } = useSocket();
 
@@ -320,10 +322,10 @@ export function ChatThreadScreen() {
     <KeyboardAvoidingView
       style={styles.root}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 96 : 0}
+      keyboardVerticalOffset={insets.top + 44}
     >
       {/* ── Conversation Header ── */}
-      <View style={styles.convHeader}>
+      <View style={[styles.convHeader, { paddingTop: insets.top + 10 }]}>
         <Pressable style={styles.convBackBtn} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={20} color={colors.ink} />
         </Pressable>
@@ -429,7 +431,7 @@ export function ChatThreadScreen() {
       {selectedMsg && (
         <View style={styles.contextOverlay}>
           <Pressable style={styles.contextBackdrop} onPress={() => setSelectedMsg(null)} />
-          <View style={styles.contextMenu}>
+          <View style={[styles.contextMenu, { paddingBottom: insets.bottom + 20 }]}>
             <Text style={styles.contextTitle} numberOfLines={2}>{selectedMsg.message}</Text>
             <View style={styles.contextDivider} />
             {Number(selectedMsg.sender_profile_id) === Number(senderProfileId) && (
@@ -447,7 +449,7 @@ export function ChatThreadScreen() {
       )}
 
       {/* ── Composer ── */}
-      <View style={styles.composer}>
+      <View style={[styles.composer, { paddingBottom: insets.bottom + 10 }]}>
         <View style={styles.composerInputWrap}>
           <TextInput
             style={styles.composerInput}
@@ -505,7 +507,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: '#e5e1dc',
-    paddingTop: Platform.OS === 'ios' ? 54 : 36,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.06,
@@ -700,7 +701,6 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
-    paddingBottom: Platform.OS === 'ios' ? 34 : 20,
   },
   contextTitle: {
     fontSize: 14,
@@ -730,7 +730,6 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingHorizontal: 10,
     paddingTop: 8,
-    paddingBottom: Platform.OS === 'ios' ? 30 : 12,
     backgroundColor: '#fff',
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: '#e5e1dc',

@@ -7,8 +7,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { chatApi } from '@/api/chat';
 import { profileApi } from '@/api/profiles';
 import { useSocket } from '@/context/SocketContext';
+import { Screen } from '@/components/Screen';
 import { useTheme } from '@/theme';
-import { radius, spacing, typography } from '@/theme';
+import { radius, spacing, typography, layout } from '@/theme';
 import type { ChatThread } from '@/types';
 import type { RootStackParamList } from '@/navigation/types';
 
@@ -95,93 +96,95 @@ export function ChatListScreen() {
   };
 
   return (
-    <FlatList
-      data={(threads.data ?? []).map(enrichThread)}
-      keyExtractor={(item) => String(item.thread_id)}
-      contentContainerStyle={styles.list}
-      renderItem={({ item }) => (
-          <Pressable
-            style={({ pressed }) => [
-              styles.row,
-              { borderBottomColor: colors.border },
-              pressed && { backgroundColor: colors.primarySoft },
-            ]}
-            onPress={() =>
-              navigation.navigate('ChatThread', {
-                profileA: item.myProfileId,
-                profileB: item.otherProfileId,
-                otherName: item.otherName,
-              })
-            }
-          >
-            <View style={styles.avatarWrap}>
-              <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
-                <Text style={[styles.avatarText, { color: colors.white }]}>
-                  {(item.otherName ?? '?')[0]?.toUpperCase() ?? '?'}
-                </Text>
-              </View>
-              {isOnline(item.otherUserId) && <View style={styles.onlineDot} />}
-            </View>
-
-            <View style={styles.details}>
-              <View style={styles.rowTop}>
-                <Text style={[styles.name, { color: colors.ink }]} numberOfLines={1}>
-                  {item.otherName}
-                </Text>
-                <Text style={[styles.time, { color: item.unread_count > 0 ? '#25D366' : colors.inkFaint }]}>
-                  {formatListTime(item.last_at)}
-                </Text>
-              </View>
-              <View style={styles.rowBottom}>
-                <View style={styles.lastMsgWrap}>
-                  {item.isFromMe && (
-                    <Ionicons
-                      name={item.unread_count === 0 && item.last_message ? 'checkmark-done' : 'checkmark'}
-                      size={16}
-                      color={item.unread_count === 0 && item.last_message ? '#53BDEB' : colors.inkFaint}
-                      style={styles.tickIcon}
-                    />
-                  )}
-                  <Text
-                    style={[
-                      styles.last,
-                      { color: item.unread_count > 0 ? colors.ink : colors.inkSoft },
-                      item.unread_count > 0 && { fontWeight: '600' },
-                    ]}
-                    numberOfLines={1}
-                  >
-                    {item.last_message || 'Start the conversation'}
+    <Screen tabScreen>
+      <FlatList
+        data={(threads.data ?? []).map(enrichThread)}
+        keyExtractor={(item) => String(item.thread_id)}
+        contentContainerStyle={styles.list}
+        renderItem={({ item }) => (
+            <Pressable
+              style={({ pressed }) => [
+                styles.row,
+                { borderBottomColor: colors.border },
+                pressed && { backgroundColor: colors.primarySoft },
+              ]}
+              onPress={() =>
+                navigation.navigate('ChatThread', {
+                  profileA: item.myProfileId,
+                  profileB: item.otherProfileId,
+                  otherName: item.otherName,
+                })
+              }
+            >
+              <View style={styles.avatarWrap}>
+                <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
+                  <Text style={[styles.avatarText, { color: colors.white }]}>
+                    {(item.otherName ?? '?')[0]?.toUpperCase() ?? '?'}
                   </Text>
                 </View>
-                {item.unread_count > 0 && (
-                  <View style={[styles.badge, { backgroundColor: '#25D366' }]}>
-                    <Text style={[styles.badgeText, { color: '#fff' }]}>{item.unread_count}</Text>
-                  </View>
-                )}
+                {isOnline(item.otherUserId) && <View style={styles.onlineDot} />}
               </View>
-            </View>
-          </Pressable>
-      )}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
-      ListEmptyComponent={
-        <View style={styles.emptyWrap}>
-          <Ionicons name="chatbubble-ellipses-outline" size={48} color={colors.inkFaint} />
-          <Text style={[styles.emptyTitle, { color: colors.inkSoft }]}>
-            {threads.isLoading ? 'Loading...' : 'No conversations yet'}
-          </Text>
-          <Text style={[styles.emptyHint, { color: colors.inkFaint }]}>
-            {threads.isLoading
-              ? 'Fetching your chats'
-              : 'Send an interest to start chatting with someone special'}
-          </Text>
-        </View>
-      }
-    />
+
+              <View style={styles.details}>
+                <View style={styles.rowTop}>
+                  <Text style={[styles.name, { color: colors.ink }]} numberOfLines={1}>
+                    {item.otherName}
+                  </Text>
+                  <Text style={[styles.time, { color: item.unread_count > 0 ? '#25D366' : colors.inkFaint }]}>
+                    {formatListTime(item.last_at)}
+                  </Text>
+                </View>
+                <View style={styles.rowBottom}>
+                  <View style={styles.lastMsgWrap}>
+                    {item.isFromMe && (
+                      <Ionicons
+                        name={item.unread_count === 0 && item.last_message ? 'checkmark-done' : 'checkmark'}
+                        size={16}
+                        color={item.unread_count === 0 && item.last_message ? '#53BDEB' : colors.inkFaint}
+                        style={styles.tickIcon}
+                      />
+                    )}
+                    <Text
+                      style={[
+                        styles.last,
+                        { color: item.unread_count > 0 ? colors.ink : colors.inkSoft },
+                        item.unread_count > 0 && { fontWeight: '600' },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {item.last_message || 'Start the conversation'}
+                    </Text>
+                  </View>
+                  {item.unread_count > 0 && (
+                    <View style={[styles.badge, { backgroundColor: '#25D366' }]}>
+                      <Text style={[styles.badgeText, { color: '#fff' }]}>{item.unread_count}</Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+            </Pressable>
+        )}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+        ListEmptyComponent={
+          <View style={styles.emptyWrap}>
+            <Ionicons name="chatbubble-ellipses-outline" size={48} color={colors.inkFaint} />
+            <Text style={[styles.emptyTitle, { color: colors.inkSoft }]}>
+              {threads.isLoading ? 'Loading...' : 'No conversations yet'}
+            </Text>
+            <Text style={[styles.emptyHint, { color: colors.inkFaint }]}>
+              {threads.isLoading
+                ? 'Fetching your chats'
+                : 'Send an interest to start chatting with someone special'}
+            </Text>
+          </View>
+        }
+      />
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  list: { paddingBottom: spacing.xxl },
+  list: { paddingBottom: layout.bottomContentInset },
   row: {
     flexDirection: 'row',
     alignItems: 'center',

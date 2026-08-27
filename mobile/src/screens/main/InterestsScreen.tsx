@@ -9,7 +9,7 @@ import { profileApi } from '@/api/profiles';
 import { InterestRow } from '@/components/InterestRow';
 import { Screen } from '@/components/Screen';
 import { useTheme } from '@/theme';
-import { spacing, typography } from '@/theme';
+import { spacing, typography, layout } from '@/theme';
 import type { RootStackParamList } from '@/navigation/types';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -42,7 +42,7 @@ export function InterestsScreen() {
   };
 
   return (
-    <Screen>
+    <Screen tabScreen>
       <ScrollView
         contentContainerStyle={styles.list}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
@@ -131,7 +131,7 @@ export function InterestsScreen() {
 const styles = StyleSheet.create({
   list: {
     padding: spacing.md,
-    paddingBottom: spacing.xxl,
+    paddingBottom: layout.bottomContentInset,
   },
   sectionHeaderRow: {
     flexDirection: 'row',

@@ -29,7 +29,7 @@ import {
   HINTS,
 } from '@/utils/validation';
 import { useTheme } from '@/theme';
-import { radius, spacing, typography } from '@/theme';
+import { radius, spacing, typography, layout } from '@/theme';
 import type { AuthStackParamList } from '@/navigation/types';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList>;
@@ -133,7 +133,7 @@ export function RegisterScreen() {
   };
 
   return (
-    <Screen>
+    <Screen edges={['bottom']}>
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -367,7 +367,7 @@ const styles = StyleSheet.create({
   content: {
     flexGrow: 1,
     padding: spacing.xl,
-    paddingBottom: spacing.xxl,
+    paddingBottom: layout.bottomContentInset,
   },
   headerBar: {
     flexDirection: 'row',

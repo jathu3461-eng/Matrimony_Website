@@ -23,7 +23,7 @@ import { Screen } from '@/components/Screen';
 import { SelectField } from '@/components/SelectField';
 import { Spinner } from '@/components/Spinner';
 import { useTheme } from '@/theme';
-import { radius, spacing, typography } from '@/theme';
+import { radius, spacing, typography, layout } from '@/theme';
 import {
   POSTED_BY,
   DIET_OPTIONS,
@@ -457,8 +457,6 @@ export function EditProfileScreen() {
             maxLength={2000}
             style={{ minHeight: 120, textAlignVertical: 'top' }}
           />
-
-          <View style={{ height: spacing.xxl }} />
         </ScrollView>
 
         {/* Save button */}
@@ -521,7 +519,7 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: spacing.md,
-    paddingBottom: spacing.xxl,
+    paddingBottom: layout.bottomContentInset,
   },
   photoSection: {
     alignItems: 'center',

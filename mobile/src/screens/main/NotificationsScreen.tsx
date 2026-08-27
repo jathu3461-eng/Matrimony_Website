@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { notificationApi } from '@/api/notifications';
 import { Screen } from '@/components/Screen';
 import { useTheme } from '@/theme';
-import { radius, spacing, typography } from '@/theme';
+import { radius, spacing, typography, layout } from '@/theme';
 import { badgeEvents } from '@/lib/badgeEvents';
 import type { NotificationItem } from '@/types';
 
@@ -148,7 +148,7 @@ export function NotificationsScreen() {
   ]);
 
   return (
-    <Screen>
+    <Screen tabScreen>
       {unreadCount > 0 && (
         <View style={[styles.topBar, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
           <Text style={[styles.unreadText, { color: colors.inkFaint }]}>
@@ -235,7 +235,7 @@ const styles = StyleSheet.create({
   },
   list: {
     padding: spacing.md,
-    paddingBottom: spacing.xxl,
+    paddingBottom: layout.bottomContentInset,
   },
   sectionHeader: {
     paddingHorizontal: spacing.xs,

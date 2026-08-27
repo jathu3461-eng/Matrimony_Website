@@ -20,7 +20,7 @@ import { profileApi } from '@/api/profiles';
 import { interestApi } from '@/api/interests';
 import { useAppSelector } from '@/store/hooks';
 import { useTheme } from '@/theme';
-import { radius, spacing, typography } from '@/theme';
+import { radius, spacing, typography, layout } from '@/theme';
 import type { Profile } from '@/types';
 import type { RootStackParamList } from '@/navigation/types';
 
@@ -308,7 +308,7 @@ export function HomeScreen() {
   );
 
   return (
-    <Screen>
+    <Screen tabScreen>
       <ScrollView contentContainerStyle={styles.content} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />} showsVerticalScrollIndicator={false}>
         <View style={[styles.hero, { backgroundColor: colors.primary }]}>
           <View style={styles.heroDecor1} />
@@ -373,7 +373,7 @@ export function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  content: { paddingBottom: spacing.xxl },
+  content: { paddingBottom: layout.bottomContentInset },
   hero: { marginHorizontal: spacing.md, marginTop: spacing.md, borderRadius: 20, overflow: 'hidden', padding: spacing.lg },
   heroDecor1: { position: 'absolute', top: -40, right: -40, width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(255,255,255,0.1)' },
   heroDecor2: { position: 'absolute', bottom: -30, left: -30, width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.1)' },

@@ -18,7 +18,7 @@ import { Screen } from '@/components/Screen';
 import { Button } from '@/components/Button';
 import { SelectField } from '@/components/SelectField';
 import { useTheme } from '@/theme';
-import { radius, spacing, typography } from '@/theme';
+import { radius, spacing, typography, layout } from '@/theme';
 import type { ProfileMeta } from '@/types';
 import type { RootStackParamList } from '@/navigation/types';
 import {
@@ -289,7 +289,7 @@ export function SearchScreen() {
   );
 
   return (
-    <Screen>
+    <Screen tabScreen>
       <FlatList
         data={results.data ?? []}
         keyExtractor={(item) => String(item.id)}
@@ -389,7 +389,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   list: {
-    paddingBottom: spacing.xxl,
+    paddingBottom: layout.bottomContentInset,
   },
   count: {
     ...typography.caption,

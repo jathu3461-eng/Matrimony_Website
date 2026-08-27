@@ -11,7 +11,7 @@ import { Screen } from '@/components/Screen';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { logout } from '@/store/authSlice';
 import { useTheme } from '@/theme';
-import { radius, spacing, typography } from '@/theme';
+import { radius, spacing, typography, layout } from '@/theme';
 import type { RootStackParamList } from '@/navigation/types';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -37,7 +37,7 @@ export function ProfileScreen() {
   const primary = myProfiles.data?.[0];
 
   return (
-    <Screen>
+    <Screen tabScreen>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.header}>
           {primary?.main_profile_picture ? (
@@ -121,7 +121,7 @@ export function ProfileScreen() {
 const styles = StyleSheet.create({
   content: {
     padding: spacing.md,
-    paddingBottom: spacing.xxl,
+    paddingBottom: layout.bottomContentInset,
   },
   header: {
     alignItems: 'center',

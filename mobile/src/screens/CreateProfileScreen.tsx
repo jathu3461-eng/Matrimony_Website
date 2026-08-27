@@ -22,7 +22,7 @@ import { StepIndicator } from '@/components/StepIndicator';
 import { profileApi } from '@/api/profiles';
 import { extractError } from '@/api/client';
 import { useTheme } from '@/theme';
-import { radius, spacing, typography } from '@/theme';
+import { radius, spacing, typography, layout } from '@/theme';
 import {
   EMPTY_FORM,
   POSTED_BY,
@@ -787,7 +787,7 @@ const styles = StyleSheet.create({
   content: {
     flexGrow: 1,
     padding: spacing.lg,
-    paddingBottom: spacing.xxl,
+    paddingBottom: layout.bottomContentInset,
   },
   stepHeading: {
     flexDirection: 'row',

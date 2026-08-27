@@ -13,7 +13,7 @@ import { Spinner } from '@/components/Spinner';
 import { Screen } from '@/components/Screen';
 import { useAppSelector } from '@/store/hooks';
 import { useTheme } from '@/theme';
-import { radius, spacing, typography } from '@/theme';
+import { radius, spacing, typography, layout } from '@/theme';
 import type { Profile, ProfileMeta } from '@/types';
 import type { RootStackParamList } from '@/navigation/types';
 
@@ -407,7 +407,7 @@ const metaStyles = StyleSheet.create({
 const styles = StyleSheet.create({
   content: {
     padding: spacing.md,
-    paddingBottom: spacing.xxl,
+    paddingBottom: layout.bottomContentInset,
   },
   center: {
     flex: 1,

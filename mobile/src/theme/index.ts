@@ -32,6 +32,14 @@ export const spacing = {
   xxl: 48,
 };
 
+export const layout = {
+  tabBarHeight: 56,
+  headerHeight: 56,
+  screenHorizontalPadding: 16,
+  contentBottomPadding: 24,
+  bottomContentInset: 32,
+};
+
 export const radius = {
   sm: 8,
   md: 16,
