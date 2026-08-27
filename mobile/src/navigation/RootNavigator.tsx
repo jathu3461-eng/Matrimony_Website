@@ -20,8 +20,14 @@ export function RootNavigator() {
   useBootstrap();
   const status = useAppSelector((s) => s.auth.status);
   const { colors } = useTheme();
+  const [showSplash, setShowSplash] = useState(true);
 
-  if (status === 'idle') {
+  useEffect(() => {
+    const timer = setTimeout(() => setShowSplash(false), 2500);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (showSplash) {
     return <SplashScreen />;
   }
 
