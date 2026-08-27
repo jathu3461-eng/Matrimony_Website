@@ -4,7 +4,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useSocket } from '@/context/SocketContext';
 import { useNavigation } from '@react-navigation/native';
-import { useAppSelector } from '@/store/hooks';
 import { API_BASE_URL } from '@/api/client';
 
 const { width: SCREEN_W } = Dimensions.get('window');
@@ -138,7 +137,29 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const { subscribe } = useSocket();
-  const currentUserId = useAppSelector((s) => s.auth.user?.id);
+  const currentUserIdRef = useRef<number | null>(null);
+
+  // Keep currentUserIdRef synced with the store reactively
+  useEffect(() => {
+    let active = true;
+    const load = async () => {
+      try {
+        const { store } = await import('@/store');
+        const state = store.getState();
+        if (active) currentUserIdRef.current = state.auth.user?.id ?? null;
+        // Subscribe to store changes
+        const unsub = store.subscribe(() => {
+          const s = store.getState();
+          currentUserIdRef.current = s.auth.user?.id ?? null;
+        });
+        // Store unsubscribe in a way we can clean up
+        return unsub;
+      } catch { return undefined; }
+    };
+    let unsubFn: (() => void) | undefined;
+    load().then((u) => { unsubFn = u; });
+    return () => { active = false; unsubFn?.(); };
+  }, []);
 
   const showToast = useCallback((msg: Omit<ToastMessage, 'id'>) => {
     const id = Date.now().toString() + Math.random().toString(36).slice(2, 6);
@@ -169,7 +190,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const unsub = subscribe('chat:message', (m: any) => {
       if (!m || m?.sender_user_id == null) return;
-      if (String(m.sender_user_id) === String(currentUserId)) return;
+      if (String(m.sender_user_id) === String(currentUserIdRef.current)) return;
 
       showToast({
         senderName: m.sender_name || 'Someone',
@@ -181,7 +202,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       });
     });
     return unsub;
-  }, [subscribe, showToast, currentUserId]);
+  }, [subscribe, showToast]);
 
   return (
     <ToastContext.Provider value={{ showToast }}>
