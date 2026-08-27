@@ -464,26 +464,21 @@ export function ChatThreadScreen() {
             onFocus={scrollToBottom}
           />
         </View>
-        {text.trim() ? (
-          <Pressable
-            onPress={sendMessage}
-            disabled={sending}
-            style={({ pressed }) => [
-              styles.sendBtn,
-              pressed && { opacity: 0.85, transform: [{ scale: 0.92 }] },
-            ]}
-          >
-            {sending ? (
-              <Spinner />
-            ) : (
-              <Ionicons name="arrow-up" size={22} color="#fff" />
-            )}
-          </Pressable>
-        ) : (
-          <Pressable style={styles.micBtn}>
-            <Ionicons name="mic" size={22} color={PINK} />
-          </Pressable>
-        )}
+        <Pressable
+          onPress={sendMessage}
+          disabled={sending || !text.trim()}
+          style={({ pressed }) => [
+            styles.sendBtn,
+            { opacity: sending || !text.trim() ? 0.4 : 1 },
+            pressed && { transform: [{ scale: 0.92 }] },
+          ]}
+        >
+          {sending ? (
+            <Spinner />
+          ) : (
+            <Ionicons name="send" size={20} color="#fff" />
+          )}
+        </Pressable>
       </View>
     </KeyboardAvoidingView>
   );
@@ -762,15 +757,6 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     backgroundColor: PINK,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 2,
-  },
-  micBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: PINK_SOFT,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 2,
