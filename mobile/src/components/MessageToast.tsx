@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useSocket } from '@/context/SocketContext';
 import { useNavigation } from '@react-navigation/native';
+import { useAppSelector } from '@/store/hooks';
 import { API_BASE_URL } from '@/api/client';
 
 const { width: SCREEN_W } = Dimensions.get('window');
@@ -137,15 +138,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const { subscribe } = useSocket();
-  const currentUserIdRef = useRef<number | null>(null);
-
-  // Get current user ID from store
-  useEffect(() => {
-    import('@/store').then(({ store }) => {
-      const state = store.getState();
-      currentUserIdRef.current = state.auth.user?.id ?? null;
-    });
-  }, []);
+  const currentUserId = useAppSelector((s) => s.auth.user?.id);
 
   const showToast = useCallback((msg: Omit<ToastMessage, 'id'>) => {
     const id = Date.now().toString() + Math.random().toString(36).slice(2, 6);
@@ -176,7 +169,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const unsub = subscribe('chat:message', (m: any) => {
       if (!m || m?.sender_user_id == null) return;
-      if (String(m.sender_user_id) === String(currentUserIdRef.current)) return;
+      if (String(m.sender_user_id) === String(currentUserId)) return;
 
       showToast({
         senderName: m.sender_name || 'Someone',
@@ -188,7 +181,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       });
     });
     return unsub;
-  }, [subscribe, showToast]);
+  }, [subscribe, showToast, currentUserId]);
 
   return (
     <ToastContext.Provider value={{ showToast }}>
