@@ -298,6 +298,21 @@ async function initDB() {
     await ensureColumn('users', 'email_verified', 'email_verified TINYINT NOT NULL DEFAULT 0');
     await ensureColumn('countries', 'name_ta', 'name_ta TEXT AFTER name_en');
 
+    // ─── Ensure all tables use utf8mb4 (fixes latin1 → Tamil stored as '?') ────
+    async function ensureCharset(table) {
+      const [[row]] = await conn.query(
+        `SELECT TABLE_COLLATION AS coll FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?`,
+        [table]
+      );
+      if (row && !row.coll?.startsWith('utf8mb4')) {
+        await conn.query(`ALTER TABLE ${table} CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`);
+        console.log(`✅ Fixed charset for ${table}: ${row.coll} → utf8mb4`);
+      }
+    }
+    for (const t of ['religions','castes','raasis','stars','countries','menu_items','footer_settings']) {
+      await ensureCharset(t).catch(() => {});
+    }
+
     await seed(conn);
     console.log('✅ MySQL DB initialized');
   } finally {
