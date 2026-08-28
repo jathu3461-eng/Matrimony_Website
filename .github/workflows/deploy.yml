@@ -11,7 +11,7 @@ jobs:
   # JOB 1: Build & FTP Deploy FRONTEND → public_html
   # ─────────────────────────────────────────────────
   deploy-frontend:
-    name: 🌐 Build + FTP Deploy Frontend
+    name: 🌐 Build + SCP Deploy Frontend
     runs-on: ubuntu-latest
 
     steps:
@@ -45,23 +45,34 @@ jobs:
           Header set Cache-Control "no-cache, no-store, must-revalidate" "expr:%{REQUEST_URI} =~ /index\.html$/"
           EOF
 
-      - name: 🚀 FTP Deploy dist/ → public_html/
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+      - name: 📦 Create deployment archive
+        run: cd matrimony-app/frontend/dist && tar czf /tmp/frontend.tar.gz .
+
+      - name: 🚀 Upload frontend archive via SCP
+        uses: appleboy/scp-action@v0.1.7
         with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          protocol: ftps
-          port: 21
-          local-dir: ./matrimony-app/frontend/dist/
-          server-dir: /public_html/
-          dangerous-clean-slate: false
-          timeout-seconds: 300
-          retry: 3
-          exclude: |
-            **/.git*
-            **/.git*/**
-            **/node_modules/**
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: 21098
+          source: "/tmp/frontend.tar.gz"
+          target: "/tmp/"
+
+      - name: 🚀 Extract and deploy frontend
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: 21098
+          script: |
+            echo "🚀 Deploying frontend to /public_html/..."
+            cd /public_html
+            rm -f index.html .htaccess favicon.png
+            rm -rf assets
+            tar xzf /tmp/frontend.tar.gz
+            rm /tmp/frontend.tar.gz
+            echo "✅ Frontend deployed successfully"
 
   # ─────────────────────────────────────────────────
   # JOB 2: SSH Deploy BACKEND → /home/mukutmzw/mukurtham-backend
