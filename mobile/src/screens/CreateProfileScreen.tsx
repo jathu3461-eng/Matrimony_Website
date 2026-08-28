@@ -401,7 +401,7 @@ export function CreateProfileScreen() {
               label="Religion"
               options={(meta?.religions || []).map((r) => ({
                 value: String(r.id),
-                label: r.name_en,
+                label: `${r.name_en} / ${r.name_ta}`,
               }))}
               value={form.religion_id}
               onChange={set('religion_id')}
@@ -412,7 +412,7 @@ export function CreateProfileScreen() {
               label="Caste / Saathi"
               options={(meta?.castes || []).map((c) => ({
                 value: String(c.id),
-                label: c.name_en,
+                label: `${c.name_en} / ${c.name_ta}`,
               }))}
               value={form.caste_id}
               onChange={set('caste_id')}
@@ -437,7 +437,7 @@ export function CreateProfileScreen() {
               label="Zodiac / Raasi"
               options={(meta?.raasis || []).map((r) => ({
                 value: String(r.id),
-                label: r.name_en,
+                label: `${r.name_en} / ${r.name_ta}`,
               }))}
               value={form.raasi_id}
               onChange={set('raasi_id')}
@@ -449,7 +449,7 @@ export function CreateProfileScreen() {
               label="Star / Nakshatram"
               options={(meta?.stars || []).map((s) => ({
                 value: String(s.id),
-                label: s.name_en,
+                label: `${s.name_en} / ${s.name_ta}`,
               }))}
               value={form.star_id}
               onChange={set('star_id')}
@@ -468,7 +468,7 @@ export function CreateProfileScreen() {
               label="Country of Birth"
               options={(meta?.countries || []).map((c) => ({
                 value: c.code,
-                label: c.name_en,
+                label: c.name_ta ? `${c.name_en} / ${c.name_ta}` : c.name_en,
               }))}
               value={form.born_country_id}
               onChange={set('born_country_id')}
@@ -479,7 +479,7 @@ export function CreateProfileScreen() {
               label="Current Country of Residence"
               options={(meta?.countries || []).map((c) => ({
                 value: c.code,
-                label: c.name_en,
+                label: c.name_ta ? `${c.name_en} / ${c.name_ta}` : c.name_en,
               }))}
               value={form.current_country_id}
               onChange={set('current_country_id')}

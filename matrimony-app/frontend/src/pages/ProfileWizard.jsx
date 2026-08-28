@@ -559,7 +559,7 @@ export default function ProfileWizard() {
                     <>
                       <SelectField
                         label="Religion"
-                        options={(meta.religions || []).map((r) => ({ value: String(r.id), label: r.name_en }))}
+                        options={(meta.religions || []).map((r) => ({ value: String(r.id), label: `${r.name_en} / ${r.name_ta}` }))}
                         value={form.religion_id}
                         onChange={set('religion_id')}
                         onBlur={blur('religion_id')}
@@ -569,7 +569,7 @@ export default function ProfileWizard() {
                       />
                       <SelectField
                         label="Caste / Saathi"
-                        options={(meta.castes || []).map((c) => ({ value: String(c.id), label: c.name_en }))}
+                        options={(meta.castes || []).map((c) => ({ value: String(c.id), label: `${c.name_en} / ${c.name_ta}` }))}
                         value={form.caste_id}
                         onChange={set('caste_id')}
                         onBlur={blur('caste_id')}
@@ -592,7 +592,7 @@ export default function ProfileWizard() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <SelectField
                         label="Zodiac / Raasi"
-                        options={(meta.raasis || []).map((r) => ({ value: String(r.id), label: r.name_en }))}
+                        options={(meta.raasis || []).map((r) => ({ value: String(r.id), label: `${r.name_en} / ${r.name_ta}` }))}
                         value={form.raasi_id}
                         onChange={set('raasi_id')}
                         onBlur={blur('raasi_id')}
@@ -602,7 +602,7 @@ export default function ProfileWizard() {
                       />
                       <SelectField
                         label="Star / Nakshatram"
-                        options={(meta.stars || []).map((s) => ({ value: String(s.id), label: s.name_en }))}
+                        options={(meta.stars || []).map((s) => ({ value: String(s.id), label: `${s.name_en} / ${s.name_ta}` }))}
                         value={form.star_id}
                         onChange={set('star_id')}
                         onBlur={blur('star_id')}
@@ -617,7 +617,7 @@ export default function ProfileWizard() {
                     <>
                       <SelectField
                         label="Country of Birth"
-                        options={(meta.countries || []).map((c) => ({ value: c.code, label: c.name_en }))}
+                        options={(meta.countries || []).map((c) => ({ value: c.code, label: c.name_ta ? `${c.name_en} / ${c.name_ta}` : c.name_en }))}
                         value={form.born_country_id}
                         onChange={set('born_country_id')}
                         onBlur={blur('born_country_id')}
@@ -627,7 +627,7 @@ export default function ProfileWizard() {
                       />
                       <SelectField
                         label="Current Country of Residence"
-                        options={(meta.countries || []).map((c) => ({ value: c.code, label: c.name_en }))}
+                        options={(meta.countries || []).map((c) => ({ value: c.code, label: c.name_ta ? `${c.name_en} / ${c.name_ta}` : c.name_en }))}
                         value={form.current_country_id}
                         onChange={set('current_country_id')}
                         onBlur={blur('current_country_id')}

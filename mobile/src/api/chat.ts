@@ -17,8 +17,18 @@ export const chatApi = {
     return data.presence ?? {};
   },
 
-  async history(profileA: number | string, profileB: number | string): Promise<ChatMessage[]> {
-    const { data } = await api.get<{ messages: ChatMessage[] }>(`/chat/${profileA}/${profileB}`);
+  async history(
+    profileA: number | string,
+    profileB: number | string,
+    opts?: { limit?: number; before?: number }
+  ): Promise<ChatMessage[]> {
+    const params = new URLSearchParams();
+    if (opts?.limit) params.set('limit', String(opts.limit));
+    if (opts?.before != null) params.set('before', String(opts.before));
+    const qs = params.toString();
+    const { data } = await api.get<{ messages: ChatMessage[] }>(
+      `/chat/${profileA}/${profileB}${qs ? `?${qs}` : ''}`,
+    );
     return data.messages;
   },
 

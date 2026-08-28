@@ -23,7 +23,7 @@ import { uploadsUrl } from '@/api/client';
 import { Spinner } from '@/components/Spinner';
 import { useAppSelector } from '@/store/hooks';
 import { useSocket } from '@/context/SocketContext';
-import { getSocket } from '@/services/chatSocket';
+import { getSocket, sendChatMessage } from '@/services/chatSocket';
 import { useTheme } from '@/theme';
 import { radius, spacing, typography } from '@/theme';
 import type { ChatMessage } from '@/types';
@@ -97,9 +97,14 @@ export function ChatThreadScreen() {
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [otherTyping, setOtherTyping] = useState(false);
   const typingSentAtRef = useRef(0);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingOlder, setLoadingOlder] = useState(false);
+  const loadingOlderRef = useRef(false);
+  const loadOlderReqIdRef = useRef(0);
 
   const [myProfiles, setMyProfiles] = useState<number[]>([]);
   const [otherUserId, setOtherUserId] = useState<number | null>(null);
+  const [resolvedName, setResolvedName] = useState<string | null>(otherName || null);
   useEffect(() => {
     profileApi.mine().then((profiles) => {
       const myIds = new Set(profiles.map((p) => Number(p.id)));
@@ -111,10 +116,14 @@ export function ChatThreadScreen() {
       if (otherId) {
         profileApi.getById(otherId).then((p) => {
           setOtherUserId(Number(p.owner_user_id));
+          // Always show the other profile's real name (never the app name).
+          if ((p as any)?.name) {
+            setResolvedName((p as any).name);
+          }
         }).catch(() => {});
       }
     }).catch(() => {});
-  }, [profileA, profileB]);
+  }, [profileA, profileB, otherName]);
 
   // Instant online state via REST the moment we know who we're talking to;
   // socket events keep it live afterwards.
@@ -139,21 +148,80 @@ export function ChatThreadScreen() {
 
   const otherProfileId = Number(senderProfileId) === Number(profileA) ? profileB : profileA;
 
+  const PAGE_SIZE = 60;
+
+  // Load the newest page first (newest messages at the bottom, WhatsApp-style).
   const loadMessages = async () => {
     try {
-      const data = await chatApi.history(profileA, profileB);
+      const data = await chatApi.history(profileA, profileB, {
+        limit: PAGE_SIZE,
+        before: Number.MAX_SAFE_INTEGER,
+      });
       setMessages(data);
+      setHasMore(data.length >= PAGE_SIZE);
     } catch {
+      setHasMore(false);
     } finally {
       setLoading(false);
     }
   };
 
+  // Fetch the next older page and prepend it (scroll position is preserved via
+  // FlatList's maintainVisibleContentPosition). No duplicates ever added.
+  const loadOlder = async () => {
+    if (loadingOlderRef.current || !hasMore) return;
+    loadingOlderRef.current = true;
+    setLoadingOlder(true);
+    const reqId = ++loadOlderReqIdRef.current;
+    const firstId = messages[0]?.id;
+    if (firstId == null) {
+      loadingOlderRef.current = false;
+      setLoadingOlder(false);
+      return;
+    }
+    try {
+      const older = await chatApi.history(profileA, profileB, {
+        limit: PAGE_SIZE,
+        before: firstId,
+      });
+      if (reqId !== loadOlderReqIdRef.current) return;
+      setMessages((prev) => {
+        const known = new Set(prev.map((m) => Number(m.id)));
+        const fresh = older.filter((m) => !known.has(Number(m.id)));
+        return [...fresh, ...prev];
+      });
+      setHasMore(older.length >= PAGE_SIZE);
+    } catch {
+    } finally {
+      if (reqId === loadOlderReqIdRef.current) {
+        loadingOlderRef.current = false;
+        setLoadingOlder(false);
+      }
+    }
+  };
+
+  // Real-time comes from the socket; only poll when it's disconnected so the
+  // optimistic bubbles and live ticks are never wiped by a stale history reload.
   useEffect(() => {
     loadMessages();
-    pollRef.current = setInterval(loadMessages, 10000);
+    const tick = () => {
+      const s = getSocket();
+      if (!s || !s.connected) loadMessages();
+    };
+    pollRef.current = setInterval(tick, 10000);
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, [profileA, profileB]);
+
+  // Resync the full history whenever the socket reconnects (e.g. returning from
+  // background or recovering from a network drop) so missed messages show up
+  // immediately without requiring a manual refresh.
+  const prevConnectedRef = useRef(connected);
+  useEffect(() => {
+    if (connected && !prevConnectedRef.current) {
+      loadMessages();
+    }
+    prevConnectedRef.current = connected;
+  }, [connected]);
 
   // Mark the conversation as read while it's open (WhatsApp-style blue ticks)
   useEffect(() => {
@@ -184,11 +252,22 @@ export function ChatThreadScreen() {
         .sort((a, b) => a - b)
         .join('-');
       if (pair !== myPair) return;
-      setMessages((prev) =>
-        prev.some((x) => Number(x.id) === Number(m.id))
+      setMessages((prev) => {
+        // Reconcile an optimistic bubble that shares this message's client_id.
+        const cid = m?.client_id ? String(m.client_id) : null;
+        if (cid) {
+          const hasOpt = prev.some((x) => String((x as any).client_id) === cid && (x as any)._local);
+          if (hasOpt) {
+            const rest = prev.filter((x) => !(String((x as any).client_id) === cid));
+            return rest.some((x) => Number(x.id) === Number(m.id))
+              ? rest
+              : [...rest, m as ChatMessage];
+          }
+        }
+        return prev.some((x) => Number(x.id) === Number(m.id))
           ? prev
-          : [...prev, m as ChatMessage],
-      );
+          : [...prev, m as ChatMessage];
+      });
     });
 
     const offSeen = subscribe('chat:seen', (payload: any) => {
@@ -223,11 +302,29 @@ export function ChatThreadScreen() {
     };
   }, [profileA, profileB, otherUserId, subscribe]);
 
-  const scrollToBottom = () => {
+  const nearBottomRef = useRef(true);
+
+  const scrollToBottom = (opts: any = {}) => {
+    if (!opts?.force && !nearBottomRef.current) return;
     setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 50);
   };
 
+  const onListScroll = (e: any) => {
+    const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
+    const distanceFromBottom =
+      contentSize.height - contentOffset.y - layoutMeasurement.height;
+    nearBottomRef.current = distanceFromBottom < 120;
+  };
+
   useEffect(() => { scrollToBottom(); }, [messages]);
+
+  // After the initial history load, position at the latest message.
+  useEffect(() => {
+    if (!loading && messages.length > 0) {
+      nearBottomRef.current = true;
+      scrollToBottom({ force: true });
+    }
+  }, [loading]);
 
   useEffect(() => {
     const sub = Keyboard.addListener(
@@ -267,17 +364,49 @@ export function ChatThreadScreen() {
     setText('');
     setInputHeight(44);
     stopTypingSignal();
-    try {
-      const msg = await chatApi.send(profileA, profileB, trimmed, senderProfileId);
+    const clientId = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+
+    // Optimistic placeholder so the bubble appears instantly (WhatsApp-style).
+    const temp: any = {
+      id: 0,
+      thread_id: `${Math.min(Number(profileA), Number(profileB))}-${Math.max(Number(profileA), Number(profileB))}`,
+      sender_profile_id: Number(senderProfileId),
+      receiver_profile_id: Number(otherProfileId),
+      message: trimmed,
+      client_id: clientId,
+      sent_at: new Date().toISOString(),
+      _local: 'sending',
+    };
+    setMessages((prev) => [...prev, temp as ChatMessage]);
+    scrollToBottom({ force: true });
+
+    const res = await sendChatMessage({
+      profileA,
+      profileB,
+      senderProfileId,
+      text: trimmed,
+      clientId,
+    });
+
+    if (res.ok && res.message) {
+      // Reconcile the optimistic bubble with the confirmed server message.
+      setMessages((prev) => {
+        const next = prev.filter((m) => !(String((m as any).client_id) === clientId));
+        return next.some((x) => Number(x.id) === Number(res.message!.id))
+          ? next
+          : [...next, res.message as ChatMessage];
+      });
+      scrollToBottom({ force: true });
+    } else {
+      // Failed to send — restore the text and mark the optimistic bubble failed.
+      setText((prev) => prev || trimmed);
       setMessages((prev) =>
-        prev.some((x) => Number(x.id) === Number(msg.id)) ? prev : [...prev, msg],
+        prev.map((m) =>
+          String((m as any).client_id) === clientId ? { ...m, _local: 'failed' as any } : m,
+        ),
       );
-      scrollToBottom();
-    } catch {
-      setText(trimmed);
-    } finally {
-      setSending(false);
     }
+    setSending(false);
   };
 
   const deleteMessage = async (msg: ChatMessage) => {
@@ -314,7 +443,8 @@ export function ChatThreadScreen() {
   const otherOnline = otherUserId ? isOnline(otherUserId) : false;
   const otherPresence = otherUserId ? getPresence(otherUserId) : null;
 
-  const initial = (otherName ?? '?')[0]?.toUpperCase() ?? '?';
+  const displayName = resolvedName || otherName || '?';
+  const initial = displayName[0]?.toUpperCase() ?? '?';
 
   if (loading) return <View style={[styles.loadingWrap, { backgroundColor: PINK_BG }]}><Spinner /></View>;
 
@@ -336,7 +466,7 @@ export function ChatThreadScreen() {
           {otherOnline && <View style={styles.convOnlineDot} />}
         </View>
         <View style={styles.convInfo}>
-          <Text style={styles.convName} numberOfLines={1}>{otherName}</Text>
+          <Text style={styles.convName} numberOfLines={1}>{displayName}</Text>
           <Text style={[styles.convStatus, { color: otherTyping || otherOnline ? '#22c55e' : '#b08da6' }]}>
             {otherTyping
               ? 'typing…'
@@ -357,12 +487,20 @@ export function ChatThreadScreen() {
       <FlatList
         ref={flatListRef}
         data={displayItems}
-        keyExtractor={(item, i) => item.type === 'date' ? `date-${item.date}` : String(item.message!.id)}
+        keyExtractor={(item, i) => item.type === 'date' ? `date-${item.date}` : String((item.message as any).client_id || item.message!.id)}
         contentContainerStyle={styles.list}
         onContentSizeChange={scrollToBottom}
         onLayout={scrollToBottom}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="interactive"
+        maintainVisibleContentPosition={{ minIndexForVisible: 0, autoscrollToTopThreshold: 200 }}
+        onStartReached={loadOlder}
+        onStartReachedThreshold={0.3}
+        onScroll={onListScroll}
+        scrollEventThrottle={32}
+        ListFooterComponent={
+          loadingOlder ? <Spinner /> : null
+        }
         style={styles.messagesArea}
         renderItem={({ item }) => {
           if (item.type === 'date') {
@@ -382,6 +520,12 @@ export function ChatThreadScreen() {
 
           const tickIcon = () => {
             if (!isMe) return null;
+            if ((msg as any)._local === 'sending') {
+              return <Ionicons name="time-outline" size={14} color="rgba(255,255,255,0.6)" />;
+            }
+            if ((msg as any)._local === 'failed') {
+              return <Ionicons name="alert-circle" size={14} color="rgba(255,200,150,0.9)" />;
+            }
             if (msg.read_at) {
               return <Ionicons name="checkmark-done" size={16} color="#4FC3F7" />;
             }

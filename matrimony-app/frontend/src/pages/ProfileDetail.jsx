@@ -151,12 +151,15 @@ export default function ProfileDetail() {
     );
   }
 
-  const religion = meta.religions.find((r) => r.id === profile.religion_id)?.name_en;
-  const caste = meta.castes.find((c) => c.id === profile.caste_id)?.name_en;
+  const bi = (en, ta) => (en && ta ? `${en} / ${ta}` : (en || ta || null));
+  const religion = bi(meta.religions.find((r) => r.id === profile.religion_id)?.name_en, meta.religions.find((r) => r.id === profile.religion_id)?.name_ta);
+  const caste = bi(meta.castes.find((c) => c.id === profile.caste_id)?.name_en, meta.castes.find((c) => c.id === profile.caste_id)?.name_ta);
   const raasi = meta.raasis.find((r) => r.id === profile.raasi_id);
   const star = meta.stars.find((s) => s.id === profile.star_id);
-  const bornCountry = meta.countries.find((c) => c.code === profile.born_country_id)?.name_en;
-  const currentCountry = meta.countries.find((c) => c.code === profile.current_country_id)?.name_en;
+  const raasiName = bi(raasi?.name_en, raasi?.name_ta);
+  const starName = bi(star?.name_en, star?.name_ta);
+  const bornCountry = bi(meta.countries.find((c) => c.code === profile.born_country_id)?.name_en, meta.countries.find((c) => c.code === profile.born_country_id)?.name_ta);
+  const currentCountry = bi(meta.countries.find((c) => c.code === profile.current_country_id)?.name_en, meta.countries.find((c) => c.code === profile.current_country_id)?.name_ta);
   const isOwner = user && profile.owner_user_id === user.id;
 
   const interestButtonLabel = () => {
@@ -245,8 +248,8 @@ export default function ProfileDetail() {
               <InfoRow label="Occupation" value={profile.occupation} />
               <InfoRow label="Religion" value={religion} />
               <InfoRow label="Caste / Saathi" value={caste} />
-              <InfoRow label="Raasi" value={raasi?.name_en} />
-              <InfoRow label="Star / Nakshatram" value={star?.name_en} />
+              <InfoRow label="Raasi" value={raasiName} />
+              <InfoRow label="Star / Nakshatram" value={starName} />
               <InfoRow label="Born In" value={bornCountry} />
               <InfoRow label="Residing In" value={currentCountry ? `${currentCountry}${profile.city_or_state ? ', ' + profile.city_or_state : ''}` : profile.city_or_state} />
             </div>
@@ -446,8 +449,9 @@ function InfoRow({ label, value }) {
 
 // Traditional South-Indian/Sri Lankan horoscope grid layout
 function HoroscopeGrid({ profile, raasi, star }) {
-  const raasiName = raasi?.name_en || '—';
-  const starName = star?.name_en || '—';
+  const biH = (en, ta) => (en && ta ? `${en} / ${ta}` : (en || ta || '—'));
+  const raasiName = biH(raasi?.name_en, raasi?.name_ta);
+  const starName = biH(star?.name_en, star?.name_ta);
   const raasiId = profile.raasi_id;
 
   // 12 houses placed in 4x4 grid (3 per row with corners empty)

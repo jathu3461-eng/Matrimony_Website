@@ -76,13 +76,15 @@ export function SearchScreen() {
     const params: SearchParams = {};
     if (query.trim()) params.q = query.trim();
     if (g) params.gender = g;
-    if (minAge) params.minAge = Number(minAge);
-    if (maxAge) params.maxAge = Number(maxAge);
+    if (minAge) params.min_age = Number(minAge);
+    if (maxAge) params.max_age = Number(maxAge);
     if (religionId) params.religion_id = Number(religionId);
     if (casteId) params.caste_id = Number(casteId);
     if (countryId) params.current_country_id = countryId;
     if (raasiId) params.raasi_id = Number(raasiId);
     if (starId) params.star_id = Number(starId);
+    if (incomeRange) params.income_range = incomeRange;
+    if (manglik) params.manglik_status = manglik;
     setApplied(params);
   };
 
@@ -208,7 +210,7 @@ export function SearchScreen() {
             label="Religion"
             options={(metaData?.religions || []).map((r) => ({
               value: String(r.id),
-              label: r.name_en,
+              label: `${r.name_en} / ${r.name_ta}`,
             }))}
             value={religionId}
             onChange={setReligionId}
@@ -219,7 +221,7 @@ export function SearchScreen() {
             label="Caste"
             options={(metaData?.castes || []).map((c) => ({
               value: String(c.id),
-              label: c.name_en,
+              label: `${c.name_en} / ${c.name_ta}`,
             }))}
             value={casteId}
             onChange={setCasteId}
@@ -230,7 +232,7 @@ export function SearchScreen() {
             label="Country"
             options={(metaData?.countries || []).map((c) => ({
               value: c.code,
-              label: c.name_en,
+              label: c.name_ta ? `${c.name_en} / ${c.name_ta}` : c.name_en,
             }))}
             value={countryId}
             onChange={setCountryId}
@@ -243,7 +245,7 @@ export function SearchScreen() {
                 label="Raasi"
                 options={(metaData?.raasis || []).map((r) => ({
                   value: String(r.id),
-                  label: r.name_en,
+                  label: `${r.name_en} / ${r.name_ta}`,
                 }))}
                 value={raasiId}
                 onChange={setRaasiId}
@@ -255,7 +257,7 @@ export function SearchScreen() {
                 label="Star"
                 options={(metaData?.stars || []).map((s) => ({
                   value: String(s.id),
-                  label: s.name_en,
+                  label: `${s.name_en} / ${s.name_ta}`,
                 }))}
                 value={starId}
                 onChange={setStarId}
@@ -279,6 +281,24 @@ export function SearchScreen() {
             onChange={setManglik}
             placeholder="Any"
           />
+
+          {/* Search button — applies all selected filters + keyword at once */}
+          <Pressable
+            onPress={() => {
+              applyFilters();
+              setShowFilters(false);
+            }}
+            style={({ pressed }) => [
+              styles.searchButton,
+              {
+                backgroundColor: colors.primary,
+                opacity: pressed ? 0.85 : 1,
+              },
+            ]}
+          >
+            <Ionicons name="search" size={18} color={colors.white} />
+            <Text style={styles.searchButtonText}>Search</Text>
+          </Pressable>
         </View>
       )}
 
@@ -387,6 +407,20 @@ const styles = StyleSheet.create({
   },
   ageInput: {
     flex: 1,
+  },
+  searchButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    borderRadius: radius.pill,
+    paddingVertical: 13,
+    marginTop: spacing.sm,
+  },
+  searchButtonText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '700',
   },
   list: {
     paddingBottom: layout.bottomContentInset,

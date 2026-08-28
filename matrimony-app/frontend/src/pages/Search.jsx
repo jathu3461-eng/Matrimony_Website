@@ -32,7 +32,7 @@ function ResultsSkeleton() {
 }
 
 export default function Search() {
-  const { t, lang } = useI18n();
+  const { t } = useI18n();
   const [searchParams] = useSearchParams();
   const [meta, setMeta] = useState(null);
   const [results, setResults] = useState(null);
@@ -176,14 +176,14 @@ export default function Search() {
                     value={filters.religion_id}
                     onChange={set('religion_id')}
                     placeholder="Any Religion"
-                    options={(meta?.religions || []).map((r) => ({ value: String(r.id), label: lang === 'ta' ? r.name_ta : r.name_en }))}
+                    options={(meta?.religions || []).map((r) => ({ value: String(r.id), label: `${r.name_en} / ${r.name_ta}` }))}
                   />
                   <SelectField
                     label="Caste / Saathi"
                     value={filters.caste_id}
                     onChange={set('caste_id')}
                     placeholder="Any Caste"
-                    options={(meta?.castes || []).map((c) => ({ value: String(c.id), label: lang === 'ta' ? c.name_ta : c.name_en }))}
+                    options={(meta?.castes || []).map((c) => ({ value: String(c.id), label: `${c.name_en} / ${c.name_ta}` }))}
                   />
                 </div>
               </div>
@@ -197,7 +197,7 @@ export default function Search() {
                   placeholder="Any Country"
                   options={(meta?.countries || []).map((c) => ({
                     value: String(c.code),
-                    label: c.priority ? `★ ${c.name_en}` : c.name_en,
+                    label: c.priority ? `★ ${c.name_en} / ${c.name_ta}` : `${c.name_en} / ${c.name_ta}`,
                   }))}
                 />
               </div>
@@ -211,14 +211,14 @@ export default function Search() {
                       value={filters.raasi_id}
                       onChange={set('raasi_id')}
                       placeholder="Any"
-                      options={(meta?.raasis || []).map((r) => ({ value: String(r.id), label: lang === 'ta' ? r.name_ta : r.name_en }))}
+                      options={(meta?.raasis || []).map((r) => ({ value: String(r.id), label: `${r.name_en} / ${r.name_ta}` }))}
                     />
                     <SelectField
                       label="Star"
                       value={filters.star_id}
                       onChange={set('star_id')}
                       placeholder="Any"
-                      options={(meta?.stars || []).map((s) => ({ value: String(s.id), label: lang === 'ta' ? s.name_ta : s.name_en }))}
+                      options={(meta?.stars || []).map((s) => ({ value: String(s.id), label: `${s.name_en} / ${s.name_ta}` }))}
                     />
                   </div>
                   <SelectField

@@ -125,6 +125,7 @@ async function initDB() {
       CREATE TABLE IF NOT EXISTS countries (
         code VARCHAR(5) PRIMARY KEY,
         name_en TEXT NOT NULL,
+        name_ta TEXT,
         priority INT
       );
 
@@ -294,6 +295,7 @@ async function initDB() {
     await ensureIndex('refresh_tokens', 'idx_refresh_tokens_user', 'INDEX idx_refresh_tokens_user ON refresh_tokens(user_id)');
 
     await ensureColumn('users', 'email_verified', 'email_verified TINYINT NOT NULL DEFAULT 0');
+    await ensureColumn('countries', 'name_ta', 'name_ta TEXT AFTER name_en');
 
     await seed(conn);
     console.log('✅ MySQL DB initialized');
@@ -389,52 +391,56 @@ async function seed(conn) {
   }
 
   // Countries
-  const [[{ c: countryCount }]] = await conn.query('SELECT COUNT(*) c FROM countries');
-  if (countryCount === 0) {
-    const priority = [['CA','Canada',1],['GB','United Kingdom',2],['LK','Sri Lanka',3],['IN','India',4],
-      ['FR','France',5],['DE','Germany',6],['CH','Switzerland',7],['AU','Australia',8],
-      ['NO','Norway',9],['US','United States',10]];
-    const rest = [
-      ['AF','Afghanistan'],['AL','Albania'],['DZ','Algeria'],['AD','Andorra'],['AO','Angola'],
-      ['AG','Antigua and Barbuda'],['AR','Argentina'],['AM','Armenia'],['AT','Austria'],['AZ','Azerbaijan'],
-      ['BS','Bahamas'],['BH','Bahrain'],['BD','Bangladesh'],['BB','Barbados'],['BY','Belarus'],
-      ['BE','Belgium'],['BZ','Belize'],['BJ','Benin'],['BT','Bhutan'],['BO','Bolivia'],
-      ['BA','Bosnia and Herzegovina'],['BW','Botswana'],['BR','Brazil'],['BN','Brunei'],['BG','Bulgaria'],
-      ['BF','Burkina Faso'],['BI','Burundi'],['CV','Cabo Verde'],['KH','Cambodia'],['CM','Cameroon'],
-      ['CF','Central African Republic'],['TD','Chad'],['CL','Chile'],['CN','China'],['CO','Colombia'],
-      ['KM','Comoros'],['CG','Congo'],['CR','Costa Rica'],['HR','Croatia'],['CU','Cuba'],
-      ['CY','Cyprus'],['CZ','Czechia'],['DK','Denmark'],['DJ','Djibouti'],['DM','Dominica'],
-      ['DO','Dominican Republic'],['EC','Ecuador'],['EG','Egypt'],['SV','El Salvador'],['GQ','Equatorial Guinea'],
-      ['ER','Eritrea'],['EE','Estonia'],['SZ','Eswatini'],['ET','Ethiopia'],['FJ','Fiji'],
-      ['FI','Finland'],['GA','Gabon'],['GM','Gambia'],['GE','Georgia'],['GH','Ghana'],
-      ['GR','Greece'],['GD','Grenada'],['GT','Guatemala'],['GN','Guinea'],['GW','Guinea-Bissau'],
-      ['GY','Guyana'],['HT','Haiti'],['VA','Holy See'],['HN','Honduras'],['HU','Hungary'],
-      ['IS','Iceland'],['ID','Indonesia'],['IR','Iran'],['IQ','Iraq'],['IE','Ireland'],
-      ['IL','Israel'],['IT','Italy'],['JM','Jamaica'],['JP','Japan'],['JO','Jordan'],
-      ['KZ','Kazakhstan'],['KE','Kenya'],['KI','Kiribati'],['KW','Kuwait'],['KG','Kyrgyzstan'],
-      ['LA','Laos'],['LV','Latvia'],['LB','Lebanon'],['LS','Lesotho'],['LR','Liberia'],
-      ['LY','Libya'],['LI','Liechtenstein'],['LT','Lithuania'],['LU','Luxembourg'],['MG','Madagascar'],
-      ['MW','Malawi'],['MY','Malaysia'],['MV','Maldives'],['ML','Mali'],['MT','Malta'],
-      ['MH','Marshall Islands'],['MR','Mauritania'],['MU','Mauritius'],['MX','Mexico'],['FM','Micronesia'],
-      ['MD','Moldova'],['MC','Monaco'],['MN','Mongolia'],['ME','Montenegro'],['MA','Morocco'],
-      ['MZ','Mozambique'],['MM','Myanmar'],['NA','Namibia'],['NR','Nauru'],['NP','Nepal'],
-      ['NL','Netherlands'],['NZ','New Zealand'],['NI','Nicaragua'],['NE','Niger'],['NG','Nigeria'],
-      ['KP','North Korea'],['MK','North Macedonia'],['OM','Oman'],['PK','Pakistan'],['PW','Palau'],
-      ['PS','Palestine State'],['PA','Panama'],['PG','Papua New Guinea'],['PY','Paraguay'],['PE','Peru'],
-      ['PH','Philippines'],['PL','Poland'],['PT','Portugal'],['QA','Qatar'],['RO','Romania'],
-      ['RU','Russia'],['RW','Rwanda'],['KN','Saint Kitts and Nevis'],['LC','Saint Lucia'],
-      ['VC','Saint Vincent and the Grenadines'],['WS','Samoa'],['SM','San Marino'],['ST','Sao Tome and Principe'],
-      ['SA','Saudi Arabia'],['SN','Senegal'],['RS','Serbia'],['SC','Seychelles'],['SL','Sierra Leone'],
-      ['SG','Singapore'],['SK','Slovakia'],['SI','Slovenia'],['SB','Solomon Islands'],['SO','Somalia'],
-      ['ZA','South Africa'],['KR','South Korea'],['SS','South Sudan'],['ES','Spain'],['SD','Sudan'],
-      ['SR','Suriname'],['SE','Sweden'],['SY','Syria'],['TJ','Tajikistan'],['TZ','Tanzania'],
-      ['TH','Thailand'],['TL','Timor-Leste'],['TG','Togo'],['TO','Tonga'],['TT','Trinidad and Tobago'],
-      ['TN','Tunisia'],['TR','Turkey'],['TM','Turkmenistan'],['TV','Tuvalu'],['UG','Uganda'],
-      ['UA','Ukraine'],['AE','United Arab Emirates'],['UY','Uruguay'],['UZ','Uzbekistan'],['VU','Vanuatu'],
-      ['VE','Venezuela'],['VN','Vietnam'],['YE','Yemen'],['ZM','Zambia'],['ZW','Zimbabwe'],
+  const priority = [['CA','Canada','கனடா',1],['GB','United Kingdom','இங்கிலாந்து',2],['LK','Sri Lanka','இலங்கை',3],['IN','India','இந்தியா',4],
+    ['FR','France','பிரான்ஸ்',5],['DE','Germany','ஜெர்மனி',6],['CH','Switzerland','சுவிட்சர்லாந்து',7],['AU','Australia','ஆஸ்திரேலியா',8],
+    ['NO','Norway','நார்வே',9],['US','United States','அமெரிக்கா',10]];
+  const rest = [
+      ['AF','Afghanistan','ஆப்கானிஸ்தான்'],['AL','Albania','அல்பேனியா'],['DZ','Algeria','அல்ஜீரியா'],['AD','Andorra','அன்டோரா'],['AO','Angola','அங்கோலா'],
+      ['AG','Antigua and Barbuda','அன்டிகுவா'],['AR','Argentina','அர்ஜென்டினா'],['AM','Armenia','ஆர்மீனியா'],['AT','Austria','ஆஸ்திரியா'],['AZ','Azerbaijan','அசர்பைஜான்'],
+      ['BS','Bahamas','பஹாமாஸ்'],['BH','Bahrain','பஹ்ரைன்'],['BD','Bangladesh','பங்களாதேஷ்'],['BB','Barbados','பார்படாஸ்'],['BY','Belarus','பெலாரூஸ்'],
+      ['BE','Belgium','பெல்ஜியம்'],['BZ','Belize','பெலிஸ்'],['BJ','Benin','பெனின்'],['BT','Bhutan','பூட்டான்'],['BO','Bolivia','பொலிவியா'],
+      ['BA','Bosnia and Herzegovina','பொஸ்னியா'],['BW','Botswana','போட்ஸ்வானா'],['BR','Brazil','பிரேசில்'],['BN','Brunei','புருனே'],['BG','Bulgaria','பல்கேரியா'],
+      ['BF','Burkina Faso','புர்கினா பாசோ'],['BI','Burundi','புருண்டி'],['CV','Cabo Verde','கேப் வெர்டே'],['KH','Cambodia','கம்போடியா'],['CM','Cameroon','கேமரூன்'],
+      ['CF','Central African Republic','மத்திய ஆப்ரிக்கா'],['TD','Chad','சாட்'],['CL','Chile','சிலி'],['CN','China','சீனா'],['CO','Colombia','கொலம்பியா'],
+      ['KM','Comoros','கொமொரோஸ்'],['CG','Congo','காங்கோ'],['CR','Costa Rica','கோஸ்டா ரிகா'],['HR','Croatia','குரோஷியா'],['CU','Cuba','கியூபா'],
+      ['CY','Cyprus','சைப்ரஸ்'],['CZ','Czechia','செக் குடியரசு'],['DK','Denmark','டென்மார்க்'],['DJ','Djibouti','ஜிபூட்டி'],['DM','Dominica','டொமினிகா'],
+      ['DO','Dominican Republic','டொமினிகன்'],['EC','Ecuador','எக்குவடார்'],['EG','Egypt','எகிப்து'],['SV','El Salvador','எல் சால்வடோர்'],['GQ','Equatorial Guinea','எக்குவடோரியல் கினியா'],
+      ['ER','Eritrea','எரித்திரியா'],['EE','Estonia','எஸ்டோனியா'],['SZ','Eswatini','எஸ்வாத்தினி'],['ET','Ethiopia','எத்தியோப்பியா'],['FJ','Fiji','பிஜி'],
+      ['FI','Finland','பின்லாந்து'],['GA','Gabon','காபோன்'],['GM','Gambia','காம்பியா'],['GE','Georgia','ஜார்ஜியா'],['GH','Ghana','கானா'],
+      ['GR','Greece','கிரீஸ்'],['GD','Grenada','கிரெனடா'],['GT','Guatemala','குவாத்தமாலா'],['GN','Guinea','கினியா'],['GW','Guinea-Bissau','கினியா-பிசாவ்'],
+      ['GY','Guyana','கயானா'],['HT','Haiti','ஹெய்தி'],['VA','Holy See','வத்திக்கான்'],['HN','Honduras','ஹோண்டுராஸ்'],['HU','Hungary','ஹங்கேரி'],
+      ['IS','Iceland','ஐஸ்லாந்து'],['ID','Indonesia','இந்தோனேஷியா'],['IR','Iran','ஈரான்'],['IQ','Iraq','ஈராக்'],['IE','Ireland','அயர்லாந்து'],
+      ['IL','Israel','இஸ்ரேல்'],['IT','Italy','இத்தாலி'],['JM','Jamaica','ஜமைக்கா'],['JP','Japan','ஜப்பான்'],['JO','Jordan','ஜோர்டான்'],
+      ['KZ','Kazakhstan','கஜகஸ்தான்'],['KE','Kenya','கென்யா'],['KI','Kiribati','கிரிபாட்டி'],['KW','Kuwait','குவைத்'],['KG','Kyrgyzstan','கிர்கிஸ்தான்'],
+      ['LA','Laos','லாவோஸ்'],['LV','Latvia','லாட்வியா'],['LB','Lebanon','லெபனான்'],['LS','Lesotho','லெசோதோ'],['LR','Liberia','லைபீரியா'],
+      ['LY','Libya','லிபியா'],['LI','Liechtenstein','லிச்சென்ஸ்டீன்'],['LT','Lithuania','லிதுவேனியா'],['LU','Luxembourg','லக்சம்பர்க்'],['MG','Madagascar','மடகாஸ்கர்'],
+      ['MW','Malawi','மலாவி'],['MY','Malaysia','மலேசியா'],['MV','Maldives','மாலத்தீவு'],['ML','Mali','மாலி'],['MT','Malta','மால்டா'],
+      ['MH','Marshall Islands','மார்ஷல் தீவுகள்'],['MR','Mauritania','மொரிட்டானியா'],['MU','Mauritius','மொரீஷியஸ்'],['MX','Mexico','மெக்ஸிகோ'],['FM','Micronesia','மைக்ரோனேஷியா'],
+      ['MD','Moldova','மால்டோவா'],['MC','Monaco','மொனாக்கோ'],['MN','Mongolia','மங்கோலியா'],['ME','Montenegro','மொண்டெனேக்ரோ'],['MA','Morocco','மொராக்கோ'],
+      ['MZ','Mozambique','மொசாம்பிக்'],['MM','Myanmar','மியான்மர்'],['NA','Namibia','நமீபியா'],['NR','Nauru','நவ்ரு'],['NP','Nepal','நேபாளம்'],
+      ['NL','Netherlands','நெதர்லாந்து'],['NZ','New Zealand','நியூசிலாந்து'],['NI','Nicaragua','நிக்கரகுவா'],['NE','Niger','நைஜர்'],['NG','Nigeria','நைஜீரியா'],
+      ['KP','North Korea','வட கொரியா'],['MK','North Macedonia','வட மாசிடோனியா'],['OM','Oman','ஓமன்'],['PK','Pakistan','பாகிஸ்தான்'],['PW','Palau','பலாவு'],
+      ['PS','Palestine State','பாலஸ்தீன்'],['PA','Panama','பனாமா'],['PG','Papua New Guinea','பப்புவா'],['PY','Paraguay','பராகுவே'],['PE','Peru','பெரு'],
+      ['PH','Philippines','பிலிப்பைன்ஸ்'],['PL','Poland','போலந்து'],['PT','Portugal','போர்ச்சுகல்'],['QA','Qatar','கதார்'],['RO','Romania','ருமேனியா'],
+      ['RU','Russia','ரஷ்யா'],['RW','Rwanda','ருவாண்டா'],['KN','Saint Kitts and Nevis','செயின்ட் கிட்ஸ்'],['LC','Saint Lucia','செயின்ட் லூசியா'],
+      ['VC','Saint Vincent and the Grenadines','செயின்ட் வின்சென்ட்'],['WS','Samoa','சமோவா'],['SM','San Marino','சான் மரினோ'],['ST','Sao Tome and Principe','சாவ் டோம்'],
+      ['SA','Saudi Arabia','சவூதி அரேபியா'],['SN','Senegal','செனகல்'],['RS','Serbia','செர்பியா'],['SC','Seychelles','சீசெல்ஸ்'],['SL','Sierra Leone','சியரா லியோன்'],
+      ['SG','Singapore','சிங்கப்பூர்'],['SK','Slovakia','ஸ்லோவாக்கியா'],['SI','Slovenia','ஸ்லோவேனியா'],['SB','Solomon Islands','சொலமன் தீவுகள்'],['SO','Somalia','சோமாலியா'],
+      ['ZA','South Africa','தென்னாப்பிரிக்கா'],['KR','South Korea','தென் கொரியா'],['SS','South Sudan','தெற்கு சூடான்'],['ES','Spain','ஸ்பெயின்'],['SD','Sudan','சூடான்'],
+      ['SR','Suriname','சுரினாம்'],['SE','Sweden','ஸ்வீடன்'],['SY','Syria','சிரியா'],['TJ','Tajikistan','தஜிகிஸ்தான்'],['TZ','Tanzania','தன்சானியா'],
+      ['TH','Thailand','தாய்லாந்து'],['TL','Timor-Leste','கிழக்கு திமோர்'],['TG','Togo','டோகோ'],['TO','Tonga','டொங்கா'],['TT','Trinidad and Tobago','டிரினிடாட்'],
+      ['TN','Tunisia','டுனிசியா'],['TR','Turkey','துருக்கி'],['TM','Turkmenistan','துர்க்மெனிஸ்தான்'],['TV','Tuvalu','துவாலு'],['UG','Uganda','உகாண்டா'],
+      ['UA','Ukraine','உக்ரைன்'],['AE','United Arab Emirates','ஐக்கிய அரபு'],['UY','Uruguay','உருகுவே'],['UZ','Uzbekistan','உஸ்பெகிஸ்தான்'],['VU','Vanuatu','வனுவாட்டு'],
+      ['VE','Venezuela','வெனிசுலா'],['VN','Vietnam','வியட்நாம்'],['YE','Yemen','யேமன்'],['ZM','Zambia','சாம்பியா'],['ZW','Zimbabwe','சிம்பாப்வே'],
     ];
-    for (const [code, name, p] of priority) await conn.query('INSERT IGNORE INTO countries (code, name_en, priority) VALUES (?,?,?)', [code, name, p]);
-    for (const [code, name] of rest) await conn.query('INSERT IGNORE INTO countries (code, name_en, priority) VALUES (?,?,?)', [code, name, null]);
+    const [[{ c: countryCount }]] = await conn.query('SELECT COUNT(*) c FROM countries');
+    if (countryCount === 0) {
+      for (const [code, name, ta, p] of priority) await conn.query('INSERT IGNORE INTO countries (code, name_en, name_ta, priority) VALUES (?,?,?,?)', [code, name, ta, p]);
+      for (const [code, name, ta] of rest) await conn.query('INSERT IGNORE INTO countries (code, name_en, name_ta, priority) VALUES (?,?,?,?)', [code, name, ta, null]);
+    }
+  const allCountries = [...priority, ...rest];
+  for (const [code, , ta] of allCountries) {
+    await conn.query('UPDATE countries SET name_ta = ? WHERE code = ? AND (name_ta IS NULL OR name_ta = \"\")', [ta, code]);
   }
 }
 

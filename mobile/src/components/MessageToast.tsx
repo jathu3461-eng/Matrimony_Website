@@ -95,9 +95,8 @@ function MessageToast({
       ]}
     >
       <Pressable
-        style={styles.toast}
+        style={({ pressed }) => [styles.toast, pressed && { opacity: 0.85 }]}
         onPress={onPress}
-        activeOpacity={0.9}
       >
         {/* Avatar */}
         <View style={styles.avatarWrap}>

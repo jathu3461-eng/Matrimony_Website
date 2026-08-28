@@ -4,8 +4,8 @@ import type { Profile, ProfileMeta } from '@/types';
 export interface SearchParams {
   q?: string;
   gender?: 'M' | 'F';
-  minAge?: number;
-  maxAge?: number;
+  min_age?: number;
+  max_age?: number;
   religion_id?: number;
   caste_id?: number;
   raasi_id?: number;
@@ -13,6 +13,8 @@ export interface SearchParams {
   born_country_id?: string;
   current_country_id?: string;
   city_or_state?: string;
+  income_range?: string;
+  manglik_status?: string;
   page?: number;
   limit?: number;
 }

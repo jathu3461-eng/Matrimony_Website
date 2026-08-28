@@ -371,7 +371,7 @@ export function EditProfileScreen() {
             label="Religion"
             options={(metaData?.religions || []).map((r) => ({
               value: String(r.id),
-              label: r.name_en,
+              label: `${r.name_en} / ${r.name_ta}`,
             }))}
             value={form.religion_id}
             onChange={set('religion_id')}
@@ -380,7 +380,7 @@ export function EditProfileScreen() {
             label="Caste"
             options={(metaData?.castes || []).map((c) => ({
               value: String(c.id),
-              label: c.name_en,
+              label: `${c.name_en} / ${c.name_ta}`,
             }))}
             value={form.caste_id}
             onChange={set('caste_id')}
@@ -400,7 +400,7 @@ export function EditProfileScreen() {
               label="Raasi / Zodiac"
               options={(metaData?.raasis || []).map((r) => ({
                 value: String(r.id),
-                label: r.name_en,
+                label: `${r.name_en} / ${r.name_ta}`,
               }))}
               value={form.raasi_id}
               onChange={set('raasi_id')}
@@ -410,7 +410,7 @@ export function EditProfileScreen() {
               label="Star / Nakshatram"
               options={(metaData?.stars || []).map((s) => ({
                 value: String(s.id),
-                label: s.name_en,
+                label: `${s.name_en} / ${s.name_ta}`,
               }))}
               value={form.star_id}
               onChange={set('star_id')}
@@ -424,7 +424,7 @@ export function EditProfileScreen() {
             label="Country of Birth"
             options={(metaData?.countries || []).map((c) => ({
               value: c.code,
-              label: c.name_en,
+              label: c.name_ta ? `${c.name_en} / ${c.name_ta}` : c.name_en,
             }))}
             value={form.born_country_id}
             onChange={set('born_country_id')}
@@ -433,7 +433,7 @@ export function EditProfileScreen() {
             label="Current Country"
             options={(metaData?.countries || []).map((c) => ({
               value: c.code,
-              label: c.name_en,
+              label: c.name_ta ? `${c.name_en} / ${c.name_ta}` : c.name_en,
             }))}
             value={form.current_country_id}
             onChange={set('current_country_id')}

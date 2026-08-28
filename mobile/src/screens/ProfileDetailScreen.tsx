@@ -61,12 +61,24 @@ export function ProfileDetailScreen() {
   const p = profile.data;
   const metaData = meta.data as ProfileMeta | undefined;
 
+  const bi = (en?: string | null, ta?: string | null) => (en && ta ? `${en} / ${ta}` : (en || ta || null));
+
   const resolveName = (
-    list: Array<{ id: number; name_en: string }> | undefined,
+    list: Array<{ id: number; name_en: string; name_ta: string }> | undefined,
     id: number | null | undefined,
   ) => {
     if (!id || !list) return null;
-    return list.find((r) => r.id === id)?.name_en ?? null;
+    const found = list.find((r) => r.id === id);
+    return found ? bi(found.name_en, found.name_ta) : null;
+  };
+
+  const resolveCountry = (
+    list: Array<{ code: string; name_en: string; name_ta: string }> | undefined,
+    code: string | null | undefined,
+  ) => {
+    if (!code || !list) return null;
+    const found = list.find((c) => c.code === code);
+    return found ? bi(found.name_en, found.name_ta) : null;
   };
 
   const sendInterest = async () => {
@@ -233,6 +245,18 @@ export function ProfileDetailScreen() {
           )}
           {p.caste_id && (
             <MetaRow icon="people" label="Caste" value={resolveName(metaData?.castes, p.caste_id) ?? String(p.caste_id)} />
+          )}
+          {p.raasi_id && (
+            <MetaRow icon="star" label="Raasi" value={resolveName(metaData?.raasis, p.raasi_id) ?? String(p.raasi_id)} />
+          )}
+          {p.star_id && (
+            <MetaRow icon="sparkles" label="Star / Nakshatram" value={resolveName(metaData?.stars, p.star_id) ?? String(p.star_id)} />
+          )}
+          {p.born_country_id && (
+            <MetaRow icon="airplane" label="Born In" value={resolveCountry(metaData?.countries, p.born_country_id) ?? String(p.born_country_id)} />
+          )}
+          {p.current_country_id && (
+            <MetaRow icon="globe" label="Residing In" value={resolveCountry(metaData?.countries, p.current_country_id) ?? String(p.current_country_id)} />
           )}
           {p.diet && p.diet !== 'any' && (
             <MetaRow icon="restaurant" label="Diet" value={p.diet.replace('_', ' ')} />
