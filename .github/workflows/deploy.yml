@@ -18,10 +18,10 @@ jobs:
       - name: ⬇️ Checkout code
         uses: actions/checkout@v4
 
-      - name: 🟢 Setup Node.js 20
+      - name: 🟢 Setup Node.js 22
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
           cache-dependency-path: matrimony-app/frontend/package-lock.json
 
@@ -56,6 +56,8 @@ jobs:
           local-dir: ./matrimony-app/frontend/dist/
           server-dir: /public_html/
           dangerous-clean-slate: false
+          timeout-seconds: 300
+          retry: 3
           exclude: |
             **/.git*
             **/.git*/**
@@ -79,30 +81,24 @@ jobs:
           port: 21098
           script: |
             echo "🚀 Starting Mukurtham backend deployment..."
-            
-            # Create folder if it doesn't exist
+
             mkdir -p ~/mukurtham-backend
             cd ~/mukurtham-backend
-            
-            # Pull latest code
-            if [ -d ".git" ]; then
-              echo "📦 Pulling latest code..."
-              git pull origin main
-            else
-              echo "📥 Cloning repository..."
-              git clone https://github.com/jathu3461-eng/Matrimony_Website.git temp_clone
-              cp -r temp_clone/matrimony-app/backend/. .
-              rm -rf temp_clone
-            fi
-            
+
+            # Always pull full repo then copy backend files to root
+            echo "📦 Syncing code..."
+            rm -rf _deploy_tmp
+            git clone --depth 1 https://github.com/jathu3461-eng/Matrimony_Website.git _deploy_tmp
+
+            # Copy backend files to app root (preserving uploads/ and data/ if they exist)
+            rsync -av --exclude='node_modules' --exclude='.git' --exclude='uploads' --exclude='data' _deploy_tmp/matrimony-app/backend/ ./
+            rm -rf _deploy_tmp
+
             # Install production dependencies
             echo "📦 Installing dependencies..."
             npm ci --omit=dev
-            
-            # Create data directory for SQLite
-            mkdir -p data
-            
-            # Restart via cPanel Passenger (touch restart.txt)
+
+            # Restart via cPanel Passenger
             mkdir -p tmp && touch tmp/restart.txt
-            
+
             echo "✅ Backend deployed successfully at https://mukurtham.ca/api"
