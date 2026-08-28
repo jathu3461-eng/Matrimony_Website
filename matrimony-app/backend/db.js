@@ -13,6 +13,7 @@ const pool = mysql.createPool({
   connectionLimit: 10,
   queueLimit: 0,
   multipleStatements: true,
+  charset: 'utf8mb4',
 });
 
 // ─── Helper API (mirrors better-sqlite3 interface) ────────────────────────────
@@ -441,6 +442,44 @@ async function seed(conn) {
   const allCountries = [...priority, ...rest];
   for (const [code, , ta] of allCountries) {
     await conn.query('UPDATE countries SET name_ta = ? WHERE code = ? AND (name_ta IS NULL OR name_ta = \"\")', [ta, code]);
+  }
+
+  // ─── Repair corrupt Tamil (name_ta) values ────────────────────────────────────
+  // If the DB was seeded without utf8mb4 the Tamil was stored as literal "?" chars.
+  // On every startup re-write correct Tamil for any row whose name_ta contains "?".
+  const bad = 'LIKE "%?%"';
+  const fixRel = [['Hindu','இந்து'],['Christian','கிறிஸ்தவம்'],['Muslim','இஸ்லாம்'],['Buddhist','பௌத்தம்'],['Other','மற்றவை']];
+  const fixCastes = [
+    ['Vellalar','வெள்ளாளர்'],['Karaiyar','கரையார்'],['Mukuvar','முக்குவர்'],
+    ['Koviyar','கோவியர்'],['Vishwakarma (Kammalar)','விஸ்வகர்மா / கம்மாளர்'],
+    ['Chettiar','செட்டியார்'],['Iyer (Brahmin)','ஐயர்'],['Madapalli','மடைப்பள்ளி'],
+    ['Nattuvar','நட்டுவர்'],['Maravar','மறவர்'],['Intercaste / Other','கலப்புச் சாதி / ஏனையவை'],
+    ['Not Disclosed / Any','சாதி தடையில்லை'],
+  ];
+  const fixRaasis = ['Aries|மேஷம்','Taurus|ரிஷபம்','Gemini|மிதுனம்','Cancer|கடகம்','Leo|சிம்மம்',
+    'Virgo|கன்னி','Libra|துலாம்','Scorpio|விருச்சிகம்','Sagittarius|தனுசு',
+    'Capricorn|மகரம்','Aquarius|கும்பம்','Pisces|மீனம்'];
+  const fixStars = ['Ashwini|அசுவினி','Bharani|பரணி','Krittika|கார்த்திகை','Rohini|ரோகிணி',
+    'Mrigashirsha|மிருகசீரிடம்','Ardra|திருவாதிரை','Punarvasu|புனர்பூசம்','Pushya|பூசம்',
+    'Ashlesha|ஆயில்யம்','Magha|மகம்','Purva Phalguni|பூரம்','Uttara Phalguni|உத்திரம்',
+    'Hasta|அஸ்தம்','Chitra|சித்திரை','Swati|சுவாதி','Visakha|விசாகம்','Anuradha|அனுஷம்',
+    'Jyestha|கேட்டை','Mula|மூலம்','Purva Ashadha|பூராடம்','Uttara Ashadha|உத்திராடம்',
+    'Shravana|திருவோணம்','Dhanishta|அவிட்டம்','Shatabhisha|சதயம்','Purva Bhadrapada|பூரட்டாதி',
+    'Uttara Bhadrapada|உத்திரட்டாதி','Revati|ரேவதி'];
+
+  for (const [en, ta] of fixRel) await conn.query(`UPDATE religions SET name_ta = ? WHERE name_en = ? AND name_ta ${bad}`, [ta, en]);
+  for (const [en, ta] of fixCastes) await conn.query(`UPDATE castes SET name_ta = ? WHERE name_en = ? AND name_ta ${bad}`, [ta, en]);
+  for (let i = 0; i < fixRaasis.length; i++) {
+    const [en, ta] = fixRaasis[i].split('|');
+    await conn.query(`UPDATE raasis SET name_ta = ? WHERE name_en = ? AND name_ta ${bad}`, [ta, en]);
+  }
+  for (let i = 0; i < fixStars.length; i++) {
+    const [en, ta] = fixStars[i].split('|');
+    await conn.query(`UPDATE stars SET name_ta = ? WHERE name_en = ? AND name_ta ${bad}`, [ta, en]);
+  }
+  // Countries: also repair any "?"-corrupt name_ta (country backfill above already fills NULL/empty)
+  for (const [code, , ta] of allCountries) {
+    await conn.query(`UPDATE countries SET name_ta = ? WHERE code = ? AND name_ta ${bad}`, [ta, code]);
   }
 }
 
