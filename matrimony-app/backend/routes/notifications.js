@@ -9,7 +9,7 @@ router.use(requireAuth);
 router.get('/', async (req, res) => {
   try {
     const rows = await db.all(
-      `SELECT n.*, u.name AS sender_name, u.phone_number AS sender_phone
+       `SELECT n.*, u.username AS sender_name, u.phone_number AS sender_phone
        FROM notifications n
        LEFT JOIN users u ON u.id = n.sender_id
        WHERE n.user_id = ?

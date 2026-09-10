@@ -195,6 +195,12 @@ const en = {
   profilesFound: '{count} profiles found',
   noProfilesMatch: 'No profiles matched your search',
   searchHint: 'Search by name, occupation, or city',
+  filters: 'Filters',
+  allReligions: 'All Religions',
+  minAge: 'Min age',
+  maxAge: 'Max age',
+  pickerSelect: 'Select...',
+  pickerNoOptions: 'No options found',
 
   // Profile detail
   years: 'yrs',

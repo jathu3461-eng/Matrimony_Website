@@ -8,7 +8,7 @@ import ProfileCard from '../components/ProfileCard';
 import { Button, Badge, Skeleton, ErrorCard, SelectField, TextField } from '../components/ui';
 
 const DEFAULT_FILTERS = {
-  gender: 'F', religion_id: '', caste_id: '', current_country_id: '',
+  gender: 'F', looking_for: '', religion_id: '', caste_id: '', current_country_id: '',
   min_age: '', max_age: '', raasi_id: '', star_id: '',
   income_range: '', manglik_status: '', q: '',
 };
@@ -51,7 +51,7 @@ export default function Search() {
 
   const runSearch = async (f = filters) => {
     const params = Object.fromEntries(Object.entries(f).filter(([, v]) => v !== ''));
-    const count = Object.entries(params).filter(([k, v]) => k !== 'gender' && v !== '').length;
+    const count = Object.entries(params).filter(([k, v]) => k !== 'gender' && k !== 'looking_for' && v !== '').length;
     setActiveFiltersCount(count);
     setLoading(true);
     setSearchError('');
@@ -74,7 +74,7 @@ export default function Search() {
   };
 
   const handleClearFilters = () => {
-    const cleared = { ...DEFAULT_FILTERS, gender: filters.gender };
+    const cleared = { ...DEFAULT_FILTERS, gender: filters.gender, looking_for: filters.looking_for };
     setFilters(cleared);
     runSearch(cleared);
   };
@@ -147,6 +147,16 @@ export default function Search() {
                     options={[
                       { value: 'F', label: 'Bride (மணப்பெண்)' },
                       { value: 'M', label: 'Groom (மணமகன்)' },
+                    ]}
+                  />
+                  <SelectField
+                    label="Profile is looking for"
+                    value={filters.looking_for}
+                    onChange={set('looking_for')}
+                    options={[
+                      { value: '', label: 'Any' },
+                      { value: 'F', label: 'Bride' },
+                      { value: 'M', label: 'Groom' },
                     ]}
                   />
                   <div className="grid grid-cols-2 gap-2">

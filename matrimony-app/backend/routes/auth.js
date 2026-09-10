@@ -15,6 +15,7 @@ const {
 const { rateLimit, clientIp } = require('../middleware/rateLimit');
 const { logAdminLogin } = require('../utils/adminLogger');
 const { sendMail, otpEmailTemplate } = require('../utils/email');
+const { sendOTP } = require('../services/sms');
 
 const router = express.Router();
 
@@ -25,6 +26,9 @@ const adminLoginLimiter = rateLimit({
   max: 10,
   message: 'Too many login attempts. Please wait a few minutes and try again.',
 });
+
+const otpLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 10, message: 'Too many OTP requests. Please try again later.' });
+const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 5, message: 'Too many attempts. Please try again later.' });
 
 const USERNAME_RE = /^[a-zA-Z0-9_]{4,30}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -51,7 +55,7 @@ function validateSignup(body) {
 }
 
 // POST /api/auth/signup
-router.post('/signup', async (req, res) => {
+router.post('/signup', authLimiter, async (req, res) => {
   try {
     const errors = validateSignup(req.body);
     if (Object.keys(errors).length) return res.status(400).json({ errors });
@@ -98,7 +102,7 @@ router.post('/signup', async (req, res) => {
 });
 
 // POST /api/auth/login
-router.post('/login', async (req, res) => {
+router.post('/login', authLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) return res.status(400).json({ errors: { email: 'Email and password are required' } });
@@ -420,7 +424,7 @@ router.post('/signup/verify', async (req, res) => {
 // ── Phone OTP Verification ─────────────────────────────────────────────────
 // POST /api/auth/phone-otp/send — generate and store a 6-digit OTP for phone verification.
 // Works for both pre-signup (no account yet) and existing accounts (login/reset).
-router.post('/phone-otp/send', async (req, res) => {
+router.post('/phone-otp/send', otpLimiter, async (req, res) => {
   try {
     const phone_number = (req.body.phone_number || '').trim();
     if (!phone_number || !PHONE_RE.test(phone_number)) {
@@ -438,14 +442,7 @@ router.post('/phone-otp/send', async (req, res) => {
       [phone_number, otp, expires]
     );
 
-    // In production, send via SMS service (Twilio, etc.). For dev, log it.
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(`[PHONE OTP] ${phone_number} → ${otp}`);
-    }
-
-    // TODO: integrate SMS provider here, e.g.
-    // const twilio = require('twilio')(ACCOUNT_SID, AUTH_TOKEN);
-    // await twilio.messages.create({ body: `Your Mukurtham verification code is: ${otp}`, to: phone_number, from: TWILIO_NUMBER });
+    await sendOTP(phone_number, otp);
 
     res.json({ sent: true, message: 'OTP sent to your phone' });
   } catch (err) {
@@ -455,7 +452,7 @@ router.post('/phone-otp/send', async (req, res) => {
 });
 
 // POST /api/auth/phone-otp/verify — verify the phone OTP (pre-signup or existing user)
-router.post('/phone-otp/verify', async (req, res) => {
+router.post('/phone-otp/verify', otpLimiter, async (req, res) => {
   try {
     const phone_number = (req.body.phone_number || '').trim();
     const otp = String(req.body.otp || '').trim();

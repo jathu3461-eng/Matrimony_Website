@@ -12,6 +12,7 @@ const pool = mysql.createPool({
   connectionLimit: 10,
   queueLimit: 0,
   multipleStatements: true,
+  charset: 'utf8mb4',
 });
 
 // ─── Helper API (mirrors better-sqlite3 interface) ────────────────────────────
@@ -297,6 +298,15 @@ async function initDB() {
 
     await ensureColumn('users', 'email_verified', 'email_verified TINYINT NOT NULL DEFAULT 0');
     await ensureColumn('users', 'phone_verified', 'phone_verified TINYINT NOT NULL DEFAULT 0');
+
+    // looking_for column: 'M' or 'F' — what the user is looking for
+    await ensureColumn('profiles', 'looking_for', 'looking_for VARCHAR(5) DEFAULT NULL');
+
+    // height_cm: canonical height in centimeters for search/filter
+    await ensureColumn('profiles', 'height_cm', 'height_cm INT DEFAULT NULL');
+
+    // Index on phone_number for faster lookups
+    await ensureIndex('users', 'idx_users_phone_number', 'INDEX idx_users_phone_number ON users(phone_number)');
 
     await seed(conn);
     console.log('✅ MySQL DB initialized');

@@ -419,30 +419,6 @@ export function ProfileWizardScreen() {
                 error={stepErrors.date_of_birth}
                 hint={t('dobHelp')}
               />
-
-              {/* Language selector */}
-              <Text style={[styles.fieldLabel, { color: colors.inkSoft }]}>{t('preferredLanguage')}</Text>
-              <View style={styles.genderRow}>
-                {(['en', 'ta'] as const).map((l) => (
-                  <Pressable
-                    key={l}
-                    style={[
-                      styles.genderBtn,
-                      {
-                        backgroundColor: form.profile_registered_for === l ? colors.primary : colors.surface,
-                        borderColor: form.profile_registered_for === l ? colors.primary : colors.border,
-                      },
-                    ]}
-                    onPress={() => {
-                      // Store language choice (will be used by i18n context)
-                    }}
-                  >
-                    <Text style={{ color: form.profile_registered_for === l ? '#fff' : colors.ink, fontWeight: '700' }}>
-                      {l === 'en' ? t('languageEnglish') : t('languageTamil')}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
             </>
           )}
 

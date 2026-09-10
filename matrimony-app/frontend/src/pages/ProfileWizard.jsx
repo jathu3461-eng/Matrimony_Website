@@ -7,7 +7,8 @@ import {
 } from 'lucide-react';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
-import { Button, Stepper, ProgressBar, Badge, ErrorCard, TextField, SelectField, TextareaField, useToast } from '../components/ui';
+import { useI18n } from '../context/I18nContext';
+import { Button, Stepper, ProgressBar, Badge, ErrorCard, TextField, SelectField, TextareaField, SearchableSelect, useToast } from '../components/ui';
 import { profileSteps, validateStep, POSTED_BY } from '../lib/validation';
 
 const STEP_ICONS = { User, GraduationCap, Ruler, Heart, Wallet, Landmark, Star, MapPin, Camera, FileText };
@@ -47,8 +48,8 @@ const MANGLIK = [
 ];
 
 const EMPTY_FORM = {
-  profile_registered_for: 'Self', name: '', gender: '', date_of_birth: '',
-  height_feet: '5', height_inches: '6', education: '', occupation: '',
+  profile_registered_for: 'Self', name: '', gender: '', looking_for: '', date_of_birth: '',
+  height_feet: '5', height_inches: '6', height_cm: '', education: '', occupation: '',
   religion_id: '', caste_id: '', sub_religion: '', raasi_id: '', star_id: '',
   born_country_id: '', current_country_id: '', city_or_state: '', about_me: '',
   blur_photo: 0, blur_horoscope: 0,
@@ -116,6 +117,7 @@ export default function ProfileWizard() {
   const { id } = useParams();
   const isEdit = Boolean(id);
   const toast = useToast();
+  const { lang, setLang } = useI18n();
 
   const [meta, setMeta] = useState(null);
   const [loadingProfile, setLoadingProfile] = useState(isEdit);
@@ -133,6 +135,7 @@ export default function ProfileWizard() {
   const [draftStatus, setDraftStatus] = useState('');
   const contentRef = useRef(null);
   const [userId, setUserId] = useState('anon');
+  const [heightUnit, setHeightUnit] = useState('ft');
 
   const draftKey = `${DRAFT_KEY_PREFIX}${userId}`;
 
@@ -180,8 +183,9 @@ export default function ProfileWizard() {
       setForm({
         ...EMPTY_FORM,
         profile_registered_for: p.profile_registered_for || 'Self',
-        name: p.name || '', gender: p.gender || '', date_of_birth: p.date_of_birth || '',
+        name: p.name || '', gender: p.gender || '', looking_for: p.looking_for || '', date_of_birth: p.date_of_birth || '',
         height_feet: String(p.height_feet ?? '5'), height_inches: String(p.height_inches ?? '6'),
+        height_cm: p.height_cm || String(Math.round(((Number(p.height_feet ?? 5) * 12 + Number(p.height_inches ?? 6)) * 2.54))),
         education: p.education || '', occupation: p.occupation || '',
         religion_id: p.religion_id ?? '', caste_id: p.caste_id ?? '', sub_religion: p.sub_religion || '',
         raasi_id: p.raasi_id ?? '', star_id: p.star_id ?? '',
@@ -236,6 +240,14 @@ export default function ProfileWizard() {
 
   const set = (field) => (ev) => setForm((f) => ({ ...f, [field]: ev.target.value }));
   const blur = (field) => () => setTouched((tt) => ({ ...tt, [field]: true }));
+
+  const cmFromFtIn = (ft, inches) => Math.round(((Number(ft) * 12 + Number(inches)) * 2.54));
+  const ftInFromCm = (cm) => {
+    const totalInches = Number(cm) / 2.54;
+    const ft = Math.floor(totalInches / 12);
+    const inches = Math.round(totalInches - ft * 12);
+    return { feet: String(ft), inches: String(inches) };
+  };
 
   const focusFirstInvalid = useCallback((errs) => {
     requestAnimationFrame(() => {
@@ -428,6 +440,29 @@ export default function ProfileWizard() {
                 <div className="space-y-4">
                   {step === 0 && (
                     <>
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-xs font-bold text-[var(--ink-soft)]">Language:</span>
+                        <div className="flex rounded-full border border-[var(--border)] overflow-hidden">
+                          <button
+                            type="button"
+                            onClick={() => setLang('en')}
+                            className={`px-3 py-1 text-xs font-bold transition-colors ${
+                              lang === 'en' ? 'bg-[var(--primary)] text-white' : 'text-[var(--ink-soft)]'
+                            }`}
+                          >
+                            EN
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setLang('ta')}
+                            className={`px-3 py-1 text-xs font-bold transition-colors ${
+                              lang === 'ta' ? 'bg-[var(--primary)] text-white' : 'text-[var(--ink-soft)]'
+                            }`}
+                          >
+                            தமிழ்
+                          </button>
+                        </div>
+                      </div>
                       <SelectField
                         label="Profile Posted By"
                         options={POSTED_BY.map((p) => ({ value: p, label: p }))}
@@ -474,6 +509,31 @@ export default function ProfileWizard() {
                           <p className="text-[13px] font-semibold text-[var(--error)] mt-2" role="alert">{stepErrors.gender}</p>
                         )}
                       </div>
+                      <div>
+                        <p className="block text-xs font-bold text-[var(--ink-soft)] mb-1.5">
+                          Looking For
+                        </p>
+                        <div className="grid grid-cols-2 gap-3">
+                          {[['M', 'Groom', User], ['F', 'Bride', Users]].map(([v, label, Icon]) => (
+                            <button
+                              type="button"
+                              key={`looking_for-${v}`}
+                              name="looking_for"
+                              onClick={() => setForm((f) => ({ ...f, looking_for: v }))}
+                              onBlur={blur('looking_for')}
+                              aria-pressed={form.looking_for === v}
+                              className={`flex items-center justify-center gap-2 py-3 rounded-xl border-2 text-sm font-bold transition-all ${
+                                form.looking_for === v
+                                  ? 'grad-primary text-white border-transparent shadow-lg'
+                                  : 'border-[var(--border-strong)] text-[var(--ink-soft)] bg-[var(--surface)] hover:border-[var(--primary)]'
+                              }`}
+                            >
+                              <Icon className="w-4 h-4" aria-hidden="true" />
+                              {label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
                       <TextField
                         label="Date of Birth"
                         type="date"
@@ -517,23 +577,95 @@ export default function ProfileWizard() {
                   )}
 
                   {step === 2 && (
-                    <div className="grid grid-cols-2 gap-4">
-                      <SelectField
-                        label="Height (Feet)"
-                        options={[3, 4, 5, 6, 7].map((n) => ({ value: String(n), label: `${n} ft` }))}
-                        value={form.height_feet}
-                        onChange={set('height_feet')}
-                        name="height_feet"
-                        error={touched.height_feet && stepErrors.height_feet}
-                      />
-                      <SelectField
-                        label="Height (Inches)"
-                        options={Array.from({ length: 12 }, (_, i) => ({ value: String(i), label: `${i} in` }))}
-                        value={form.height_inches}
-                        onChange={set('height_inches')}
-                        name="height_inches"
-                        error={touched.height_inches && stepErrors.height_inches}
-                      />
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-[var(--ink-soft)]">Unit:</span>
+                        <div className="flex rounded-full border border-[var(--border)] overflow-hidden">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (heightUnit === 'cm') {
+                                const { feet, inches } = ftInFromCm(form.height_cm || '168');
+                                setForm((f) => ({ ...f, height_feet: feet, height_inches: inches }));
+                                setHeightUnit('ft');
+                              }
+                            }}
+                            className={`px-3 py-1 text-xs font-bold transition-colors ${
+                              heightUnit === 'ft' ? 'bg-[var(--primary)] text-white' : 'text-[var(--ink-soft)]'
+                            }`}
+                          >
+                            ft/in
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (heightUnit === 'ft') {
+                                const cm = cmFromFtIn(form.height_feet, form.height_inches);
+                                setForm((f) => ({ ...f, height_cm: String(cm) }));
+                                setHeightUnit('cm');
+                              }
+                            }}
+                            className={`px-3 py-1 text-xs font-bold transition-colors ${
+                              heightUnit === 'cm' ? 'bg-[var(--primary)] text-white' : 'text-[var(--ink-soft)]'
+                            }`}
+                          >
+                            cm
+                          </button>
+                        </div>
+                      </div>
+                      {heightUnit === 'ft' ? (
+                        <div className="space-y-3">
+                          <div className="grid grid-cols-2 gap-4">
+                            <SelectField
+                              label="Height (Feet)"
+                              options={[3, 4, 5, 6, 7].map((n) => ({ value: String(n), label: `${n} ft` }))}
+                              value={form.height_feet}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setForm((f) => ({ ...f, height_feet: val, height_cm: String(cmFromFtIn(val, f.height_inches)) }));
+                              }}
+                              name="height_feet"
+                              error={touched.height_feet && stepErrors.height_feet}
+                            />
+                            <SelectField
+                              label="Height (Inches)"
+                              options={Array.from({ length: 12 }, (_, i) => ({ value: String(i), label: `${i} in` }))}
+                              value={form.height_inches}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setForm((f) => ({ ...f, height_inches: val, height_cm: String(cmFromFtIn(f.height_feet, val)) }));
+                              }}
+                              name="height_inches"
+                              error={touched.height_inches && stepErrors.height_inches}
+                            />
+                          </div>
+                          {form.height_cm && (
+                            <p className="text-xs text-[var(--ink-faint)] text-center">≈ {form.height_cm} cm</p>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          <TextField
+                            label="Height (cm)"
+                            type="number"
+                            placeholder="168"
+                            value={form.height_cm}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if (val) {
+                                const { feet, inches } = ftInFromCm(val);
+                                setForm((f) => ({ ...f, height_cm: val, height_feet: feet, height_inches: inches }));
+                              } else {
+                                setForm((f) => ({ ...f, height_cm: val }));
+                              }
+                            }}
+                            name="height_cm"
+                          />
+                          {form.height_feet && form.height_inches && (
+                            <p className="text-xs text-[var(--ink-faint)] text-center">≈ {form.height_feet}'{form.height_inches}"</p>
+                          )}
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -557,23 +689,19 @@ export default function ProfileWizard() {
 
                   {step === 5 && (
                     <>
-                      <SelectField
+                      <SearchableSelect
                         label="Religion"
-                        options={(meta.religions || []).map((r) => ({ value: String(r.id), label: r.name_en }))}
+                        options={(meta.religions || []).map((r) => ({ value: String(r.id), label: lang === 'ta' ? r.name_ta : r.name_en }))}
                         value={form.religion_id}
-                        onChange={set('religion_id')}
-                        onBlur={blur('religion_id')}
-                        name="religion_id"
+                        onChange={(v) => setForm((f) => ({ ...f, religion_id: v }))}
                         error={touched.religion_id && stepErrors.religion_id}
                         required
                       />
-                      <SelectField
+                      <SearchableSelect
                         label="Caste / Saathi"
-                        options={(meta.castes || []).map((c) => ({ value: String(c.id), label: c.name_en }))}
+                        options={(meta.castes || []).map((c) => ({ value: String(c.id), label: lang === 'ta' ? c.name_ta : c.name_en }))}
                         value={form.caste_id}
-                        onChange={set('caste_id')}
-                        onBlur={blur('caste_id')}
-                        name="caste_id"
+                        onChange={(v) => setForm((f) => ({ ...f, caste_id: v }))}
                         error={touched.caste_id && stepErrors.caste_id}
                         required
                       />
@@ -600,13 +728,11 @@ export default function ProfileWizard() {
                         error={touched.raasi_id && stepErrors.raasi_id}
                         required
                       />
-                      <SelectField
+                      <SearchableSelect
                         label="Star / Nakshatram"
-                        options={(meta.stars || []).map((s) => ({ value: String(s.id), label: s.name_en }))}
+                        options={(meta.stars || []).map((s) => ({ value: String(s.id), label: lang === 'ta' ? s.name_ta : s.name_en }))}
                         value={form.star_id}
-                        onChange={set('star_id')}
-                        onBlur={blur('star_id')}
-                        name="star_id"
+                        onChange={(v) => setForm((f) => ({ ...f, star_id: v }))}
                         error={touched.star_id && stepErrors.star_id}
                         required
                       />
@@ -615,23 +741,19 @@ export default function ProfileWizard() {
 
                   {step === 7 && (
                     <>
-                      <SelectField
+                      <SearchableSelect
                         label="Country of Birth"
-                        options={(meta.countries || []).map((c) => ({ value: c.code, label: c.name_en }))}
+                        options={(meta.countries || []).map((c) => ({ value: c.code, label: lang === 'ta' ? c.name_ta : c.name_en }))}
                         value={form.born_country_id}
-                        onChange={set('born_country_id')}
-                        onBlur={blur('born_country_id')}
-                        name="born_country_id"
+                        onChange={(v) => setForm((f) => ({ ...f, born_country_id: v }))}
                         error={touched.born_country_id && stepErrors.born_country_id}
                         required
                       />
-                      <SelectField
+                      <SearchableSelect
                         label="Current Country of Residence"
-                        options={(meta.countries || []).map((c) => ({ value: c.code, label: c.name_en }))}
+                        options={(meta.countries || []).map((c) => ({ value: c.code, label: lang === 'ta' ? c.name_ta : c.name_en }))}
                         value={form.current_country_id}
-                        onChange={set('current_country_id')}
-                        onBlur={blur('current_country_id')}
-                        name="current_country_id"
+                        onChange={(v) => setForm((f) => ({ ...f, current_country_id: v }))}
                         error={touched.current_country_id && stepErrors.current_country_id}
                         required
                       />

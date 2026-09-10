@@ -43,6 +43,7 @@ export function RegisterScreen() {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [countryCode, setCountryCode] = useState(DEFAULT_COUNTRY.code);
+  const [selectedCountry, setSelectedCountry] = useState(DEFAULT_COUNTRY);
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
@@ -52,7 +53,6 @@ export function RegisterScreen() {
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const touch = (field: string) => setTouched((p) => ({ ...p, [field]: true }));
 
-  const selectedCountry = DEFAULT_COUNTRY; // will be updated by picker
   const fullPhone = phone.trim() ? `${selectedCountry.dialCode}${phone.trim()}` : '';
 
   const errors = useMemo(
@@ -67,7 +67,7 @@ export function RegisterScreen() {
           ? fieldError(businessName, touched.businessName, validateBusinessName)
           : null,
     }),
-    [username, email, phone, password, confirm, role, businessName, touched]
+    [username, email, phone, password, confirm, role, businessName, touched, selectedCountry]
   );
 
   const hasErrors = Object.values(errors).some(Boolean);
@@ -183,7 +183,10 @@ export function RegisterScreen() {
             <View style={styles.phoneRow}>
               <CountryCodePicker
                 selectedCode={countryCode}
-                onSelect={(c: CountryCode) => setCountryCode(c.code)}
+                onSelect={(c: CountryCode) => {
+                  setCountryCode(c.code);
+                  setSelectedCountry(c);
+                }}
               />
               <FormField
                 label=""

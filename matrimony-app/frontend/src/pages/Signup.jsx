@@ -9,6 +9,7 @@ import { useAuth } from '../context/AuthContext';
 import { useI18n } from '../context/I18nContext';
 import AuthLayout from '../components/auth/AuthLayout';
 import { Button, TextField, ErrorCard } from '../components/ui';
+import CountryCodeSelect from '../components/ui/CountryCodeSelect';
 import { createSignupSchema, normalizeApiErrors, passwordRules } from '../lib/validation';
 
 const VAL_MSG_KEYS = {
@@ -96,6 +97,7 @@ export default function Signup() {
   const [showPw, setShowPw] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [serverError, setServerError] = useState('');
+  const [countryCode, setCountryCode] = useState('CA');
 
   const schema = useMemo(() => createSignupSchema(isBroker), [isBroker]);
 
@@ -145,16 +147,27 @@ export default function Signup() {
       return;
     }
 
-    let formattedPhone = values.phone_number.trim();
-    if (formattedPhone && !formattedPhone.startsWith('+')) {
-      formattedPhone = '+' + formattedPhone.replace(/\D/g, '');
+    // Get dial code from country code
+    const COUNTRY_DIAL_MAP = {
+      CA: '+1', US: '+1', GB: '+44', LK: '+94', IN: '+91',
+      AU: '+61', SG: '+65', MY: '+60', DE: '+49', FR: '+33',
+      JP: '+81', AE: '+971', ZA: '+27', NZ: '+64', IE: '+353',
+      NO: '+47', FI: '+358', IT: '+39', NL: '+31', CH: '+41',
+    };
+    const dialCode = COUNTRY_DIAL_MAP[countryCode] || '+1';
+
+    let phoneDigits = values.phone_number.trim().replace(/\D/g, '');
+    if (phoneDigits.startsWith('0')) {
+      phoneDigits = phoneDigits.slice(1);
     }
+    const fullPhone = dialCode + phoneDigits;
 
     const payload = {
       username: values.username.trim().replace(/\s+/g, '_'),
       email: values.email.trim(),
       password: values.password,
-      phone_number: formattedPhone,
+      phone_number: fullPhone,
+      country_code: countryCode,
       business_name: isBroker ? values.business_name.trim() : undefined,
       role: isBroker ? 'broker' : 'regular',
     };
@@ -165,7 +178,13 @@ export default function Signup() {
         navigate('/broker-pending');
       } else {
         setUser(res.data.user);
-        navigate('/dashboard');
+        navigate('/phone-verify', {
+          state: {
+            phone: fullPhone,
+            userData: res.data.user,
+            flow: 'signup',
+          },
+        });
       }
     } catch (err) {
       const fieldErrors = normalizeApiErrors(err.response?.data);
@@ -254,17 +273,34 @@ export default function Signup() {
             />
           </motion.div>
 
-          <motion.div variants={fadeUp} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <TextField
-              label={t('auth_mobile_label')}
-              placeholder={t('auth_mobile_placeholder')}
-              icon={<Phone className="w-4 h-4" />}
-              error={showErr('phone_number')}
-              success={showSuccess('phone_number', touchedFields.phone_number) ? t('auth_valid') : undefined}
-              autoComplete="tel"
-              inputMode="tel"
-              {...register('phone_number')}
-            />
+          {/* Phone: Country code + number */}
+          <motion.div variants={fadeUp}>
+            <label className="block text-xs font-bold text-[var(--ink-soft)] mb-1.5">
+              {t('auth_mobile_label')}
+              <span className="text-[var(--error)]"> *</span>
+            </label>
+            <div className="flex gap-2">
+              <div className="w-[140px] shrink-0">
+                <CountryCodeSelect
+                  value={countryCode}
+                  onChange={setCountryCode}
+                />
+              </div>
+              <div className="flex-1">
+                <TextField
+                  placeholder={t('auth_mobile_placeholder')}
+                  icon={<Phone className="w-4 h-4" />}
+                  error={showErr('phone_number')}
+                  success={showSuccess('phone_number', touchedFields.phone_number) ? t('auth_valid') : undefined}
+                  autoComplete="tel"
+                  inputMode="tel"
+                  {...register('phone_number')}
+                />
+              </div>
+            </div>
+          </motion.div>
+
+          <motion.div variants={fadeUp}>
             <TextField
               label={t('auth_create_password')}
               type={showPw ? 'text' : 'password'}

@@ -210,6 +210,7 @@ export default function ProfileDetail() {
                 <h1 className="font-display text-3xl text-[var(--ink)] font-extrabold mb-1">{profile.name}</h1>
                 <p className="text-[var(--ink-soft)]">
                   {profile.age} yrs · {profile.height_feet}'{profile.height_inches}" · {profile.gender === 'M' ? 'Groom' : 'Bride'}
+                  {profile.looking_for && <span> · Looking for {profile.looking_for === 'M' ? 'Groom' : 'Bride'}</span>}
                 </p>
               </div>
 

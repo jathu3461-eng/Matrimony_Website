@@ -94,6 +94,7 @@ function validateProfile(body) {
   if (!validPostedBy.includes(body.profile_registered_for)) errors.profile_registered_for = 'Please select who this profile is for';
   if (!body.name || body.name.trim().length < 2) errors.name = 'Invalid Format. Full name must be at least 2 characters';
   if (!['M', 'F'].includes(body.gender)) errors.gender = 'Please select a gender';
+  if (body.looking_for && !['M', 'F'].includes(body.looking_for)) errors.looking_for = 'Looking for must be M or F';
   if (!body.date_of_birth || isNaN(new Date(body.date_of_birth))) {
     errors.date_of_birth = 'Invalid Format. Expected format: YYYY-MM-DD';
   } else {
@@ -128,11 +129,15 @@ router.get('/meta', async (req, res) => {
 router.get('/search', async (req, res) => {
   try {
     const { gender, religion_id, caste_id, current_country_id, min_age, max_age,
-            raasi_id, star_id, income_range, manglik_status, q } = req.query;
+            raasi_id, star_id, income_range, manglik_status, q,
+            looking_for, min_height_cm, max_height_cm } = req.query;
     let sql = `SELECT p.*, u.role as owner_role FROM profiles p JOIN users u ON u.id = p.owner_user_id WHERE p.status = 'active'`;
     const params = [];
 
     if (gender) { sql += ' AND p.gender = ?'; params.push(gender); }
+    if (looking_for) { sql += ' AND p.looking_for = ?'; params.push(looking_for); }
+    if (min_height_cm) { sql += ' AND p.height_cm >= ?'; params.push(Number(min_height_cm)); }
+    if (max_height_cm) { sql += ' AND p.height_cm <= ?'; params.push(Number(max_height_cm)); }
     if (religion_id) { sql += ' AND p.religion_id = ?'; params.push(religion_id); }
     if (caste_id) { sql += ' AND p.caste_id = ?'; params.push(caste_id); }
     if (current_country_id) { sql += ' AND p.current_country_id = ?'; params.push(current_country_id); }
@@ -265,14 +270,22 @@ router.post('/', requireAuth, upload.fields([
     const photo = req.files?.main_profile_picture?.[0]?.filename || null;
     const horoscope = req.files?.horoscope_chart?.[0]?.filename || null;
 
+    let heightCm = b.height_cm ? Number(b.height_cm) : null;
+    if (!heightCm && b.height_feet != null && b.height_inches != null) {
+      heightCm = Math.round((Number(b.height_feet) * 12 + Number(b.height_inches)) * 2.54);
+    }
+
     const info = await db.run(`
       INSERT INTO profiles (owner_user_id, profile_registered_for, name, gender, date_of_birth, height_feet, height_inches,
+        height_cm, looking_for,
         education, occupation, religion_id, caste_id, sub_religion, raasi_id, star_id, born_country_id, current_country_id,
         city_or_state, main_profile_picture, horoscope_chart, about_me, blur_photo, blur_horoscope)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
     `, [
       req.user.id, b.profile_registered_for, b.name.trim(), b.gender, b.date_of_birth,
-      Number(b.height_feet), Number(b.height_inches), b.education.trim(), b.occupation.trim(),
+      Number(b.height_feet), Number(b.height_inches),
+      heightCm, b.looking_for || null,
+      b.education.trim(), b.occupation.trim(),
       b.religion_id || null, b.caste_id || null, b.sub_religion || null, b.raasi_id || null, b.star_id || null,
       b.born_country_id || null, b.current_country_id || null, b.city_or_state || null,
       photo, horoscope, b.about_me.trim(),
@@ -302,14 +315,21 @@ router.put('/:id', requireAuth, upload.fields([
     const photo = req.files?.main_profile_picture?.[0]?.filename || existing.main_profile_picture;
     const horoscope = req.files?.horoscope_chart?.[0]?.filename || existing.horoscope_chart;
 
+    let heightCm = b.height_cm ? Number(b.height_cm) : existing.height_cm;
+    if (b.height_feet != null && b.height_inches != null) {
+      heightCm = Math.round((Number(b.height_feet) * 12 + Number(b.height_inches)) * 2.54);
+    }
+
     await db.run(`
       UPDATE profiles SET profile_registered_for=?, name=?, gender=?, date_of_birth=?, height_feet=?, height_inches=?,
+        height_cm=?, looking_for=?,
         education=?, occupation=?, religion_id=?, caste_id=?, sub_religion=?, raasi_id=?, star_id=?, born_country_id=?,
         current_country_id=?, city_or_state=?, main_profile_picture=?, horoscope_chart=?, about_me=?,
         blur_photo=?, blur_horoscope=?
       WHERE id = ?
     `, [
       b.profile_registered_for, b.name.trim(), b.gender, b.date_of_birth, Number(b.height_feet), Number(b.height_inches),
+      heightCm, b.looking_for != null ? b.looking_for : existing.looking_for,
       b.education.trim(), b.occupation.trim(), b.religion_id || null, b.caste_id || null, b.sub_religion || null,
       b.raasi_id || null, b.star_id || null, b.born_country_id || null, b.current_country_id || null,
       b.city_or_state || null, photo, horoscope, b.about_me.trim(),

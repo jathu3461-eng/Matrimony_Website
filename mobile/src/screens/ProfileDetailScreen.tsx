@@ -69,6 +69,11 @@ export function ProfileDetailScreen() {
     queryFn: () => profileApi.mine(),
   });
 
+  const meta = useQuery({
+    queryKey: ['profile-meta'],
+    queryFn: () => profileApi.getMeta(),
+  });
+
   const p = profile.data;
 
   const sendInterest = async () => {
@@ -247,7 +252,20 @@ export function ProfileDetailScreen() {
           {p.occupation && <MetaRow icon="briefcase" label={t('metaOccupation')} value={p.occupation} />}
           {p.education && <MetaRow icon="school" label={t('metaEducation')} value={p.education} />}
           {p.city_or_state && <MetaRow icon="location" label={t('metaLocation')} value={p.city_or_state} />}
-          {p.religion_id && <MetaRow icon="book" label={t('metaReligion')} value={`#${p.religion_id}`} />}
+          {p.religion_id && (
+            <MetaRow
+              icon="book"
+              label={t('metaReligion')}
+              value={meta.data?.religions.find((r) => r.id === p.religion_id)?.name_en ?? `Religion #${p.religion_id}`}
+            />
+          )}
+          {p.caste_id && (
+            <MetaRow
+              icon="people"
+              label={t('caste')}
+              value={meta.data?.castes.find((c) => c.id === p.caste_id)?.name_en ?? `Caste #${p.caste_id}`}
+            />
+          )}
           {p.diet && <MetaRow icon="restaurant" label={t('metaDiet')} value={p.diet} />}
           {p.family_values && <MetaRow icon="people" label={t('metaFamilyValues')} value={p.family_values} />}
           {p.manglik_status && p.manglik_status !== 'no' && (

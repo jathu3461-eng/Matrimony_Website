@@ -6,6 +6,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { profileApi, SearchParams } from '@/api/profiles';
 import { ProfileCard } from '@/components/ProfileCard';
+import { SearchablePicker } from '@/components/SearchablePicker';
 import { Screen } from '@/components/Screen';
 import { Button } from '@/components/Button';
 import { useTheme } from '@/theme';
@@ -21,8 +22,17 @@ export function SearchScreen() {
   const { t } = useI18n();
   const [query, setQuery] = useState('');
   const [gender, setGender] = useState<'M' | 'F' | undefined>(undefined);
+  const [religionId, setReligionId] = useState<string>('');
+  const [minAge, setMinAge] = useState('');
+  const [maxAge, setMaxAge] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
   const [applied, setApplied] = useState<SearchParams>({});
   const [refreshing, setRefreshing] = useState(false);
+
+  const meta = useQuery({
+    queryKey: ['profile-meta'],
+    queryFn: () => profileApi.getMeta(),
+  });
 
   const results = useQuery({
     queryKey: ['search', applied],
@@ -33,6 +43,9 @@ export function SearchScreen() {
     const params: SearchParams = {};
     if (query.trim()) params.q = query.trim();
     if (gender) params.gender = gender;
+    if (religionId) params.religion_id = Number(religionId);
+    if (minAge.trim()) params.minAge = Number(minAge.trim());
+    if (maxAge.trim()) params.maxAge = Number(maxAge.trim());
     setApplied(params);
   };
 
@@ -71,8 +84,50 @@ export function SearchScreen() {
           size="sm"
           onPress={() => { setGender('F'); }}
         />
+        <Button
+          title={t('filters')}
+          variant={showFilters ? 'primary' : 'outline'}
+          size="sm"
+          onPress={() => setShowFilters(!showFilters)}
+          leftIcon="filter"
+        />
         <Button title={t('searchButton')} size="sm" onPress={runSearch} />
       </View>
+
+      {showFilters && meta.data && (
+        <View style={[styles.filtersSection, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <SearchablePicker
+            label={t('religion')}
+            options={[
+              { value: '', label: t('allReligions') },
+              ...meta.data.religions.map((r) => ({ value: r.id, label: r.name_en })),
+            ]}
+            value={religionId}
+            onChange={(v) => setReligionId(v)}
+          />
+          <View style={styles.ageRow}>
+            <TextInput
+              style={[styles.ageInput, { borderColor: colors.border, color: colors.ink, backgroundColor: colors.surface }]}
+              placeholder={t('minAge')}
+              placeholderTextColor={colors.inkFaint}
+              value={minAge}
+              onChangeText={setMinAge}
+              keyboardType="number-pad"
+              maxLength={2}
+            />
+            <Text style={{ color: colors.inkFaint }}>–</Text>
+            <TextInput
+              style={[styles.ageInput, { borderColor: colors.border, color: colors.ink, backgroundColor: colors.surface }]}
+              placeholder={t('maxAge')}
+              placeholderTextColor={colors.inkFaint}
+              value={maxAge}
+              onChangeText={setMaxAge}
+              keyboardType="number-pad"
+              maxLength={2}
+            />
+          </View>
+        </View>
+      )}
 
       <FlatList
         data={results.data ?? []}
@@ -132,6 +187,28 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
+    flexWrap: 'wrap',
+  },
+  filtersSection: {
+    marginHorizontal: spacing.md,
+    marginBottom: spacing.sm,
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: spacing.md,
+    gap: spacing.sm,
+  },
+  ageRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  ageInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 10,
+    fontSize: typography.body.fontSize,
   },
   list: {
     paddingBottom: spacing.xxl,

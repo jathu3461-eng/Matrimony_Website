@@ -57,7 +57,7 @@ const phone = z
   .string()
   .trim()
   .min(1, 'Required')
-  .refine((v) => PHONE_RE.test(v), 'Enter a valid phone number (e.g. +14165550198)');
+  .refine((v) => /^\d{7,15}$/.test(v.replace(/[\s-]/g, '')), 'Enter a valid phone number (e.g. 4165550198)');
 
 const businessName = z
   .string()
@@ -130,11 +130,12 @@ export const profileSteps = [
     title: 'Basics',
     hint: 'Who is this profile for?',
     icon: 'User',
-    fields: ['profile_registered_for', 'name', 'gender', 'date_of_birth'],
+    fields: ['profile_registered_for', 'name', 'gender', 'looking_for', 'date_of_birth'],
     schema: z.object({
       profile_registered_for: z.enum(POSTED_BY),
       name,
       gender: z.enum(['M', 'F'], { message: 'Please select a gender' }),
+      looking_for: z.enum(['M', 'F']).optional(),
       date_of_birth: dob,
     }),
   },

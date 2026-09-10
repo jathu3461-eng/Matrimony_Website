@@ -3,6 +3,7 @@ import { FlatList, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'r
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/theme';
 import { spacing, typography } from '@/theme';
+import { useI18n } from '@/i18n';
 
 export interface PickerOption {
   value: string | number;
@@ -25,17 +26,19 @@ export function SearchablePicker({
   options,
   value,
   onChange,
-  placeholder = 'Select...',
+  placeholder,
   required,
   error,
   hint,
 }: SearchablePickerProps) {
   const { colors } = useTheme();
+  const { t } = useI18n();
   const [visible, setVisible] = useState(false);
   const [query, setQuery] = useState('');
   const inputRef = useRef<TextInput>(null);
 
   const selected = options.find((o) => String(o.value) === String(value));
+  const effectivePlaceholder = placeholder ?? t('pickerSelect');
 
   const filtered = query.trim()
     ? options.filter((o) => o.label.toLowerCase().includes(query.toLowerCase().trim()))
@@ -68,7 +71,7 @@ export function SearchablePicker({
           ]}
           numberOfLines={1}
         >
-          {selected?.label ?? placeholder}
+          {selected?.label ?? effectivePlaceholder}
         </Text>
         <Ionicons name="chevron-down" size={16} color={colors.inkFaint} />
       </Pressable>
@@ -81,7 +84,7 @@ export function SearchablePicker({
       <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
         <View style={[styles.modal, { backgroundColor: colors.background }]}>
           <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
-            <Text style={[styles.modalTitle, { color: colors.ink }]}>{label || 'Select'}</Text>
+            <Text style={[styles.modalTitle, { color: colors.ink }]}>{label || t('pickerSelect')}</Text>
             <Pressable
               onPress={() => {
                 setVisible(false);
@@ -98,7 +101,7 @@ export function SearchablePicker({
               <TextInput
                 ref={inputRef}
                 style={[styles.searchInput, { color: colors.ink }]}
-                placeholder="Search..."
+                placeholder={t('searchPlaceholder')}
                 placeholderTextColor={colors.inkFaint}
                 value={query}
                 onChangeText={setQuery}
@@ -147,7 +150,7 @@ export function SearchablePicker({
               </Pressable>
             )}
             ListEmptyComponent={
-              <Text style={[styles.empty, { color: colors.inkFaint }]}>No options found</Text>
+              <Text style={[styles.empty, { color: colors.inkFaint }]}>{t('pickerNoOptions')}</Text>
             }
           />
         </View>

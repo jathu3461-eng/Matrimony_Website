@@ -176,6 +176,12 @@ const ta = {
   profilesFound: '{count} சுயவிவரங்கள் கிடைத்தன',
   noProfilesMatch: 'உங்கள் தேடலுடன் பொருந்தும் சுயவிவரங்கள் இல்லை',
   searchHint: 'பெயர், தொழில் அல்லது நகரம் மூலம் தேடுங்கள்',
+  filters: 'வடிகட்டிகள்',
+  allReligions: 'அனைத்து மதங்கள்',
+  minAge: 'குறைந்தபட்ச வயது',
+  maxAge: 'அதிகபட்ச வயது',
+  pickerSelect: 'தேர்ந்தெடு...',
+  pickerNoOptions: 'விருப்பங்கள் இல்லை',
 
   years: 'வயது',
   verifiedBadge: 'சரிபார்க்கப்பட்டது',

@@ -8,6 +8,7 @@ import Signup from './pages/Signup';
 import Login from './pages/Login';
 import ForgotPassword from './pages/ForgotPassword';
 import BrokerPending from './pages/BrokerPending';
+import PhoneVerify from './pages/PhoneVerify';
 import Dashboard from './pages/Dashboard';
 import ProfileWizard from './pages/ProfileWizard';
 import ProfileDetail from './pages/ProfileDetail';
@@ -245,6 +246,7 @@ export default function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/broker-pending" element={<BrokerPending />} />
+      <Route path="/phone-verify" element={<PhoneVerify />} />
     </Routes>
   );
 }
