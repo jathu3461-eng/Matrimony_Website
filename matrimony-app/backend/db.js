@@ -62,7 +62,7 @@ async function initDB() {
         reset_otp_expires BIGINT,
         last_seen_at TIMESTAMP NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
       CREATE TABLE IF NOT EXISTS profiles (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -98,37 +98,38 @@ async function initDB() {
         status ENUM('active','hidden') NOT NULL DEFAULT 'active',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (owner_user_id) REFERENCES users(id) ON DELETE CASCADE
-      );
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
       CREATE TABLE IF NOT EXISTS religions (
         id INT AUTO_INCREMENT PRIMARY KEY,
         name_en TEXT NOT NULL,
         name_ta TEXT NOT NULL
-      );
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
       CREATE TABLE IF NOT EXISTS castes (
         id INT AUTO_INCREMENT PRIMARY KEY,
         name_en TEXT NOT NULL,
         name_ta TEXT NOT NULL
-      );
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
       CREATE TABLE IF NOT EXISTS raasis (
         id INT PRIMARY KEY,
         name_en TEXT NOT NULL,
         name_ta TEXT NOT NULL
-      );
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
       CREATE TABLE IF NOT EXISTS stars (
         id INT PRIMARY KEY,
         name_en TEXT NOT NULL,
         name_ta TEXT NOT NULL
-      );
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
       CREATE TABLE IF NOT EXISTS countries (
         code VARCHAR(5) PRIMARY KEY,
         name_en TEXT NOT NULL,
+        name_ta TEXT,
         priority INT
-      );
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
       CREATE TABLE IF NOT EXISTS settings (
         id INT PRIMARY KEY DEFAULT 1,
@@ -145,7 +146,7 @@ async function initDB() {
         color_primary VARCHAR(20) DEFAULT '#800000',
         color_secondary VARCHAR(20) DEFAULT '#78350f',
         color_background VARCHAR(20) DEFAULT '#fafaf9'
-      );
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
       CREATE TABLE IF NOT EXISTS footer_settings (
         id INT PRIMARY KEY DEFAULT 1,
@@ -157,7 +158,7 @@ async function initDB() {
         social_youtube TEXT,
         social_tiktok TEXT,
         social_instagram TEXT
-      );
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
       CREATE TABLE IF NOT EXISTS menu_items (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -166,7 +167,7 @@ async function initDB() {
         target_url TEXT NOT NULL,
         display_order INT NOT NULL DEFAULT 0,
         is_active TINYINT NOT NULL DEFAULT 1
-      );
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
       CREATE TABLE IF NOT EXISTS shortlists (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -176,7 +177,7 @@ async function initDB() {
         UNIQUE KEY uq_shortlist (user_id, profile_id),
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
         FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE
-      );
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
       CREATE TABLE IF NOT EXISTS interests (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -188,7 +189,7 @@ async function initDB() {
         UNIQUE KEY uq_interest (sender_profile_id, receiver_profile_id),
         FOREIGN KEY (sender_profile_id) REFERENCES profiles(id) ON DELETE CASCADE,
         FOREIGN KEY (receiver_profile_id) REFERENCES profiles(id) ON DELETE CASCADE
-      );
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
       CREATE TABLE IF NOT EXISTS broker_requests (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -201,7 +202,7 @@ async function initDB() {
         UNIQUE KEY uq_broker_request (user_id, broker_id),
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
         FOREIGN KEY (broker_id) REFERENCES users(id) ON DELETE CASCADE
-      );
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
       CREATE TABLE IF NOT EXISTS chat_messages (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -215,7 +216,7 @@ async function initDB() {
         sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (sender_profile_id) REFERENCES profiles(id) ON DELETE CASCADE,
         FOREIGN KEY (receiver_profile_id) REFERENCES profiles(id) ON DELETE CASCADE
-      );
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
       CREATE TABLE IF NOT EXISTS notifications (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -227,7 +228,7 @@ async function initDB() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
         FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE
-      );
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
       CREATE TABLE IF NOT EXISTS horoscope_match (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -239,7 +240,7 @@ async function initDB() {
         UNIQUE KEY uq_horoscope (profile_id_1, profile_id_2),
         FOREIGN KEY (profile_id_1) REFERENCES profiles(id) ON DELETE CASCADE,
         FOREIGN KEY (profile_id_2) REFERENCES profiles(id) ON DELETE CASCADE
-      );
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
       CREATE TABLE IF NOT EXISTS refresh_tokens (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -250,7 +251,7 @@ async function initDB() {
         device_info TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-      );
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
       CREATE TABLE IF NOT EXISTS phone_otps (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -261,7 +262,7 @@ async function initDB() {
         used INT NOT NULL DEFAULT 0,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         UNIQUE KEY uq_phone_otp (phone_number)
-      );
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
 
     // Index for chat thread lookups
@@ -308,6 +309,23 @@ async function initDB() {
     // Index on phone_number for faster lookups
     await ensureIndex('users', 'idx_users_phone_number', 'INDEX idx_users_phone_number ON users(phone_number)');
 
+    // ─── Charset migration: convert all tables to utf8mb4 ──────────────────────
+    // This fixes Tamil/Unicode corruption on servers where tables were created with latin1.
+    const allTables = [
+      'users','profiles','religions','castes','raasis','stars','countries',
+      'settings','footer_settings','menu_items','shortlists','interests',
+      'broker_requests','chat_messages','notifications','horoscope_match',
+      'refresh_tokens','phone_otps',
+    ];
+    for (const t of allTables) {
+      await conn.query(
+        `ALTER TABLE \`${t}\` CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`
+      ).catch(() => {});
+    }
+
+    // Ensure countries table has name_ta column (may have been added manually)
+    await ensureColumn('countries', 'name_ta', 'name_ta TEXT');
+
     await seed(conn);
     console.log('✅ MySQL DB initialized');
   } finally {
@@ -339,6 +357,13 @@ async function seed(conn) {
     console.log('✅ Admin password synced for:', ADMIN_EMAIL);
   }
 
+  // Helper: check if Tamil text is corrupted (contains only ASCII ? or is empty)
+  function isTamilCorrupted(text) {
+    if (!text) return true;
+    // If the text is only ASCII characters and question marks, it's corrupted
+    return /^[\x00-\x7F?]+$/.test(text);
+  }
+
   // Menu items
   const [[{ c: menuCount }]] = await conn.query('SELECT COUNT(*) c FROM menu_items');
   if (menuCount === 0) {
@@ -351,53 +376,103 @@ async function seed(conn) {
     for (const [en, ta, url, order] of items) {
       await conn.query('INSERT INTO menu_items (title_en, title_ta, target_url, display_order, is_active) VALUES (?,?,?,?,1)', [en, ta, url, order]);
     }
+  } else {
+    // Fix corrupted Tamil in menu_items
+    const menuFixes = [
+      ['Home', 'முகப்பு', '/'],
+      ['Browse Matches', 'வரன்களைத் தேட', '/search'],
+      ['About Us', 'எங்களைப் பற்றி', '/about'],
+      ['Contact', 'தொடர்பு', '/contact'],
+    ];
+    for (const [en, ta, url] of menuFixes) {
+      const [[row]] = await conn.query('SELECT id, title_ta FROM menu_items WHERE title_en = ? AND target_url = ?', [en, url]);
+      if (row && isTamilCorrupted(row.title_ta)) {
+        await conn.query('UPDATE menu_items SET title_ta = ? WHERE id = ?', [ta, row.id]);
+        console.log(`✅ Fixed corrupted Tamil in menu_items: ${en}`);
+      }
+    }
   }
 
   // Religions
   const [[{ c: relCount }]] = await conn.query('SELECT COUNT(*) c FROM religions');
+  const rel = [['Hindu','இந்து'],['Christian','கிறிஸ்தவம்'],['Muslim','இஸ்லாம்'],['Buddhist','பௌத்தம்'],['Other','மற்றவை']];
   if (relCount === 0) {
-    const rel = [['Hindu','இந்து'],['Christian','கிறிஸ்தவம்'],['Muslim','இஸ்லாம்'],['Buddhist','பௌத்தம்'],['Other','மற்றவை']];
     for (const [en, ta] of rel) await conn.query('INSERT INTO religions (name_en, name_ta) VALUES (?,?)', [en, ta]);
+  } else {
+    // Fix corrupted Tamil in religions
+    for (const [en, ta] of rel) {
+      const [[row]] = await conn.query('SELECT id, name_ta FROM religions WHERE name_en = ?', [en]);
+      if (row && isTamilCorrupted(row.name_ta)) {
+        await conn.query('UPDATE religions SET name_ta = ? WHERE id = ?', [ta, row.id]);
+        console.log(`✅ Fixed corrupted Tamil in religions: ${en}`);
+      }
+    }
   }
 
   // Castes
   const [[{ c: casteCount }]] = await conn.query('SELECT COUNT(*) c FROM castes');
+  const castes = [
+    ['Vellalar','வெள்ளாளர்'],['Karaiyar','கரையார்'],['Mukuvar','முக்குவர்'],
+    ['Koviyar','கோவியர்'],['Vishwakarma (Kammalar)','விஸ்வகர்மா / கம்மாளர்'],
+    ['Chettiar','செட்டியார்'],['Iyer (Brahmin)','ஐயர்'],['Madapalli','மடைப்பள்ளி'],
+    ['Nattuvar','நட்டுவர்'],['Maravar','மறவர்'],['Intercaste / Other','கலப்புச் சாதி / ஏனையவை'],
+    ['Not Disclosed / Any','சாதி தடையில்லை'],
+  ];
   if (casteCount === 0) {
-    const castes = [
-      ['Vellalar','வெள்ளாளர்'],['Karaiyar','கரையார்'],['Mukuvar','முக்குவர்'],
-      ['Koviyar','கோவியர்'],['Vishwakarma (Kammalar)','விஸ்வகர்மா / கம்மாளர்'],
-      ['Chettiar','செட்டியார்'],['Iyer (Brahmin)','ஐயர்'],['Madapalli','மடைப்பள்ளி'],
-      ['Nattuvar','நட்டுவர்'],['Maravar','மறவர்'],['Intercaste / Other','கலப்புச் சாதி / ஏனையவை'],
-      ['Not Disclosed / Any','சாதி தடையில்லை'],
-    ];
     for (const [en, ta] of castes) await conn.query('INSERT INTO castes (name_en, name_ta) VALUES (?,?)', [en, ta]);
+  } else {
+    for (const [en, ta] of castes) {
+      const [[row]] = await conn.query('SELECT id, name_ta FROM castes WHERE name_en = ?', [en]);
+      if (row && isTamilCorrupted(row.name_ta)) {
+        await conn.query('UPDATE castes SET name_ta = ? WHERE id = ?', [ta, row.id]);
+        console.log(`✅ Fixed corrupted Tamil in castes: ${en}`);
+      }
+    }
   }
 
   // Raasis
   const [[{ c: raasiCount }]] = await conn.query('SELECT COUNT(*) c FROM raasis');
+  const raasis = ['Aries|மேஷம்','Taurus|ரிஷபம்','Gemini|மிதுனம்','Cancer|கடகம்','Leo|சிம்மம்',
+    'Virgo|கன்னி','Libra|துலாம்','Scorpio|விருச்சிகம்','Sagittarius|தனுசு',
+    'Capricorn|மகரம்','Aquarius|கும்பம்','Pisces|மீனம்'];
   if (raasiCount === 0) {
-    const raasis = ['Aries|மேஷம்','Taurus|ரிஷபம்','Gemini|மிதுனம்','Cancer|கடகம்','Leo|சிம்மம்',
-      'Virgo|கன்னி','Libra|துலாம்','Scorpio|விருச்சிகம்','Sagittarius|தனுசு',
-      'Capricorn|மகரம்','Aquarius|கும்பம்','Pisces|மீனம்'];
     for (let i = 0; i < raasis.length; i++) {
       const [en, ta] = raasis[i].split('|');
       await conn.query('INSERT INTO raasis (id, name_en, name_ta) VALUES (?,?,?)', [i + 1, en, ta]);
+    }
+  } else {
+    for (let i = 0; i < raasis.length; i++) {
+      const [en, ta] = raasis[i].split('|');
+      const [[row]] = await conn.query('SELECT id, name_ta FROM raasis WHERE name_en = ?', [en]);
+      if (row && isTamilCorrupted(row.name_ta)) {
+        await conn.query('UPDATE raasis SET name_ta = ? WHERE id = ?', [ta, row.id]);
+        console.log(`✅ Fixed corrupted Tamil in raasis: ${en}`);
+      }
     }
   }
 
   // Stars
   const [[{ c: starCount }]] = await conn.query('SELECT COUNT(*) c FROM stars');
+  const stars = ['Ashwini|அசுவினி','Bharani|பரணி','Krittika|கார்த்திகை','Rohini|ரோகிணி',
+    'Mrigashirsha|மிருகசீரிடம்','Ardra|திருவாதிரை','Punarvasu|புனர்பூசம்','Pushya|பூசம்',
+    'Ashlesha|ஆயில்யம்','Magha|மகம்','Purva Phalguni|பூரம்','Uttara Phalguni|உத்திரம்',
+    'Hasta|அஸ்தம்','Chitra|சித்திரை','Swati|சுவாதி','Visakha|விசாகம்','Anuradha|அனுஷம்',
+    'Jyestha|கேட்டை','Mula|மூலம்','Purva Ashadha|பூராடம்','Uttara Ashadha|உத்திராடம்',
+    'Shravana|திருவோணம்','Dhanishta|அவிட்டம்','Shatabhisha|சதயம்','Purva Bhadrapada|பூரட்டாதி',
+    'Uttara Bhadrapada|உத்திரட்டாதி','Revati|ரேவதி'];
   if (starCount === 0) {
-    const stars = ['Ashwini|அசுவினி','Bharani|பரணி','Krittika|கார்த்திகை','Rohini|ரோகிணி',
-      'Mrigashirsha|மிருகசீரிடம்','Ardra|திருவாதிரை','Punarvasu|புனர்பூசம்','Pushya|பூசம்',
-      'Ashlesha|ஆயில்யம்','Magha|மகம்','Purva Phalguni|பூரம்','Uttara Phalguni|உத்திரம்',
-      'Hasta|அஸ்தம்','Chitra|சித்திரை','Swati|சுவாதி','Visakha|விசாகம்','Anuradha|அனுஷம்',
-      'Jyestha|கேட்டை','Mula|மூலம்','Purva Ashadha|பூராடம்','Uttara Ashadha|உத்திராடம்',
-      'Shravana|திருவோணம்','Dhanishta|அவிட்டம்','Shatabhisha|சதயம்','Purva Bhadrapada|பூரட்டாதி',
-      'Uttara Bhadrapada|உத்திரட்டாதி','Revati|ரேவதி'];
     for (let i = 0; i < stars.length; i++) {
       const [en, ta] = stars[i].split('|');
       await conn.query('INSERT INTO stars (id, name_en, name_ta) VALUES (?,?,?)', [i + 1, en, ta]);
+    }
+  } else {
+    for (let i = 0; i < stars.length; i++) {
+      const [en, ta] = stars[i].split('|');
+      const [[row]] = await conn.query('SELECT id, name_ta FROM stars WHERE name_en = ?', [en]);
+      if (row && isTamilCorrupted(row.name_ta)) {
+        await conn.query('UPDATE stars SET name_ta = ? WHERE id = ?', [ta, row.id]);
+        console.log(`✅ Fixed corrupted Tamil in stars: ${en}`);
+      }
     }
   }
 

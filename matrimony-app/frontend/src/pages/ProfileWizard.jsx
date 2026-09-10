@@ -720,7 +720,7 @@ export default function ProfileWizard() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <SelectField
                         label="Zodiac / Raasi"
-                        options={(meta.raasis || []).map((r) => ({ value: String(r.id), label: r.name_en }))}
+                        options={(meta.raasis || []).map((r) => ({ value: String(r.id), label: lang === 'ta' ? r.name_ta : r.name_en }))}
                         value={form.raasi_id}
                         onChange={set('raasi_id')}
                         onBlur={blur('raasi_id')}
