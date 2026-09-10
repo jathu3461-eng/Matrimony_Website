@@ -6,9 +6,11 @@ import { notificationApi } from '@/api/notifications';
 import { Screen } from '@/components/Screen';
 import { useTheme } from '@/theme';
 import { radius, spacing, typography } from '@/theme';
+import { useI18n } from '@/i18n';
 
 export function NotificationsScreen() {
   const { colors } = useTheme();
+  const { t } = useI18n();
   const [refreshing, setRefreshing] = useState(false);
 
   const data = useQuery({
@@ -65,7 +67,7 @@ export function NotificationsScreen() {
         ListHeaderComponent={
           (data.data?.length ?? 0) > 0 ? (
             <Pressable onPress={markAll} style={styles.markAll}>
-              <Text style={[styles.markAllText, { color: colors.primary }]}>Mark all as read</Text>
+              <Text style={[styles.markAllText, { color: colors.primary }]}>{t('ok')}</Text>
             </Pressable>
           ) : null
         }
@@ -73,12 +75,12 @@ export function NotificationsScreen() {
           <View style={styles.emptyWrap}>
             <Ionicons name="notifications-outline" size={48} color={colors.inkFaint} />
             <Text style={[styles.emptyTitle, { color: colors.inkSoft }]}>
-              {data.isLoading ? 'Loading...' : 'No notifications yet'}
+              {data.isLoading ? t('loading') : t('navNotifications')}
             </Text>
             <Text style={[styles.emptyHint, { color: colors.inkFaint }]}>
               {data.isLoading
-                ? 'Fetching notifications'
-                : 'When someone shows interest or accepts yours, you will see it here'}
+                ? t('loading')
+                : t('chatNoThreads')}
             </Text>
           </View>
         }

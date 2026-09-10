@@ -1,6 +1,7 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/theme';
+import { useI18n } from '@/i18n';
 import { HomeScreen } from '@/screens/main/HomeScreen';
 import { SearchScreen } from '@/screens/main/SearchScreen';
 import { InterestsScreen } from '@/screens/main/InterestsScreen';
@@ -33,6 +34,7 @@ const ICONS_ACTIVE: Record<keyof MainTabParamList, keyof typeof Ionicons.glyphMa
 export function MainNavigator() {
   const unread = useUnreadBadge();
   const { colors } = useTheme();
+  const { t } = useI18n();
 
   return (
     <Tab.Navigator
@@ -49,19 +51,23 @@ export function MainNavigator() {
         ),
       })}
     >
-      <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'Mukurtham' }} />
-      <Tab.Screen name="Search" component={SearchScreen} options={{ title: 'Search' }} />
-      <Tab.Screen name="Interests" component={InterestsScreen} options={{ title: 'Interests' }} />
+      <Tab.Screen name="Home" component={HomeScreen} options={{ title: t('appName') }} />
+      <Tab.Screen name="Search" component={SearchScreen} options={{ title: t('navSearch') }} />
+      <Tab.Screen name="Interests" component={InterestsScreen} options={{ title: t('navInterests') }} />
       <Tab.Screen
         name="Chat"
         component={ChatListScreen}
         options={{
-          title: 'Chat',
+          title: t('navChat'),
           tabBarBadge: unread > 0 ? unread : undefined,
         }}
       />
-      <Tab.Screen name="Notifications" component={NotificationsScreen} options={{ title: 'Alerts' }} />
-      <Tab.Screen name="Profile" component={ProfileScreen} options={{ title: 'Profile' }} />
+      <Tab.Screen
+        name="Notifications"
+        component={NotificationsScreen}
+        options={{ title: t('navNotifications') }}
+      />
+      <Tab.Screen name="Profile" component={ProfileScreen} options={{ title: t('navProfile') }} />
     </Tab.Navigator>
   );
 }

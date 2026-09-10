@@ -42,25 +42,29 @@ export const radius = {
 
 export const typography = {
   display: {
-    fontFamily: undefined,
+    fontFamily: 'NotoSansTamil',
     fontSize: 28,
     fontWeight: '800' as const,
     lineHeight: 36,
   },
   title: {
+    fontFamily: 'NotoSansTamil-Bold',
     fontSize: 20,
     fontWeight: '700' as const,
     lineHeight: 28,
   },
   body: {
+    fontFamily: 'NotoSansTamil',
     fontSize: 14,
     lineHeight: 21,
   },
   caption: {
+    fontFamily: 'NotoSansTamil',
     fontSize: 12,
     lineHeight: 18,
   },
   label: {
+    fontFamily: 'NotoSansTamil',
     fontSize: 11,
     lineHeight: 16,
   },

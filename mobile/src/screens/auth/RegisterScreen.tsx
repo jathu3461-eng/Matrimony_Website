@@ -12,13 +12,13 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { Button } from '@/components/Button';
 import { FormField } from '@/components/FormField';
+import { CountryCodePicker } from '@/components/CountryCodePicker';
 import { Screen } from '@/components/Screen';
 import { authApi } from '@/api/auth';
 import { extractError } from '@/api/client';
 import {
   validateUsername,
   validateEmail,
-  validatePhone,
   validatePassword,
   validateConfirmPassword,
   validateBusinessName,
@@ -26,7 +26,9 @@ import {
   HINTS,
 } from '@/utils/validation';
 import { useTheme } from '@/theme';
+import { useI18n } from '@/i18n';
 import { radius, spacing, typography } from '@/theme';
+import { DEFAULT_COUNTRY, type CountryCode } from '@/data/countryCodes';
 import type { AuthStackParamList } from '@/navigation/types';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList>;
@@ -34,11 +36,13 @@ type Nav = NativeStackNavigationProp<AuthStackParamList>;
 export function RegisterScreen() {
   const navigation = useNavigation<Nav>();
   const { colors } = useTheme();
+  const { t } = useI18n();
   const [loading, setLoading] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
 
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
+  const [countryCode, setCountryCode] = useState(DEFAULT_COUNTRY.code);
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
@@ -46,15 +50,18 @@ export function RegisterScreen() {
   const [businessName, setBusinessName] = useState('');
 
   const [touched, setTouched] = useState<Record<string, boolean>>({});
-  const touch = (field: string) => setTouched((t) => ({ ...t, [field]: true }));
+  const touch = (field: string) => setTouched((p) => ({ ...p, [field]: true }));
+
+  const selectedCountry = DEFAULT_COUNTRY; // will be updated by picker
+  const fullPhone = phone.trim() ? `${selectedCountry.dialCode}${phone.trim()}` : '';
 
   const errors = useMemo(
     () => ({
       username: fieldError(username, touched.username, validateUsername),
       email: fieldError(email, touched.email, validateEmail),
-      phone: fieldError(phone, touched.phone, validatePhone),
       password: fieldError(password, touched.password, validatePassword),
       confirm: fieldError(confirm, touched.confirm, (v) => validateConfirmPassword(password, v)),
+      phone: phone.trim() && !/^\d{7,15}$/.test(phone.trim()) ? 'Enter a valid number' : null,
       businessName:
         role === 'broker'
           ? fieldError(businessName, touched.businessName, validateBusinessName)
@@ -74,36 +81,24 @@ export function RegisterScreen() {
       confirm: true,
       businessName: true,
     });
-    if (hasErrors) return;
+    if (hasErrors || !phone.trim()) return;
 
     setServerError(null);
     setLoading(true);
     try {
-      const result = await authApi.signup({
-        username: username.trim(),
-        email: email.trim(),
-        phone_number: phone.trim(),
-        password,
-        role,
-        ...(role === 'broker' ? { business_name: businessName.trim() } : {}),
-      });
-      if (result.status === 'pending_approval') {
-        setServerError(null);
-        alert('Account created! Waiting for admin approval.');
-        navigation.navigate('Login');
-        return;
-      }
-      // Navigate to OTP verification
-      navigation.navigate('VerifyOTP', {
+      // Send phone OTP first
+      await authApi.sendPhoneOtp(fullPhone);
+      // Navigate to phone OTP verification
+      navigation.navigate('PhoneOTP', {
+        phone: fullPhone,
         email: email.trim(),
         password,
         username: username.trim(),
-        phone: phone.trim(),
         role,
         ...(role === 'broker' ? { businessName: businessName.trim() } : {}),
       });
     } catch (err) {
-      setServerError(extractError(err, 'Unable to create account.'));
+      setServerError(extractError(err, 'Unable to send verification code.'));
     } finally {
       setLoading(false);
     }
@@ -124,10 +119,8 @@ export function RegisterScreen() {
             <View style={[styles.logoWrap, { backgroundColor: colors.primary }]}>
               <Ionicons name="heart" size={24} color={colors.white} />
             </View>
-            <Text style={[styles.title, { color: colors.ink }]}>Create Account</Text>
-            <Text style={[styles.subtitle, { color: colors.inkFaint }]}>
-              Start your journey to find the perfect match
-            </Text>
+            <Text style={[styles.title, { color: colors.ink }]}>{t('signupTitle')}</Text>
+            <Text style={[styles.subtitle, { color: colors.inkFaint }]}>{t('signupSubtitle')}</Text>
           </View>
 
           <View
@@ -158,7 +151,7 @@ export function RegisterScreen() {
             </View>
 
             <FormField
-              label="Username"
+              label={t('username')}
               value={username}
               onChangeText={setUsername}
               onBlur={() => touch('username')}
@@ -171,59 +164,70 @@ export function RegisterScreen() {
               hint={HINTS.username}
             />
             <FormField
-              label="Email"
+              label={t('emailLabel')}
               value={email}
               onChangeText={setEmail}
               onBlur={() => touch('email')}
-              placeholder="e.g. john@gmail.com"
+              placeholder={t('emailPlaceholder')}
               autoCapitalize="none"
               keyboardType="email-address"
               autoComplete="email"
               error={errors.email}
-              hint={HINTS.email}
+              hint={t('emailPlaceholder')}
             />
+
+            {/* Phone with Country Code */}
+            <Text style={[styles.phoneLabel, { color: colors.inkSoft }]}>
+              {t('mobileLabel')}
+            </Text>
+            <View style={styles.phoneRow}>
+              <CountryCodePicker
+                selectedCode={countryCode}
+                onSelect={(c: CountryCode) => setCountryCode(c.code)}
+              />
+              <FormField
+                label=""
+                value={phone}
+                onChangeText={setPhone}
+                onBlur={() => touch('phone')}
+                placeholder="77 123 4567"
+                keyboardType="phone-pad"
+                error={errors.phone}
+                containerStyle={styles.phoneInput}
+              />
+            </View>
+
             <FormField
-              label="Phone number"
-              value={phone}
-              onChangeText={setPhone}
-              onBlur={() => touch('phone')}
-              placeholder="e.g. +919876543210"
-              keyboardType="phone-pad"
-              error={errors.phone}
-              hint={HINTS.phone}
-            />
-            <FormField
-              label="Password"
+              label={t('password')}
               value={password}
               onChangeText={setPassword}
               onBlur={() => touch('password')}
-              placeholder="Create a strong password"
+              placeholder={t('passwordPlaceholder')}
               secure
               autoCapitalize="none"
               error={errors.password}
-              hint={HINTS.password}
+              hint={t('passwordPlaceholder')}
             />
             <FormField
-              label="Confirm password"
+              label={t('confirmPassword')}
               value={confirm}
               onChangeText={setConfirm}
               onBlur={() => touch('confirm')}
-              placeholder="Re-enter password"
+              placeholder={t('confirmPlaceholder')}
               secure
               autoCapitalize="none"
               error={errors.confirm}
-              hint={HINTS.confirm}
+              hint={t('confirmPlaceholder')}
             />
 
             {role === 'broker' && (
               <FormField
-                label="Business name"
+                label={t('username') + ' / Business'}
                 value={businessName}
                 onChangeText={setBusinessName}
                 onBlur={() => touch('businessName')}
                 placeholder="Your agency name"
                 error={errors.businessName}
-                hint={HINTS.businessName}
               />
             )}
 
@@ -234,16 +238,16 @@ export function RegisterScreen() {
               </View>
             )}
 
-            <Button title="Create Account" onPress={submit} loading={loading} size="lg" />
+            <Button title={t('continue')} onPress={submit} loading={loading} size="lg" />
           </View>
 
           <View style={styles.footer}>
             <View style={styles.loginRow}>
               <Text style={[styles.loginText, { color: colors.inkSoft }]}>
-                Already have an account?{' '}
+                {t('alreadyHave')}{' '}
               </Text>
               <Button
-                title="Log in"
+                title={t('loginButton')}
                 variant="ghost"
                 size="sm"
                 titleStyle={{ fontWeight: '700' }}
@@ -301,6 +305,23 @@ const styles = StyleSheet.create({
   },
   roleBtn: {
     flex: 1,
+  },
+  phoneLabel: {
+    ...typography.caption,
+    fontWeight: '700',
+    marginBottom: 6,
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+  },
+  phoneRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    alignItems: 'flex-start',
+    marginBottom: spacing.md,
+  },
+  phoneInput: {
+    flex: 1,
+    marginBottom: 0,
   },
   errorBox: {
     flexDirection: 'row',

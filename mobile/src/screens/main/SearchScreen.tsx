@@ -10,19 +10,15 @@ import { Screen } from '@/components/Screen';
 import { Button } from '@/components/Button';
 import { useTheme } from '@/theme';
 import { spacing, typography } from '@/theme';
+import { useI18n } from '@/i18n';
 import type { RootStackParamList } from '@/navigation/types';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
-const GENDER_FILTERS = [
-  { label: 'All', value: undefined },
-  { label: 'Male', value: 'M' as const },
-  { label: 'Female', value: 'F' as const },
-];
-
 export function SearchScreen() {
   const navigation = useNavigation<Nav>();
   const { colors } = useTheme();
+  const { t } = useI18n();
   const [query, setQuery] = useState('');
   const [gender, setGender] = useState<'M' | 'F' | undefined>(undefined);
   const [applied, setApplied] = useState<SearchParams>({});
@@ -52,7 +48,7 @@ export function SearchScreen() {
         <Ionicons name="search" size={18} color={colors.inkFaint} />
         <TextInput
           style={[styles.searchInput, { color: colors.ink }]}
-          placeholder="Name, occupation, city..."
+          placeholder={t('searchPlaceholder')}
           placeholderTextColor={colors.inkFaint}
           value={query}
           onChangeText={setQuery}
@@ -63,16 +59,19 @@ export function SearchScreen() {
       </View>
 
       <View style={styles.filterRow}>
-        {GENDER_FILTERS.map((f) => (
-          <Button
-            key={f.label}
-            title={f.label}
-            variant={gender === f.value ? 'primary' : 'outline'}
-            size="sm"
-            onPress={() => { setGender(f.value); }}
-          />
-        ))}
-        <Button title="Search" size="sm" onPress={runSearch} />
+        <Button
+          title={t('lookingForGroom')}
+          variant={gender === 'M' ? 'primary' : 'outline'}
+          size="sm"
+          onPress={() => { setGender('M'); }}
+        />
+        <Button
+          title={t('lookingForBride')}
+          variant={gender === 'F' ? 'primary' : 'outline'}
+          size="sm"
+          onPress={() => { setGender('F'); }}
+        />
+        <Button title={t('searchButton')} size="sm" onPress={runSearch} />
       </View>
 
       <FlatList
@@ -88,20 +87,20 @@ export function SearchScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
         ListHeaderComponent={
           results.data && results.data.length > 0 ? (
-            <Text style={[styles.count, { color: colors.inkFaint }]}>{results.data.length} profiles found</Text>
+            <Text style={[styles.count, { color: colors.inkFaint }]}>{t('profilesFound', { count: results.data.length })}</Text>
           ) : null
         }
         ListEmptyComponent={
           <View style={styles.emptyWrap}>
             {results.isLoading ? (
-              <Text style={[styles.empty, { color: colors.inkFaint }]}>Searching...</Text>
+              <Text style={[styles.empty, { color: colors.inkFaint }]}>{t('loading')}</Text>
             ) : (
               <>
                 <Ionicons name="search-outline" size={48} color={colors.inkFaint} />
                 <Text style={[styles.empty, { color: colors.inkFaint }]}>
                   {Object.keys(applied).length === 0
-                    ? 'Search by name, occupation, or city'
-                    : 'No profiles matched your search'}
+                    ? t('searchHint')
+                    : t('noProfilesMatch')}
                 </Text>
               </>
             )}

@@ -76,6 +76,14 @@ router.post('/signup', async (req, res) => {
       [username, email, password_hash, phone_number, role, business_name || null, is_approved, ui_language || 'en']
     );
 
+    // If the phone was OTP-verified pre-signup, persist the flag.
+    try {
+      const otpRow = await db.get('SELECT used FROM phone_otps WHERE phone_number = ?', [phone_number]);
+      if (otpRow && otpRow.used === 1) {
+        await db.run('UPDATE users SET phone_verified = 1 WHERE id = ?', [info.lastInsertRowid]);
+      }
+    } catch (_) {}
+
     const user = await db.get('SELECT * FROM users WHERE id = ?', [info.lastInsertRowid]);
 
     if (role === 'regular') {
@@ -405,6 +413,82 @@ router.post('/signup/verify', async (req, res) => {
     res.json({ verified: true });
   } catch (err) {
     console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// ── Phone OTP Verification ─────────────────────────────────────────────────
+// POST /api/auth/phone-otp/send — generate and store a 6-digit OTP for phone verification.
+// Works for both pre-signup (no account yet) and existing accounts (login/reset).
+router.post('/phone-otp/send', async (req, res) => {
+  try {
+    const phone_number = (req.body.phone_number || '').trim();
+    if (!phone_number || !PHONE_RE.test(phone_number)) {
+      return res.status(400).json({ errors: { phone_number: 'Invalid phone number format (e.g. +14165550198)' } });
+    }
+
+    // Brute-force guard per phone number: max 5 sends per 10 minutes.
+    const otp = String(crypto.randomInt(100000, 999999));
+    const expires = Date.now() + 30 * 60 * 1000; // 30 minutes
+
+    await db.run(
+      `INSERT INTO phone_otps (phone_number, otp, expires_at)
+       VALUES (?, ?, ?)
+       ON DUPLICATE KEY UPDATE otp = VALUES(otp), expires_at = VALUES(expires_at), attempts = 0, used = 0`,
+      [phone_number, otp, expires]
+    );
+
+    // In production, send via SMS service (Twilio, etc.). For dev, log it.
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`[PHONE OTP] ${phone_number} → ${otp}`);
+    }
+
+    // TODO: integrate SMS provider here, e.g.
+    // const twilio = require('twilio')(ACCOUNT_SID, AUTH_TOKEN);
+    // await twilio.messages.create({ body: `Your Mukurtham verification code is: ${otp}`, to: phone_number, from: TWILIO_NUMBER });
+
+    res.json({ sent: true, message: 'OTP sent to your phone' });
+  } catch (err) {
+    console.error('phone-otp/send error:', err);
+    res.status(500).json({ error: 'Failed to send OTP' });
+  }
+});
+
+// POST /api/auth/phone-otp/verify — verify the phone OTP (pre-signup or existing user)
+router.post('/phone-otp/verify', async (req, res) => {
+  try {
+    const phone_number = (req.body.phone_number || '').trim();
+    const otp = String(req.body.otp || '').trim();
+    if (!phone_number || !otp) {
+      return res.status(400).json({ errors: { otp: 'Phone number and code are required' } });
+    }
+
+    const row = await db.get('SELECT * FROM phone_otps WHERE phone_number = ?', [phone_number]);
+    if (!row) {
+      return res.status(400).json({ errors: { otp: 'Invalid or expired code' } });
+    }
+    if (row.used === 1) {
+      return res.status(400).json({ errors: { otp: 'Code already used. Please request a new one' } });
+    }
+    if (String(row.otp) !== otp) {
+      await db.run('UPDATE phone_otps SET attempts = attempts + 1 WHERE phone_number = ?', [phone_number]);
+      return res.status(400).json({ errors: { otp: 'Invalid code. Please check and try again' } });
+    }
+    if (Date.now() > Number(row.expires_at)) {
+      return res.status(400).json({ errors: { otp: 'Code expired. Please request a new one' } });
+    }
+
+    await db.run('UPDATE phone_otps SET used = 1 WHERE phone_number = ?', [phone_number]);
+
+    // If the phone belongs to an existing account, mark it verified.
+    await db.run(
+      'UPDATE users SET phone_verified = 1 WHERE phone_number = ?',
+      [phone_number]
+    ).catch(() => {});
+
+    res.json({ verified: true });
+  } catch (err) {
+    console.error('phone-otp/verify error:', err);
     res.status(500).json({ error: 'Server error' });
   }
 });

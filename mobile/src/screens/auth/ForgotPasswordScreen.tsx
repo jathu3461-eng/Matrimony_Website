@@ -24,6 +24,7 @@ import {
 } from '@/utils/validation';
 import { useTheme } from '@/theme';
 import { radius, spacing, typography } from '@/theme';
+import { useI18n } from '@/i18n';
 import type { AuthStackParamList } from '@/navigation/types';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList>;
@@ -32,6 +33,7 @@ type Step = 'email' | 'otp' | 'password';
 export function ForgotPasswordScreen() {
   const navigation = useNavigation<Nav>();
   const { colors } = useTheme();
+  const { t } = useI18n();
   const [step, setStep] = useState<Step>('email');
   const [loading, setLoading] = useState(false);
 
@@ -43,18 +45,18 @@ export function ForgotPasswordScreen() {
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [serverError, setServerError] = useState<string | null>(null);
 
-  const touch = (f: string) => setTouched((t) => ({ ...t, [f]: true }));
+  const touch = (f: string) => setTouched((prev) => ({ ...prev, [f]: true }));
 
   const errors = useMemo(
     () => ({
       email: fieldError(email, touched.email, validateEmail),
-      otp: fieldError(otp, touched.otp, (v) => (v.length < 4 ? 'Enter the 6-digit code' : null)),
+      otp: fieldError(otp, touched.otp, (v) => (v.length < 4 ? t('otpInvalidCode') : null)),
       password: fieldError(newPassword, touched.password, validatePassword),
       confirm: fieldError(confirm, touched.confirm, (v) =>
         validateConfirmPassword(newPassword, v)
       ),
     }),
-    [email, otp, newPassword, confirm, touched]
+    [email, otp, newPassword, confirm, touched, t]
   );
 
   const requestOtp = async () => {
@@ -67,7 +69,7 @@ export function ForgotPasswordScreen() {
       await authApi.requestForgotOtp(email.trim());
       setStep('otp');
     } catch (err) {
-      setServerError(extractError(err, 'Could not send code.'));
+      setServerError(extractError(err, t('error')));
     } finally {
       setLoading(false);
     }
@@ -83,7 +85,7 @@ export function ForgotPasswordScreen() {
       await authApi.verifyForgotOtp(email.trim(), otp.trim());
       setStep('password');
     } catch (err) {
-      setServerError(extractError(err, 'Invalid code.'));
+      setServerError(extractError(err, t('otpInvalidCode')));
     } finally {
       setLoading(false);
     }
@@ -97,10 +99,10 @@ export function ForgotPasswordScreen() {
     setLoading(true);
     try {
       await authApi.resetPassword(email.trim(), otp.trim(), newPassword);
-      alert('Password reset! You can now log in.');
+      alert(t('success'));
       navigation.popToTop();
     } catch (err) {
-      setServerError(extractError(err, 'Could not reset password.'));
+      setServerError(extractError(err, t('error')));
     } finally {
       setLoading(false);
     }
@@ -108,17 +110,17 @@ export function ForgotPasswordScreen() {
 
   const stepTitle =
     step === 'email'
-      ? 'Reset your password'
+      ? t('forgotPassword')
       : step === 'otp'
-        ? 'Enter verification code'
-        : 'Create new password';
+        ? t('otpTitle')
+        : t('password');
 
   const stepHint =
     step === 'email'
-      ? "Enter your email and we'll send a 6-digit code"
+      ? t('otpSubtitle')
       : step === 'otp'
-        ? `Code sent to ${email.trim()}`
-        : 'Choose a strong password';
+        ? `${t('otpSubtitle')} ${email.trim()}`
+        : t('passwordPlaceholder');
 
   return (
     <Screen>
@@ -148,11 +150,11 @@ export function ForgotPasswordScreen() {
           >
             {step === 'email' && (
               <FormField
-                label="Email"
+                label={t('emailLabel')}
                 value={email}
                 onChangeText={setEmail}
                 onBlur={() => touch('email')}
-                placeholder="name@example.com"
+                placeholder={t('emailPlaceholder')}
                 autoCapitalize="none"
                 keyboardType="email-address"
                 error={errors.email}
@@ -162,7 +164,7 @@ export function ForgotPasswordScreen() {
 
             {step === 'otp' && (
               <FormField
-                label="Verification code"
+                label={t('otpTitle')}
                 value={otp}
                 onChangeText={setOtp}
                 onBlur={() => touch('otp')}
@@ -171,29 +173,29 @@ export function ForgotPasswordScreen() {
                 maxLength={6}
                 count
                 error={errors.otp}
-                hint="Enter the 6-digit code from your email"
+                hint={t('otpSubtitle')}
               />
             )}
 
             {step === 'password' && (
               <>
                 <FormField
-                  label="New password"
+                  label={t('password')}
                   value={newPassword}
                   onChangeText={setNewPassword}
                   onBlur={() => touch('password')}
-                  placeholder="Create new password"
+                  placeholder={t('passwordPlaceholder')}
                   secure
                   autoCapitalize="none"
                   error={errors.password}
                   hint={HINTS.password}
                 />
                 <FormField
-                  label="Confirm password"
+                  label={t('confirmPassword')}
                   value={confirm}
                   onChangeText={setConfirm}
                   onBlur={() => touch('confirm')}
-                  placeholder="Re-enter password"
+                  placeholder={t('confirmPlaceholder')}
                   secure
                   autoCapitalize="none"
                   error={errors.confirm}
@@ -212,10 +214,10 @@ export function ForgotPasswordScreen() {
             <Button
               title={
                 step === 'email'
-                  ? 'Send Code'
+                  ? t('continue')
                   : step === 'otp'
-                    ? 'Verify Code'
-                    : 'Reset Password'
+                    ? t('otpVerify')
+                    : t('save')
               }
               onPress={step === 'email' ? requestOtp : step === 'otp' ? verifyOtp : resetPassword}
               loading={loading}

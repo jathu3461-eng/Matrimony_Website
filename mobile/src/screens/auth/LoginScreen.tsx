@@ -19,6 +19,7 @@ import { login } from '@/store/authSlice';
 import { validateEmailOrPhone, validatePassword, fieldError } from '@/utils/validation';
 import { useTheme } from '@/theme';
 import { radius, spacing, typography } from '@/theme';
+import { useI18n } from '@/i18n';
 import type { AuthStackParamList } from '@/navigation/types';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList>;
@@ -27,6 +28,7 @@ export function LoginScreen() {
   const navigation = useNavigation<Nav>();
   const dispatch = useAppDispatch();
   const { colors } = useTheme();
+  const { t } = useI18n();
   const { status, error } = useAppSelector((s) => s.auth);
   const loading = status === 'loading';
 
@@ -35,7 +37,7 @@ export function LoginScreen() {
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [serverError, setServerError] = useState<string | null>(null);
 
-  const touch = (field: string) => setTouched((t) => ({ ...t, [field]: true }));
+  const touch = (field: string) => setTouched((prev) => ({ ...prev, [field]: true }));
 
   const errors = useMemo(
     () => ({
@@ -53,7 +55,7 @@ export function LoginScreen() {
     try {
       await dispatch(login({ email: email.trim(), password })).unwrap();
     } catch (err) {
-      setServerError(extractError(err, 'Unable to log in. Please try again.'));
+      setServerError(extractError(err, t('error')));
     }
   };
 
@@ -72,9 +74,9 @@ export function LoginScreen() {
             <View style={[styles.logoWrap, { backgroundColor: colors.primary }]}>
               <Ionicons name="heart" size={32} color={colors.white} />
             </View>
-            <Text style={[styles.brand, { color: colors.primary }]}>Mukurtham</Text>
+            <Text style={[styles.brand, { color: colors.primary }]}>{t('appName')}</Text>
             <Text style={[styles.tagline, { color: colors.inkSoft }]}>
-              Matrimony, made meaningful
+              {t('tagline')}
             </Text>
           </View>
 
@@ -88,29 +90,29 @@ export function LoginScreen() {
               },
             ]}
           >
-            <Text style={[styles.welcome, { color: colors.ink }]}>Welcome back</Text>
+            <Text style={[styles.welcome, { color: colors.ink }]}>{t('loginTitle')}</Text>
             <Text style={[styles.hint, { color: colors.inkFaint }]}>
-              Sign in to continue your journey
+              {t('loginSub')}
             </Text>
 
             <FormField
-              label="Email or phone"
+              label={t('emailOrMobile')}
               value={email}
               onChangeText={setEmail}
               onBlur={() => touch('email')}
-              placeholder="you@example.com or +91..."
+              placeholder={t('emailPlaceholder')}
               autoCapitalize="none"
               keyboardType="email-address"
               autoComplete="email"
               error={errors.email}
-              hint="Enter your registered email or phone"
+              hint={t('errEmailOrMobile')}
             />
             <FormField
-              label="Password"
+              label={t('password')}
               value={password}
               onChangeText={setPassword}
               onBlur={() => touch('password')}
-              placeholder="Your password"
+              placeholder={t('passwordPlaceholder')}
               secure
               autoCapitalize="none"
               onSubmitEditing={submit}
@@ -126,20 +128,20 @@ export function LoginScreen() {
               </View>
             )}
 
-            <Button title="Log In" onPress={submit} loading={loading} size="lg" />
+            <Button title={t('loginButton')} onPress={submit} loading={loading} size="lg" />
           </View>
 
           <View style={styles.footer}>
             <Button
-              title="Forgot password?"
+              title={t('forgotPassword')}
               variant="ghost"
               size="sm"
               onPress={() => navigation.navigate('ForgotPassword')}
             />
             <View style={styles.signupRow}>
-              <Text style={[styles.signupText, { color: colors.inkSoft }]}>New here? </Text>
+              <Text style={[styles.signupText, { color: colors.inkSoft }]}>{t('noAccount')} </Text>
               <Button
-                title="Create account"
+                title={t('createAccount')}
                 variant="ghost"
                 size="sm"
                 titleStyle={{ fontWeight: '700' }}

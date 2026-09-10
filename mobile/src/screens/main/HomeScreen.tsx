@@ -11,6 +11,7 @@ import { profileApi } from '@/api/profiles';
 import { useAppSelector } from '@/store/hooks';
 import { useTheme } from '@/theme';
 import { radius, spacing, typography } from '@/theme';
+import { useI18n } from '@/i18n';
 import type { RootStackParamList } from '@/navigation/types';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -19,6 +20,7 @@ export function HomeScreen() {
   const navigation = useNavigation<Nav>();
   const user = useAppSelector((s) => s.auth.user);
   const { colors } = useTheme();
+  const { t } = useI18n();
   const [refreshing, setRefreshing] = useState(false);
 
   const matches = useQuery({
@@ -46,12 +48,12 @@ export function HomeScreen() {
       >
         <View style={styles.hero}>
           <View>
-            <Text style={[styles.greeting, { color: colors.inkSoft }]}>Namaste,</Text>
+            <Text style={[styles.greeting, { color: colors.inkSoft }]}>{t('appName')}</Text>
             <Text style={[styles.name, { color: colors.ink }]}>{user?.username ?? 'friend'} 👋</Text>
           </View>
           <View style={styles.heroActions}>
             <Button
-              title="Create Profile"
+              title={t('createAccount')}
               size="sm"
               onPress={() => navigation.navigate('CreateProfile')}
             />
@@ -62,24 +64,24 @@ export function HomeScreen() {
           <View style={[styles.statCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <Ionicons name="people" size={20} color={colors.primary} />
             <Text style={[styles.statNum, { color: colors.ink }]}>{matches.data?.length ?? 0}</Text>
-            <Text style={[styles.statLabel, { color: colors.inkFaint }]}>Profiles</Text>
+            <Text style={[styles.statLabel, { color: colors.inkFaint }]}>{t('navProfile')}</Text>
           </View>
           <View style={[styles.statCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <Ionicons name="heart" size={20} color="#e0136a" />
-            <Text style={[styles.statNum, { color: colors.ink }]}>New</Text>
-            <Text style={[styles.statLabel, { color: colors.inkFaint }]}>Matches</Text>
+            <Text style={[styles.statNum, { color: colors.ink }]}>{t('loading')}</Text>
+            <Text style={[styles.statLabel, { color: colors.inkFaint }]}>{t('navInterests')}</Text>
           </View>
           <View style={[styles.statCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <Ionicons name="chatbubble" size={20} color="#2563eb" />
-            <Text style={[styles.statNum, { color: colors.ink }]}>Live</Text>
-            <Text style={[styles.statLabel, { color: colors.inkFaint }]}>Chat</Text>
+            <Text style={[styles.statNum, { color: colors.ink }]}>{t('navChat')}</Text>
+            <Text style={[styles.statLabel, { color: colors.inkFaint }]}>{t('navChat')}</Text>
           </View>
         </View>
 
         <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionTitle, { color: colors.ink }]}>Fresh Matches</Text>
+          <Text style={[styles.sectionTitle, { color: colors.ink }]}>{t('searchTitle')}</Text>
           <Button
-            title="View All"
+            title={t('searchButton')}
             variant="ghost"
             size="sm"
             onPress={() => navigation.navigate('Main', { screen: 'Search' })}
@@ -88,7 +90,7 @@ export function HomeScreen() {
 
         {matches.isLoading ? (
           <View style={styles.emptyWrap}>
-            <Text style={[styles.empty, { color: colors.inkFaint }]}>Loading profiles...</Text>
+            <Text style={[styles.empty, { color: colors.inkFaint }]}>{t('loading')}</Text>
           </View>
         ) : matches.data && matches.data.length > 0 ? (
           matches.data.slice(0, 10).map((p) => (
@@ -101,9 +103,9 @@ export function HomeScreen() {
         ) : (
           <View style={[styles.emptyCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <Ionicons name="person-add" size={40} color={colors.inkFaint} />
-            <Text style={[styles.empty, { color: colors.inkFaint }]}>No profiles yet.</Text>
+            <Text style={[styles.empty, { color: colors.inkFaint }]}>{t('noProfilesMatch')}</Text>
             <Text style={[styles.emptyHint, { color: colors.inkFaint }]}>
-              Create your profile to start receiving matches
+              {t('searchHint')}
             </Text>
           </View>
         )}

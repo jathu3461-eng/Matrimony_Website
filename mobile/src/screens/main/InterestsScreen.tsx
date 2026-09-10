@@ -9,6 +9,7 @@ import { InterestRow } from '@/components/InterestRow';
 import { Screen } from '@/components/Screen';
 import { useTheme } from '@/theme';
 import { spacing, typography } from '@/theme';
+import { useI18n } from '@/i18n';
 import type { RootStackParamList } from '@/navigation/types';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -16,6 +17,7 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 export function InterestsScreen() {
   const navigation = useNavigation<Nav>();
   const { colors } = useTheme();
+  const { t } = useI18n();
   const [refreshing, setRefreshing] = useState(false);
 
   const data = useQuery({
@@ -27,10 +29,10 @@ export function InterestsScreen() {
     const received = data.data?.received ?? [];
     const sent = data.data?.sent ?? [];
     return [
-      { title: 'Received', data: received },
-      { title: 'Sent', data: sent },
+      { title: t('navNotifications'), data: received, key: 'received' as const },
+      { title: t('interestSent'), data: sent, key: 'sent' as const },
     ].filter((s) => s.data.length > 0);
-  }, [data.data]);
+  }, [data.data, t]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -49,10 +51,10 @@ export function InterestsScreen() {
         renderItem={({ item, section }) => (
           <InterestRow
             interest={item}
-            direction={section.title === 'Received' ? 'received' : 'sent'}
+            direction={section.key}
             onResponded={() => data.refetch()}
             onPress={() => {
-              const id = section.title === 'Received' ? item.sender_id : item.receiver_id;
+              const id = section.key === 'received' ? item.sender_id : item.receiver_id;
               if (id) navigation.navigate('ProfileDetail', { profileId: id });
             }}
           />
@@ -60,7 +62,7 @@ export function InterestsScreen() {
         renderSectionHeader={({ section }) => (
           <View style={styles.sectionHeaderRow}>
             <Text style={[styles.sectionHeader, { color: colors.inkFaint }]}>{section.title}</Text>
-            {section.title === 'Received' && receivedCount > 0 && (
+            {section.key === 'received' && receivedCount > 0 && (
               <View style={[styles.countBadge, { backgroundColor: colors.primary }]}>
                 <Text style={[styles.countText, { color: colors.white }]}>{receivedCount}</Text>
               </View>
@@ -72,12 +74,12 @@ export function InterestsScreen() {
           <View style={styles.emptyWrap}>
             <Ionicons name="heart-outline" size={48} color={colors.inkFaint} />
             <Text style={[styles.emptyTitle, { color: colors.inkSoft }]}>
-              {data.isLoading ? 'Loading...' : 'No interests yet'}
+              {data.isLoading ? t('loading') : t('chatNoThreads')}
             </Text>
             <Text style={[styles.emptyHint, { color: colors.inkFaint }]}>
               {data.isLoading
-                ? 'Fetching your interests'
-                : 'Send an interest from a profile you like to get started'}
+                ? t('loading')
+                : t('sendInterest')}
             </Text>
           </View>
         }

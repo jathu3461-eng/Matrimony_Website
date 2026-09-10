@@ -62,4 +62,13 @@ export const authApi = {
   async verifySignupOtp(email: string, otp: string): Promise<void> {
     await api.post('/auth/signup/verify', { email, otp });
   },
+
+  // Phone OTP verification
+  async sendPhoneOtp(phone: string): Promise<void> {
+    await api.post('/auth/phone-otp/send', { phone_number: phone });
+  },
+
+  async verifyPhoneOtp(phone: string, otp: string): Promise<void> {
+    await api.post('/auth/phone-otp/verify', { phone_number: phone, otp });
+  },
 };

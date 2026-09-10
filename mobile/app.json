@@ -17,7 +17,8 @@
         {
           "photosPermission": "Mukurtham needs access to your photos so you can add profile pictures."
         }
-      ]
+      ],
+      "expo-font"
     ],
     "ios": {
       "supportsTablet": true,

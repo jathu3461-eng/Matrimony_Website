@@ -12,6 +12,14 @@ export type AuthStackParamList = {
     role: 'regular' | 'broker';
     businessName?: string;
   };
+  PhoneOTP: {
+    phone: string;
+    email: string;
+    password: string;
+    username: string;
+    role: 'regular' | 'broker';
+    businessName?: string;
+  };
 };
 
 export type MainTabParamList = {
@@ -27,9 +35,11 @@ export type RootStackParamList = {
   Splash: undefined;
   Onboarding: undefined;
   Auth: NavigatorScreenParams<AuthStackParamList>;
-  Main: NavigatorScreenParams<MainTabParamList>;
+  Main: NavigatorScreenParams<MainTabParamList> | undefined;
   ProfileDetail: { profileId: number | string };
   ChatThread: { profileA: number | string; profileB: number | string; otherName: string };
+  ProfileWizard: { editId?: number; mode?: 'onboarding' | 'create' | 'edit' } | undefined;
   CreateProfile: undefined;
   Settings: undefined;
+  BrokerHub: undefined;
 };

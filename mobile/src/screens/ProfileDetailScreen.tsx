@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { useRoute, RouteProp } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,25 +14,59 @@ import { Screen } from '@/components/Screen';
 import { useAppSelector } from '@/store/hooks';
 import { useTheme } from '@/theme';
 import { radius, spacing, typography } from '@/theme';
+import { useI18n } from '@/i18n';
 import type { Profile } from '@/types';
 import type { RootStackParamList } from '@/navigation/types';
 
 type DetailRoute = RouteProp<RootStackParamList, 'ProfileDetail'>;
 
+interface MatchDetail {
+  matched: boolean;
+  points: number;
+  desc: string;
+}
+
+interface MatchResult {
+  score: number;
+  details: Record<string, MatchDetail>;
+}
+
+function displayName(key: string): string {
+  return key.replace(/([A-Z])/g, ' $1').replace(/^./, (c) => c.toUpperCase());
+}
+
+function heightToCm(feet: number, inches: number): number {
+  return Math.round((Number(feet || 0) * 12 + Number(inches || 0)) * 2.54);
+}
+
 export function ProfileDetailScreen() {
   const route = useRoute<DetailRoute>();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { profileId } = route.params;
   const user = useAppSelector((s) => s.auth.user);
   const { colors } = useTheme();
+  const { t } = useI18n();
 
   const [interestMsg, setInterestMsg] = useState('');
   const [sending, setSending] = useState(false);
   const [shortlisting, setShortlisting] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [heightUnit, setHeightUnit] = useState<'ft' | 'cm'>('ft');
+
+  // 10-Porutham panel state
+  const [matchProfileId, setMatchProfileId] = useState<string>('');
+  const [matchResult, setMatchResult] = useState<MatchResult | null>(null);
+  const [matchLoading, setMatchLoading] = useState(false);
+  const [matchError, setMatchError] = useState<string | null>(null);
 
   const profile = useQuery({
     queryKey: ['profile', profileId],
     queryFn: () => profileApi.getById(profileId),
+  });
+
+  const myProfiles = useQuery({
+    queryKey: ['my-profiles'],
+    queryFn: () => profileApi.mine(),
   });
 
   const p = profile.data;
@@ -42,10 +77,10 @@ export function ProfileDetailScreen() {
     try {
       await interestApi.send(p.id, interestMsg.trim() || undefined);
       setInterestMsg('');
-      Alert.alert('Interest sent', 'Your interest has been sent successfully.');
+      Alert.alert(t('interestModalTitle'), 'Your interest has been sent successfully.');
       profile.refetch();
     } catch (err) {
-      Alert.alert('Error', extractError(err, 'Failed to send interest.'));
+      Alert.alert(t('error'), extractError(err, 'Failed to send interest.'));
     } finally {
       setSending(false);
     }
@@ -56,10 +91,10 @@ export function ProfileDetailScreen() {
     setShortlisting(true);
     try {
       const shortlisted = await interestApi.toggleShortlist(p.id);
-      Alert.alert(shortlisted ? 'Added to shortlist' : 'Removed from shortlist');
+      Alert.alert(shortlisted ? t('shortlisted') : t('unshortlist'));
       profile.refetch();
     } catch {
-      Alert.alert('Error', 'Could not update shortlist.');
+      Alert.alert(t('error'), 'Could not update shortlist.');
     } finally {
       setShortlisting(false);
     }
@@ -86,12 +121,30 @@ export function ProfileDetailScreen() {
         type: `image/${ext}`,
       } as unknown as Blob);
       await profileApi.update(p.id, formData);
-      Alert.alert('Photo updated');
+      Alert.alert(t('success'));
       profile.refetch();
     } catch (err) {
-      Alert.alert('Error', extractError(err, 'Failed to upload photo.'));
+      Alert.alert(t('error'), extractError(err, 'Failed to upload photo.'));
     } finally {
       setUploading(false);
+    }
+  };
+
+  const calculateMatch = async () => {
+    if (!p) return;
+    const mine = myProfiles.data ?? [];
+    const targetId = matchProfileId || (mine.length > 0 ? String(mine[0].id) : '');
+    if (!targetId) return;
+    setMatchLoading(true);
+    setMatchError(null);
+    setMatchResult(null);
+    try {
+      const result = await profileApi.match(Number(targetId), p.id);
+      setMatchResult(result);
+    } catch (err) {
+      setMatchError(extractError(err, t('matchMissingDetails')));
+    } finally {
+      setMatchLoading(false);
     }
   };
 
@@ -101,7 +154,7 @@ export function ProfileDetailScreen() {
       <Screen>
         <View style={styles.center}>
           <Ionicons name="person-outline" size={48} color={colors.inkFaint} />
-          <Text style={[styles.emptyText, { color: colors.inkFaint }]}>Profile not found.</Text>
+          <Text style={[styles.emptyText, { color: colors.inkFaint }]}>{t('profileNotFound')}</Text>
         </View>
       </Screen>
     );
@@ -110,6 +163,11 @@ export function ProfileDetailScreen() {
   const isOwnProfile = user?.id === p.owner_user_id;
   const isShortlisted = p.is_shortlisted === 1;
   const interestStatus = p.interest_status;
+  const lookingFor = p.gender === 'M' ? t('lookingForGroom') : t('lookingForBride');
+  const heightLabel =
+    heightUnit === 'cm'
+      ? `${heightToCm(p.height_feet, p.height_inches)} cm`
+      : `${p.height_feet}'${p.height_inches ?? 0}"`;
 
   return (
     <Screen>
@@ -138,55 +196,94 @@ export function ProfileDetailScreen() {
           {p.is_verified === 1 && (
             <View style={[styles.verifiedBadge, { backgroundColor: colors.successSoft }]}>
               <Ionicons name="shield-checkmark" size={14} color={colors.success} />
-              <Text style={[styles.verifiedText, { color: colors.success }]}>Verified</Text>
+              <Text style={[styles.verifiedText, { color: colors.success }]}>{t('verifiedBadge')}</Text>
             </View>
           )}
         </View>
 
         <Text style={[styles.subtitle, { color: colors.inkSoft }]}>
-          {p.age} yrs · {p.height_feet}'{p.height_inches ?? 0}" · {p.gender === 'M' ? 'Male' : 'Female'}
+          {p.age} {t('years')} · {lookingFor}
         </Text>
 
+        <View style={styles.heightRow}>
+          <View style={[styles.heightChip, { backgroundColor: colors.primarySoft }]}>
+            <Ionicons name="resize" size={14} color={colors.primary} />
+            <Text style={[styles.heightChipText, { color: colors.primary }]}>{heightLabel}</Text>
+          </View>
+          <View style={styles.heightToggle}>
+            {(['ft', 'cm'] as const).map((unit) => (
+              <Pressable
+                key={unit}
+                onPress={() => setHeightUnit(unit)}
+                style={[
+                  styles.heightToggleBtn,
+                  { backgroundColor: heightUnit === unit ? colors.primary : colors.surface },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.heightToggleText,
+                    { color: heightUnit === unit ? colors.white : colors.inkSoft },
+                  ]}
+                >
+                  {unit === 'ft' ? t('heightUnitFtIn') : t('heightUnitCm')}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+
+        {isOwnProfile && (
+          <Pressable
+            style={[styles.editProfileBtn, { backgroundColor: colors.surface, borderColor: colors.border }]}
+            onPress={() => navigation.navigate('ProfileWizard', { editId: p.id, mode: 'edit' })}
+          >
+            <Ionicons name="create-outline" size={16} color={colors.primary} />
+            <Text style={[styles.editProfileText, { color: colors.primary }]}>{t('editProfile')}</Text>
+          </Pressable>
+        )}
+
         <View style={styles.metaGrid}>
-          {p.occupation && (
-            <MetaRow icon="briefcase" label="Occupation" value={p.occupation} />
-          )}
-          {p.education && (
-            <MetaRow icon="school" label="Education" value={p.education} />
-          )}
-          {p.city_or_state && (
-            <MetaRow icon="location" label="Location" value={p.city_or_state} />
-          )}
-          {p.religion_id && (
-            <MetaRow icon="book" label="Religion" value={`#${p.religion_id}`} />
-          )}
-          {p.diet && (
-            <MetaRow icon="restaurant" label="Diet" value={p.diet} />
-          )}
-          {p.family_values && (
-            <MetaRow icon="people" label="Family values" value={p.family_values} />
-          )}
+          {p.occupation && <MetaRow icon="briefcase" label={t('metaOccupation')} value={p.occupation} />}
+          {p.education && <MetaRow icon="school" label={t('metaEducation')} value={p.education} />}
+          {p.city_or_state && <MetaRow icon="location" label={t('metaLocation')} value={p.city_or_state} />}
+          {p.religion_id && <MetaRow icon="book" label={t('metaReligion')} value={`#${p.religion_id}`} />}
+          {p.diet && <MetaRow icon="restaurant" label={t('metaDiet')} value={p.diet} />}
+          {p.family_values && <MetaRow icon="people" label={t('metaFamilyValues')} value={p.family_values} />}
           {p.manglik_status && p.manglik_status !== 'no' && (
-            <MetaRow icon="moon" label="Manglik" value={p.manglik_status} />
+            <MetaRow icon="moon" label={t('metaManglik')} value={p.manglik_status} />
           )}
         </View>
 
         {p.about_me ? (
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: colors.inkFaint }]}>About</Text>
+            <Text style={[styles.sectionTitle, { color: colors.inkFaint }]}>{t('metaAbout')}</Text>
             <Text style={[styles.aboutText, { color: colors.ink }]}>{p.about_me}</Text>
           </View>
         ) : null}
+
+        {!isOwnProfile && user && (
+          <MatchPanel
+            profile={p}
+            myProfiles={myProfiles.data ?? []}
+            matchProfileId={matchProfileId}
+            setMatchProfileId={setMatchProfileId}
+            matchResult={matchResult}
+            matchLoading={matchLoading}
+            matchError={matchError}
+            onCalculate={calculateMatch}
+          />
+        )}
 
         {!isOwnProfile && (
           <View style={styles.actions}>
             {interestStatus === 'pending' ? (
               <View style={styles.pendingRow}>
                 <Ionicons name="time-outline" size={18} color={colors.inkFaint} />
-                <Button title="Interest Sent" variant="secondary" disabled size="md" />
+                <Button title={t('interestSent')} variant="secondary" disabled size="md" />
               </View>
             ) : interestStatus === 'accepted' ? (
-              <Button title="Start Chat" variant="primary" size="md" leftIcon="chatbubble" disabled />
+              <Button title={t('openChat')} variant="primary" size="md" leftIcon="chatbubble" disabled />
             ) : (
               <View style={styles.interestRow}>
                 <TextInput
@@ -194,17 +291,17 @@ export function ProfileDetailScreen() {
                     styles.interestInput,
                     { borderColor: colors.border, color: colors.ink, backgroundColor: colors.surface },
                   ]}
-                  placeholder="Add a personal message..."
+                  placeholder={t('customMessagePlaceholder')}
                   placeholderTextColor={colors.inkFaint}
                   value={interestMsg}
                   onChangeText={setInterestMsg}
                   maxLength={200}
                 />
-                <Button title="Send" size="sm" loading={sending} onPress={sendInterest} />
+                <Button title={t('sendInterest')} size="sm" loading={sending} onPress={sendInterest} />
               </View>
             )}
             <Button
-              title={isShortlisted ? 'Unshortlist' : 'Shortlist'}
+              title={isShortlisted ? t('unshortlist') : t('shortlist')}
               variant={isShortlisted ? 'secondary' : 'outline'}
               size="md"
               leftIcon={isShortlisted ? 'star' : 'star-outline'}
@@ -217,7 +314,7 @@ export function ProfileDetailScreen() {
         {isOwnProfile && (
           <View style={styles.actions}>
             <Button
-              title="Edit Photo"
+              title={t('editPhoto')}
               variant="outline"
               size="md"
               leftIcon="camera-outline"
@@ -228,6 +325,117 @@ export function ProfileDetailScreen() {
         )}
       </ScrollView>
     </Screen>
+  );
+}
+
+function MatchPanel({
+  profile,
+  myProfiles,
+  matchProfileId,
+  setMatchProfileId,
+  matchResult,
+  matchLoading,
+  matchError,
+  onCalculate,
+}: {
+  profile: Profile;
+  myProfiles: Profile[];
+  matchProfileId: string;
+  setMatchProfileId: (id: string) => void;
+  matchResult: MatchResult | null;
+  matchLoading: boolean;
+  matchError: string | null;
+  onCalculate: () => void;
+}) {
+  const { colors } = useTheme();
+  const { t } = useI18n();
+
+  if (myProfiles.length === 0) return null;
+
+  const effectiveId = matchProfileId || String(myProfiles[0].id);
+  const score = matchResult?.score ?? 0;
+  const scoreColor = score >= 7 ? colors.success : score >= 5 ? colors.warning : colors.error;
+  const statusLabel = score >= 7 ? t('matchExcellent') : score >= 5 ? t('matchGood') : t('matchLow');
+
+  return (
+    <View style={[styles.matchCard, { backgroundColor: colors.surfaceSoft, borderColor: colors.border }]}>
+      <View style={styles.matchHeader}>
+        <Ionicons name="sparkles" size={20} color={colors.primary} />
+        <Text style={[styles.matchTitle, { color: colors.ink }]}>{t('matchPanelTitle')}</Text>
+      </View>
+
+      <Text style={[styles.matchHint, { color: colors.inkSoft }]}>{t('matchSelectYourProfile')}</Text>
+
+      <View style={styles.matchChips}>
+        {myProfiles.map((mine) => {
+          const active = String(mine.id) === effectiveId;
+          return (
+            <Pressable
+              key={mine.id}
+              onPress={() => setMatchProfileId(String(mine.id))}
+              style={[
+                styles.matchChip,
+                {
+                  backgroundColor: active ? colors.primary : colors.surface,
+                  borderColor: active ? colors.primary : colors.border,
+                },
+              ]}
+            >
+              <Text
+                style={[styles.matchChipText, { color: active ? colors.white : colors.inkSoft }]}
+                numberOfLines={1}
+              >
+                {mine.name}
+              </Text>
+              <Text style={[styles.matchChipSub, { color: active ? colors.white : colors.inkFaint }]}>
+                {mine.gender === 'M' ? t('lookingForGroom') : t('lookingForBride')}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      <Button
+        title={t('matchCalculate')}
+        size="md"
+        variant="primary"
+        loading={matchLoading}
+        onPress={onCalculate}
+      />
+
+      {matchError && <Text style={[styles.matchError, { color: colors.error }]}>{matchError}</Text>}
+
+      {matchResult && (
+        <View style={styles.matchResult}>
+          <View style={[styles.scoreDial, { borderColor: scoreColor, shadowColor: scoreColor }]}>
+            <Text style={[styles.scoreValue, { color: colors.ink }]}>{score}</Text>
+            <Text style={[styles.scoreLabel, { color: colors.inkFaint }]}>{t('matchOf10')}</Text>
+          </View>
+          <Text style={[styles.statusLabel, { color: scoreColor }]}>{statusLabel}</Text>
+
+          <View style={styles.matchGrid}>
+            {Object.entries(matchResult.details).map(([key, val]) => (
+              <View
+                key={key}
+                style={[
+                  styles.matchItem,
+                  {
+                    backgroundColor: val.matched ? colors.successSoft : colors.errorSoft,
+                    borderColor: val.matched ? colors.success : colors.error,
+                  },
+                ]}
+              >
+                <View style={styles.matchItemHeader}>
+                  <Text style={styles.matchItemIcon}>{val.matched ? '✓' : '✕'}</Text>
+                  <Text style={[styles.matchItemTitle, { color: colors.ink }]}>{displayName(key)}</Text>
+                </View>
+                <Text style={[styles.matchItemDesc, { color: colors.inkSoft }]}>{val.desc}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+      )}
+    </View>
   );
 }
 
@@ -325,7 +533,58 @@ const styles = StyleSheet.create({
   subtitle: {
     ...typography.body,
     marginTop: spacing.xs,
+    marginBottom: spacing.sm,
+  },
+  heightRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: spacing.lg,
+  },
+  heightChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 4,
+  },
+  heightChipText: {
+    ...typography.label,
+    fontWeight: '700',
+  },
+  heightToggle: {
+    flexDirection: 'row',
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: 'transparent',
+    overflow: 'hidden',
+    gap: 2,
+  },
+  heightToggleBtn: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: 5,
+    borderRadius: radius.pill,
+  },
+  heightToggleText: {
+    ...typography.label,
+    fontWeight: '700',
+  },
+  editProfileBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    paddingVertical: 8,
+    paddingHorizontal: spacing.md,
+    alignSelf: 'flex-start',
+    marginBottom: spacing.md,
+  },
+  editProfileText: {
+    ...typography.label,
+    fontWeight: '700',
   },
   metaGrid: {
     marginBottom: spacing.lg,
@@ -342,6 +601,114 @@ const styles = StyleSheet.create({
   aboutText: {
     ...typography.body,
     lineHeight: 22,
+  },
+  matchCard: {
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    padding: spacing.lg,
+    marginBottom: spacing.lg,
+  },
+  matchHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  matchTitle: {
+    ...typography.title,
+    flexShrink: 1,
+  },
+  matchHint: {
+    ...typography.caption,
+    marginBottom: spacing.md,
+  },
+  matchChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  matchChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 6,
+  },
+  matchChipText: {
+    ...typography.label,
+    fontWeight: '700',
+  },
+  matchChipSub: {
+    ...typography.label,
+  },
+  matchError: {
+    ...typography.caption,
+    marginTop: spacing.md,
+  },
+  matchResult: {
+    marginTop: spacing.lg,
+    alignItems: 'center',
+  },
+  scoreDial: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 3,
+  },
+  scoreValue: {
+    ...typography.display,
+    fontSize: 42,
+    lineHeight: 46,
+  },
+  scoreLabel: {
+    ...typography.label,
+    marginTop: -2,
+  },
+  statusLabel: {
+    ...typography.body,
+    fontWeight: '700',
+    marginVertical: spacing.sm,
+  },
+  matchGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    width: '100%',
+  },
+  matchItem: {
+    flexBasis: '47%',
+    flexGrow: 1,
+    borderWidth: 1,
+    borderRadius: radius.md,
+    padding: spacing.md,
+  },
+  matchItemHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginBottom: 4,
+  },
+  matchItemIcon: {
+    fontWeight: '700',
+    fontSize: 12,
+  },
+  matchItemTitle: {
+    ...typography.body,
+    fontWeight: '700',
+    flexShrink: 1,
+  },
+  matchItemDesc: {
+    ...typography.caption,
+    lineHeight: 15,
   },
   actions: {
     gap: spacing.sm,

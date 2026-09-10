@@ -8,6 +8,7 @@ import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { logout } from '@/store/authSlice';
 import { useTheme, ThemeMode } from '@/theme';
 import { radius, spacing, typography } from '@/theme';
+import { useI18n, Language } from '@/i18n';
 
 const THEME_OPTIONS: { label: string; value: ThemeMode; icon: keyof typeof Ionicons.glyphMap }[] = [
   { label: 'Light', value: 'light', icon: 'sunny' },
@@ -20,13 +21,14 @@ export function SettingsScreen() {
   const navigation = useNavigation();
   const user = useAppSelector((s) => s.auth.user);
   const { colors, mode, setMode } = useTheme();
+  const { t, lang, setLang } = useI18n();
   const [loggingOut, setLoggingOut] = useState(false);
 
   const doLogout = async () => {
-    Alert.alert('Log out', 'Are you sure?', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('logOut'), t('ok'), [
+      { text: t('cancel'), style: 'cancel' },
       {
-        text: 'Log Out',
+        text: t('logOut'),
         style: 'destructive',
         onPress: async () => {
           setLoggingOut(true);
@@ -40,13 +42,67 @@ export function SettingsScreen() {
   return (
     <Screen>
       <ScrollView contentContainerStyle={[styles.content, { backgroundColor: colors.background }]}>
-        <Text style={[styles.title, { color: colors.ink }]}>Settings</Text>
+        <Text style={[styles.title, { color: colors.ink }]}>{t('settings')}</Text>
+
+        <View style={styles.section}>
+          <Text style={[styles.sectionLabel, { color: colors.inkFaint }]}>{t('preferredLanguage')}</Text>
+          <View style={styles.themeRow}>
+            <Pressable
+              style={[
+                styles.themeBtn,
+                {
+                  backgroundColor: lang === 'en' ? colors.primary : colors.surface,
+                  borderColor: lang === 'en' ? colors.primary : colors.border,
+                },
+              ]}
+              onPress={() => setLang('en')}
+            >
+              <Ionicons
+                name="globe"
+                size={18}
+                color={lang === 'en' ? colors.white : colors.inkSoft}
+              />
+              <Text
+                style={[
+                  styles.themeBtnText,
+                  { color: lang === 'en' ? colors.white : colors.inkSoft },
+                ]}
+              >
+                {t('languageEnglish')}
+              </Text>
+            </Pressable>
+            <Pressable
+              style={[
+                styles.themeBtn,
+                {
+                  backgroundColor: lang === 'ta' ? colors.primary : colors.surface,
+                  borderColor: lang === 'ta' ? colors.primary : colors.border,
+                },
+              ]}
+              onPress={() => setLang('ta')}
+            >
+              <Ionicons
+                name="globe"
+                size={18}
+                color={lang === 'ta' ? colors.white : colors.inkSoft}
+              />
+              <Text
+                style={[
+                  styles.themeBtnText,
+                  { color: lang === 'ta' ? colors.white : colors.inkSoft },
+                ]}
+              >
+                {t('languageTamil')}
+              </Text>
+            </Pressable>
+          </View>
+        </View>
 
         <View style={styles.section}>
           <Text style={[styles.sectionLabel, { color: colors.inkFaint }]}>Account</Text>
-          <Row icon="person" label="Username" value={user?.username} colors={colors} />
-          <Row icon="mail" label="Email" value={user?.email} colors={colors} />
-          <Row icon="call" label="Phone" value={user?.phone_number} colors={colors} />
+          <Row icon="person" label={t('username')} value={user?.username} colors={colors} />
+          <Row icon="mail" label={t('emailLabel')} value={user?.email} colors={colors} />
+          <Row icon="call" label={t('mobileLabel')} value={user?.phone_number} colors={colors} />
           <Row icon="shield-checkmark" label="Role" value={user?.role} colors={colors} />
         </View>
 
@@ -85,22 +141,22 @@ export function SettingsScreen() {
 
         <View style={styles.section}>
           <Text style={[styles.sectionLabel, { color: colors.inkFaint }]}>App</Text>
-          <Row icon="globe" label="Language" value={user?.ui_language === 'ta' ? 'Tamil' : 'English'} colors={colors} />
+          <Row icon="globe" label={t('preferredLanguage')} value={lang === 'ta' ? t('languageTamil') : t('languageEnglish')} colors={colors} />
           <Row icon="phone-portrait" label="Platform" value={Platform.OS === 'ios' ? 'iOS' : 'Android'} colors={colors} />
           <Row icon="information-circle" label="Version" value="1.0.0" colors={colors} />
         </View>
 
         <View style={styles.section}>
           <Text style={[styles.sectionLabel, { color: colors.inkFaint }]}>Privacy</Text>
-          <Row icon="lock-closed" label="Security" value="End-to-end encrypted" colors={colors} />
+          <Row icon="lock-closed" label="Security" value={t('encryptedNote')} colors={colors} />
           <Row icon="eye-off" label="Visibility" value="Members only" colors={colors} />
           <Text style={[styles.privacyNote, { color: colors.inkSoft }]}>
-            Your data is stored securely and never shared with third parties.
+            {t('encryptedNote')}
           </Text>
         </View>
 
         <Button
-          title="Log Out"
+          title={t('logOut')}
           variant="danger"
           size="lg"
           loading={loggingOut}

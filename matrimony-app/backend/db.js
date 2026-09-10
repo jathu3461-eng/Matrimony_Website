@@ -55,6 +55,8 @@ async function initDB() {
         is_approved TINYINT NOT NULL DEFAULT 0,
         is_banned TINYINT NOT NULL DEFAULT 0,
         ui_language ENUM('en','ta') NOT NULL DEFAULT 'en',
+        email_verified TINYINT NOT NULL DEFAULT 0,
+        phone_verified TINYINT NOT NULL DEFAULT 0,
         reset_otp VARCHAR(10),
         reset_otp_expires BIGINT,
         last_seen_at TIMESTAMP NULL,
@@ -248,6 +250,17 @@ async function initDB() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
       );
+
+      CREATE TABLE IF NOT EXISTS phone_otps (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        phone_number VARCHAR(20) NOT NULL,
+        otp VARCHAR(6) NOT NULL,
+        expires_at BIGINT NOT NULL,
+        attempts INT NOT NULL DEFAULT 0,
+        used INT NOT NULL DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY uq_phone_otp (phone_number)
+      );
     `);
 
     // Index for chat thread lookups
@@ -283,6 +296,7 @@ async function initDB() {
     await ensureIndex('refresh_tokens', 'idx_refresh_tokens_user', 'INDEX idx_refresh_tokens_user ON refresh_tokens(user_id)');
 
     await ensureColumn('users', 'email_verified', 'email_verified TINYINT NOT NULL DEFAULT 0');
+    await ensureColumn('users', 'phone_verified', 'phone_verified TINYINT NOT NULL DEFAULT 0');
 
     await seed(conn);
     console.log('✅ MySQL DB initialized');

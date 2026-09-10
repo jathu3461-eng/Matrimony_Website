@@ -9,6 +9,7 @@ import { profileApi } from '@/api/profiles';
 import { Screen } from '@/components/Screen';
 import { useTheme } from '@/theme';
 import { radius, spacing, typography } from '@/theme';
+import { useI18n } from '@/i18n';
 import type { ChatThread } from '@/types';
 import type { RootStackParamList } from '@/navigation/types';
 
@@ -31,6 +32,7 @@ function timeAgo(iso?: string | null): string {
 export function ChatListScreen() {
   const navigation = useNavigation<Nav>();
   const { colors } = useTheme();
+  const { t } = useI18n();
   const [refreshing, setRefreshing] = useState(false);
 
   const threads = useQuery({
@@ -49,14 +51,14 @@ export function ChatListScreen() {
   );
 
   const enrichThread = useCallback(
-    (t: ChatThread) => {
-      const myProfileId = myProfileIds.has(Number(t.sender_profile_id))
-        ? t.sender_profile_id
-        : t.receiver_profile_id;
-      const otherProfileId = myProfileId === t.sender_profile_id ? t.receiver_profile_id : t.sender_profile_id;
-      const otherName = myProfileId === t.sender_profile_id ? t.receiver_name : t.sender_name;
-      const otherPic = null; // threads don't include pictures; resolved in the chat view
-      return { ...t, myProfileId, otherProfileId, otherName, otherPic };
+    (thread: ChatThread) => {
+      const myProfileId = myProfileIds.has(Number(thread.sender_profile_id))
+        ? thread.sender_profile_id
+        : thread.receiver_profile_id;
+      const otherProfileId = myProfileId === thread.sender_profile_id ? thread.receiver_profile_id : thread.sender_profile_id;
+      const otherName = myProfileId === thread.sender_profile_id ? thread.receiver_name : thread.sender_name;
+      const otherPic = null;
+      return { ...thread, myProfileId, otherProfileId, otherName, otherPic };
     },
     [myProfileIds]
   );
@@ -108,7 +110,7 @@ export function ChatListScreen() {
               </View>
               <View style={styles.rowBottom}>
                 <Text style={[styles.last, { color: colors.inkSoft }]} numberOfLines={1}>
-                  {item.last_message || 'Start the conversation'}
+                  {item.last_message || t('chatPlaceholder')}
                 </Text>
                 {item.unread_count > 0 && (
                   <View style={[styles.badge, { backgroundColor: colors.primary }]}>
@@ -124,12 +126,12 @@ export function ChatListScreen() {
           <View style={styles.emptyWrap}>
             <Ionicons name="chatbubble-ellipses-outline" size={48} color={colors.inkFaint} />
             <Text style={[styles.emptyTitle, { color: colors.inkSoft }]}>
-              {threads.isLoading ? 'Loading...' : 'No conversations yet'}
+              {threads.isLoading ? t('loading') : t('chatNoThreads')}
             </Text>
             <Text style={[styles.emptyHint, { color: colors.inkFaint }]}>
               {threads.isLoading
-                ? 'Fetching your chats'
-                : 'Send an interest to start chatting with someone special'}
+                ? t('loading')
+                : t('sendInterest')}
             </Text>
           </View>
         }

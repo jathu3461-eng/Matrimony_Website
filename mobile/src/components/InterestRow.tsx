@@ -4,6 +4,7 @@ import { uploadsUrl } from '@/api/client';
 import { interestApi } from '@/api/interests';
 import { useTheme } from '@/theme';
 import { radius, spacing, typography } from '@/theme';
+import { useI18n } from '@/i18n';
 import type { Interest } from '@/types';
 
 interface InterestRowProps {
@@ -15,14 +16,15 @@ interface InterestRowProps {
 
 export function InterestRow({ interest, direction, onPress, onResponded }: InterestRowProps) {
   const { colors } = useTheme();
+  const { t } = useI18n();
   const otherName = direction === 'received' ? interest.sender_name : interest.receiver_name;
   const otherPic = direction === 'received' ? interest.sender_pic : interest.receiver_pic;
 
   const STATUS_LABEL: Record<string, { text: string; color: string }> = {
-    pending: { text: 'Pending', color: colors.warning },
-    accepted: { text: 'Accepted', color: colors.success },
-    rejected: { text: 'Declined', color: colors.error },
-    declined: { text: 'Declined', color: colors.error },
+    pending: { text: t('interestSent'), color: colors.warning },
+    accepted: { text: t('interestAccepted'), color: colors.success },
+    rejected: { text: t('interestDeclined'), color: colors.error },
+    declined: { text: t('interestDeclined'), color: colors.error },
   };
   const status = STATUS_LABEL[interest.status];
 
@@ -44,10 +46,10 @@ export function InterestRow({ interest, direction, onPress, onResponded }: Inter
       )}
 
       <View style={styles.details}>
-        <Text style={[styles.name, { color: colors.ink }]}>{otherName ?? 'Profile'}</Text>
+        <Text style={[styles.name, { color: colors.ink }]}>{otherName ?? t('username')}</Text>
         <Text style={[styles.message, { color: colors.inkSoft }]} numberOfLines={1}>
           {interest.message ||
-            (direction === 'received' ? 'Sent you an interest' : 'You sent an interest')}
+            (direction === 'received' ? t('sendInterest') : t('interestSent'))}
         </Text>
         {interest.occupation ? (
           <Text style={[styles.meta, { color: colors.inkFaint }]}>{interest.occupation}</Text>
@@ -78,7 +80,7 @@ export function InterestRow({ interest, direction, onPress, onResponded }: Inter
       ) : interest.status === 'accepted' ? (
         <Pressable onPress={onPress} style={[styles.viewBtn, { backgroundColor: colors.primarySoft }]}>
           <Ionicons name="person-outline" size={16} color={colors.primary} />
-          <Text style={[styles.viewBtnText, { color: colors.primary }]}>View</Text>
+          <Text style={[styles.viewBtnText, { color: colors.primary }]}>{t('openChat')}</Text>
         </Pressable>
       ) : (
         status && <Text style={[styles.status, { color: status.color }]}>{status.text}</Text>

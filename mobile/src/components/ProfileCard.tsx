@@ -3,6 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { uploadsUrl } from '@/api/client';
 import { useTheme } from '@/theme';
 import { radius, spacing, typography } from '@/theme';
+import { useI18n } from '@/i18n';
 import type { Profile } from '@/types';
 
 interface ProfileCardProps {
@@ -12,6 +13,7 @@ interface ProfileCardProps {
 
 export function ProfileCard({ profile, onPress }: ProfileCardProps) {
   const { colors } = useTheme();
+  const { t } = useI18n();
   const photoUrl = uploadsUrl(profile.main_profile_picture);
 
   return (
@@ -76,12 +78,12 @@ export function ProfileCard({ profile, onPress }: ProfileCardProps) {
 
         {profile.interest_status === 'pending' && (
           <View style={styles.pendingBadge}>
-            <Text style={[styles.pendingText, { color: colors.warning }]}>Interest pending</Text>
+            <Text style={[styles.pendingText, { color: colors.warning }]}>{t('interestSent')}</Text>
           </View>
         )}
         {profile.interest_status === 'accepted' && (
           <View style={[styles.pendingBadge, { backgroundColor: colors.successSoft }]}>
-            <Text style={[styles.pendingText, { color: colors.success }]}>Matched</Text>
+            <Text style={[styles.pendingText, { color: colors.success }]}>{t('interestAccepted')}</Text>
           </View>
         )}
       </View>

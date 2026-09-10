@@ -7,6 +7,7 @@ import { Button } from '@/components/Button';
 import { tokenStorage } from '@/services/tokenStorage';
 import { useTheme } from '@/theme';
 import { spacing, typography } from '@/theme';
+import { useI18n } from '@/i18n';
 import type { RootStackParamList } from '@/navigation/types';
 
 const { width } = Dimensions.get('window');
@@ -15,6 +16,7 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 export function OnboardingScreen() {
   const { colors } = useTheme();
+  const { t } = useI18n();
   const [index, setIndex] = useState(0);
   const navigation = useNavigation<Nav>();
   const isLast = index === SLIDES.length - 1;
@@ -29,7 +31,7 @@ export function OnboardingScreen() {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.skipRow}>
         {!isLast && (
-          <Button title="Skip" variant="ghost" size="sm" onPress={finish} />
+          <Button title={t('cancel')} variant="ghost" size="sm" onPress={finish} />
         )}
       </View>
 
@@ -55,7 +57,7 @@ export function OnboardingScreen() {
           ))}
         </View>
         <Button
-          title={isLast ? 'Get Started' : 'Next'}
+          title={isLast ? t('continue') : t('continue')}
           size="lg"
           onPress={() => (isLast ? finish() : setIndex((i) => i + 1))}
         />

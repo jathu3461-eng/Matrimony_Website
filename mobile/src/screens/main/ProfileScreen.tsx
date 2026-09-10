@@ -12,6 +12,7 @@ import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { logout } from '@/store/authSlice';
 import { useTheme } from '@/theme';
 import { radius, spacing, typography } from '@/theme';
+import { useI18n } from '@/i18n';
 import type { RootStackParamList } from '@/navigation/types';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -21,6 +22,7 @@ export function ProfileScreen() {
   const dispatch = useAppDispatch();
   const user = useAppSelector((s) => s.auth.user);
   const { colors } = useTheme();
+  const { t } = useI18n();
   const [loggingOut, setLoggingOut] = useState(false);
 
   const myProfiles = useQuery({
@@ -47,7 +49,7 @@ export function ProfileScreen() {
               <Ionicons name="person" size={40} color={colors.inkFaint} />
             </View>
           )}
-          <Text style={[styles.username, { color: colors.ink }]}>{user?.username ?? 'Member'}</Text>
+          <Text style={[styles.username, { color: colors.ink }]}>{user?.username ?? t('username')}</Text>
           <Text style={[styles.email, { color: colors.inkSoft }]}>{user?.email}</Text>
           <View style={styles.badgeRow}>
             <View style={[styles.roleBadge, { backgroundColor: colors.primarySoft }]}>
@@ -55,13 +57,13 @@ export function ProfileScreen() {
             </View>
             {user?.is_approved === 1 && (
               <View style={[styles.roleBadge, styles.approvedBadge, { backgroundColor: colors.successSoft }]}>
-                <Text style={[styles.roleText, styles.approvedText, { color: colors.success }]}>Approved</Text>
+                <Text style={[styles.roleText, styles.approvedText, { color: colors.success }]}>{t('success')}</Text>
               </View>
             )}
           </View>
         </View>
 
-        <Text style={[styles.sectionTitle, { color: colors.inkFaint }]}>My profiles</Text>
+        <Text style={[styles.sectionTitle, { color: colors.inkFaint }]}>{t('navProfile')}</Text>
         {myProfiles.data && myProfiles.data.length > 0 ? (
           myProfiles.data.map((p) => (
             <Pressable
@@ -75,7 +77,7 @@ export function ProfileScreen() {
             >
               <Text style={[styles.profileName, { color: colors.ink }]}>{p.name}</Text>
               <Text style={[styles.profileMeta, { color: colors.inkSoft }]}>
-                {p.age} yrs · {p.status} {p.is_verified === 1 ? '· Verified' : ''}
+                {p.age} {t('years')} · {p.status} {p.is_verified === 1 ? `· ${t('verifiedBadge')}` : ''}
               </Text>
             </Pressable>
           ))
@@ -83,10 +85,10 @@ export function ProfileScreen() {
           <View style={styles.noProfile}>
             <Ionicons name="person-add-outline" size={40} color={colors.inkFaint} />
             <Text style={[styles.noProfileText, { color: colors.inkFaint }]}>
-              You haven't created a profile yet
+              {t('noProfilesMatch')}
             </Text>
             <Button
-              title="Create Profile"
+              title={t('createAccount')}
               size="md"
               style={styles.noProfileBtn}
               onPress={() => navigation.navigate('CreateProfile')}
@@ -96,7 +98,18 @@ export function ProfileScreen() {
 
         <View style={styles.actions}>
           <Button
-            title="Settings"
+            title={user?.role === 'broker' ? t('brokerHub') : t('findBroker')}
+            variant="outline"
+            size="md"
+            leftIcon="business-outline"
+            style={styles.actionBtn}
+            onPress={() => navigation.navigate('BrokerHub')}
+          />
+        </View>
+
+        <View style={styles.actions}>
+          <Button
+            title={t('settings')}
             variant="outline"
             size="md"
             leftIcon="settings-outline"
@@ -104,7 +117,7 @@ export function ProfileScreen() {
             onPress={() => navigation.navigate('Settings')}
           />
           <Button
-            title="Log Out"
+            title={t('logOut')}
             variant="danger"
             size="md"
             leftIcon="log-out-outline"

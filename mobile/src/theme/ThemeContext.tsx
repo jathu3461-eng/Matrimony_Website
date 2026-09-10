@@ -11,6 +11,7 @@ export interface ThemeColors {
   secondary: string;
   background: string;
   surface: string;
+  surfaceSoft: string;
   ink: string;
   inkSoft: string;
   inkFaint: string;
@@ -25,46 +26,49 @@ export interface ThemeColors {
   black: string;
 }
 
+// Mirrors the website's design tokens (matrimony-app/frontend/src/index.css).
 const lightColors: ThemeColors = {
   primary: '#e0136a',
   primaryDark: '#c00f5c',
-  primarySoft: '#ffe4ee',
+  primarySoft: '#ffe4ef',
   secondary: '#78350f',
-  background: '#fafaf9',
+  background: '#fff5f9',
   surface: '#ffffff',
-  ink: '#1c1917',
-  inkSoft: '#57534e',
-  inkFaint: '#a8a29e',
-  border: '#e7e5e4',
-  borderStrong: '#d6d3d1',
-  success: '#16a34a',
-  successSoft: '#f0fdf4',
-  error: '#dc2626',
-  errorSoft: '#fef2f2',
+  surfaceSoft: '#fff5f9',
+  ink: '#2d1226',
+  inkSoft: '#5c4353',
+  inkFaint: '#8a7480',
+  border: '#f3dbe7',
+  borderStrong: '#e9c2d6',
+  success: '#0f9d58',
+  successSoft: '#e6f6ec',
+  error: '#e63946',
+  errorSoft: '#fdecee',
   warning: '#d97706',
   white: '#ffffff',
   black: '#000000',
 };
 
 const darkColors: ThemeColors = {
-  primary: '#f472b6',
-  primaryDark: '#ec4899',
-  primarySoft: '#4a1942',
-  secondary: '#d97706',
-  background: '#0f0f0f',
-  surface: '#1c1c1e',
-  ink: '#f5f5f4',
-  inkSoft: '#a8a29e',
-  inkFaint: '#57534e',
-  border: '#2c2c2e',
-  borderStrong: '#3a3a3c',
-  success: '#22c55e',
-  successSoft: '#052e16',
-  error: '#ef4444',
-  errorSoft: '#450a0a',
-  warning: '#f59e0b',
-  white: '#1c1c1e',
-  black: '#f5f5f4',
+  primary: '#ff5f9e',
+  primaryDark: '#ff7ab3',
+  primarySoft: '#3a2231',
+  secondary: '#fbbf24',
+  background: '#241420',
+  surface: '#1c0f18',
+  surfaceSoft: '#241420',
+  ink: '#ffe9f4',
+  inkSoft: '#d9b9c9',
+  inkFaint: '#a28395',
+  border: '#3a2231',
+  borderStrong: '#4a2c3f',
+  success: '#34d399',
+  successSoft: '#12352a',
+  error: '#ff6b7a',
+  errorSoft: '#3a1c22',
+  warning: '#fbbf24',
+  white: '#ffffff',
+  black: '#000000',
 };
 
 const STORAGE_KEY = 'theme_mode';

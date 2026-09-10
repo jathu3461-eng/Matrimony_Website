@@ -20,6 +20,7 @@ import { useAppDispatch } from '@/store/hooks';
 import { login } from '@/store/authSlice';
 import { useTheme } from '@/theme';
 import { radius, spacing, typography } from '@/theme';
+import { useI18n } from '@/i18n';
 import type { AuthStackParamList } from '@/navigation/types';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList>;
@@ -33,6 +34,7 @@ export function VerifyOTPScreen() {
   const route = useRoute<OtpRoute>();
   const dispatch = useAppDispatch();
   const { colors } = useTheme();
+  const { t } = useI18n();
   const { email, password } = route.params;
 
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
@@ -51,7 +53,6 @@ export function VerifyOTPScreen() {
 
   const handleOtpChange = (text: string, index: number) => {
     if (text.length > 1) {
-      // Handle paste
       const digits = text.replace(/\D/g, '').slice(0, OTP_LENGTH).split('');
       const newOtp = [...otp];
       digits.forEach((d, i) => {
@@ -85,17 +86,15 @@ export function VerifyOTPScreen() {
   const verify = async () => {
     const code = otp.join('');
     if (code.length !== OTP_LENGTH) {
-      setServerError('Please enter the complete 6-digit code');
+      setServerError(t('otpInvalidCode'));
       return;
     }
 
     setServerError(null);
     setLoading(true);
     try {
-      // Verify OTP then login
       await authApi.verifySignupOtp(email, code);
       setSuccess(true);
-      // Auto-login after successful verification
       setTimeout(async () => {
         try {
           await dispatch(login({ email, password })).unwrap();
@@ -104,7 +103,7 @@ export function VerifyOTPScreen() {
         }
       }, 1500);
     } catch (err) {
-      setServerError(extractError(err, 'Invalid or expired code.'));
+      setServerError(extractError(err, t('otpInvalidCode')));
       setOtp(['', '', '', '', '', '']);
       inputRefs.current[0]?.focus();
     } finally {
@@ -121,7 +120,7 @@ export function VerifyOTPScreen() {
       setOtp(['', '', '', '', '', '']);
       inputRefs.current[0]?.focus();
     } catch (err) {
-      setServerError(extractError(err, 'Could not resend code.'));
+      setServerError(extractError(err, t('error')));
     }
   };
 
@@ -132,9 +131,9 @@ export function VerifyOTPScreen() {
           <View style={styles.successIcon}>
             <Ionicons name="checkmark-circle" size={64} color={colors.success} />
           </View>
-          <Text style={[styles.successTitle, { color: colors.success }]}>Verified!</Text>
+          <Text style={[styles.successTitle, { color: colors.success }]}>{t('otpSuccess')}</Text>
           <Text style={[styles.successHint, { color: colors.inkSoft }]}>
-            Your account has been verified successfully
+            {t('otpSuccess')}
           </Text>
         </View>
       </Screen>
@@ -156,9 +155,9 @@ export function VerifyOTPScreen() {
             <View style={[styles.iconWrap, { backgroundColor: colors.primarySoft }]}>
               <Ionicons name="mail-open-outline" size={32} color={colors.primary} />
             </View>
-            <Text style={[styles.title, { color: colors.ink }]}>Verify your email</Text>
+            <Text style={[styles.title, { color: colors.ink }]}>{t('otpTitle')}</Text>
             <Text style={[styles.subtitle, { color: colors.inkSoft }]}>
-              We sent a 6-digit code to{'\n'}
+              {t('otpSubtitle')}{' '}
               <Text style={[styles.email, { color: colors.ink }]}>{email}</Text>
             </Text>
           </View>
@@ -190,11 +189,11 @@ export function VerifyOTPScreen() {
             </View>
           )}
 
-          <Button title="Verify" onPress={verify} loading={loading} size="lg" />
+          <Button title={t('otpVerify')} onPress={verify} loading={loading} size="lg" />
 
           <View style={styles.resendRow}>
             <Text style={[styles.resendLabel, { color: colors.inkSoft }]}>
-              Didn't receive the code?{' '}
+              {t('otpDidntReceive')}{' '}
             </Text>
             <Pressable onPress={resend} disabled={cooldown > 0}>
               <Text
@@ -203,7 +202,7 @@ export function VerifyOTPScreen() {
                   { color: cooldown > 0 ? colors.inkFaint : colors.primary },
                 ]}
               >
-                {cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend code'}
+                {cooldown > 0 ? `${t('otpResend')} ${cooldown}s` : t('otpResendBtn')}
               </Text>
             </Pressable>
           </View>
