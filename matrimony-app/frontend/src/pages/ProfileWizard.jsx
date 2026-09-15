@@ -632,14 +632,20 @@ export default function ProfileWizard() {
                   )}
 
                   {step === 2 && (
-                    <div className="space-y-4">
-                      <p className="text-xs text-[var(--ink-soft)]">Enter height in any unit — the other updates automatically.</p>
-                      <div className="space-y-3">
-                        <div className="grid grid-cols-3 gap-3">
-                          <TextField
-                            label="cm"
+                    <div className="space-y-5">
+                      <div>
+                        <p className="text-sm font-semibold text-[var(--ink)] mb-1">Select your height</p>
+                        <p className="text-xs text-[var(--ink-soft)]">Enter centimetres — feet & inches update automatically.</p>
+                      </div>
+
+                      <div className="flex items-center gap-3 justify-center">
+                        <div className="w-28">
+                          <label className="block text-[10px] font-bold uppercase tracking-wider text-[var(--ink-faint)] mb-1.5 text-center">cm</label>
+                          <input
                             type="number"
                             placeholder="170"
+                            min="100"
+                            max="250"
                             value={form.height_cm}
                             onChange={(e) => {
                               const val = e.target.value;
@@ -651,37 +657,55 @@ export default function ProfileWizard() {
                               }
                             }}
                             name="height_cm"
-                            error={touched.height_cm && stepErrors.height_cm}
+                            className="w-full text-center text-lg font-bold py-3 px-2 rounded-xl border-2 border-[var(--border-strong)] bg-white focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary)]/20 outline-none transition-all"
                           />
-                          <SelectField
-                            label="Feet"
-                            options={[3, 4, 5, 6, 7].map((n) => ({ value: String(n), label: `${n} ft` }))}
+                        </div>
+
+                        <span className="text-2xl font-light text-[var(--ink-faint)] mt-5">—</span>
+
+                        <div className="w-24">
+                          <label className="block text-[10px] font-bold uppercase tracking-wider text-[var(--ink-faint)] mb-1.5 text-center">ft</label>
+                          <select
                             value={form.height_feet}
                             onChange={(e) => {
                               const val = e.target.value;
                               setForm((f) => ({ ...f, height_feet: val, height_cm: String(cmFromFtIn(val, f.height_inches)) }));
                             }}
                             name="height_feet"
-                            error={touched.height_feet && stepErrors.height_feet}
-                          />
-                          <SelectField
-                            label="Inches"
-                            options={Array.from({ length: 12 }, (_, i) => ({ value: String(i), label: `${i} in` }))}
+                            className="w-full text-center text-lg font-bold py-3 px-2 rounded-xl border-2 border-[var(--border-strong)] bg-white focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary)]/20 outline-none transition-all appearance-none cursor-pointer"
+                          >
+                            {[3, 4, 5, 6, 7].map((n) => (
+                              <option key={n} value={String(n)}>{n}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div className="w-24">
+                          <label className="block text-[10px] font-bold uppercase tracking-wider text-[var(--ink-faint)] mb-1.5 text-center">in</label>
+                          <select
                             value={form.height_inches}
                             onChange={(e) => {
                               const val = e.target.value;
                               setForm((f) => ({ ...f, height_inches: val, height_cm: String(cmFromFtIn(f.height_feet, val)) }));
                             }}
                             name="height_inches"
-                            error={touched.height_inches && stepErrors.height_inches}
-                          />
+                            className="w-full text-center text-lg font-bold py-3 px-2 rounded-xl border-2 border-[var(--border-strong)] bg-white focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary)]/20 outline-none transition-all appearance-none cursor-pointer"
+                          >
+                            {Array.from({ length: 12 }, (_, i) => (
+                              <option key={i} value={String(i)}>{i}</option>
+                            ))}
+                          </select>
                         </div>
-                        {form.height_cm && form.height_feet && form.height_inches && (
-                          <p className="text-sm font-bold text-[var(--primary)] text-center">
-                            {form.height_cm} cm = {form.height_feet}'{form.height_inches}"
-                          </p>
-                        )}
                       </div>
+
+                      {form.height_cm && form.height_feet && form.height_inches && (
+                        <div className="flex items-center justify-center">
+                          <span className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[var(--primary-soft)] text-[var(--primary-strong)] text-sm font-bold">
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" /></svg>
+                            {form.height_cm} cm — {form.height_feet}'{form.height_inches}"
+                          </span>
+                        </div>
+                      )}
                     </div>
                   )}
 
