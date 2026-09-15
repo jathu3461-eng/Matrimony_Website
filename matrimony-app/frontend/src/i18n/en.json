@@ -200,5 +200,8 @@
   "lookingForBride": "Bride",
   "heightCm": "cm",
   "heightFtIn": "ft/in",
+  "heightMin": "Min Height",
+  "heightMax": "Max Height",
+  "heightHint": "Enter height in any unit — the other updates automatically.",
   "language": "Language"
 }

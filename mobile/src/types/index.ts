@@ -38,6 +38,7 @@ export interface Profile {
   date_of_birth: string;
   height_feet: number;
   height_inches: number;
+  height_cm?: number | null;
   education: string;
   occupation: string;
   religion_id: number | null;

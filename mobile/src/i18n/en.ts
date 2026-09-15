@@ -93,6 +93,8 @@ const en = {
   stepMediaHint: 'Upload media and set privacy',
   stepBio: 'Bio & Review',
   stepBioHint: 'Tell your story',
+  stepVerificationVideo: 'Verification Video',
+  stepVerificationVideoHint: 'Upload a 1-3 min video for admin review',
 
   // Profile fields - Looking For (was Gender)
   lookingFor: 'Looking For',
@@ -112,11 +114,15 @@ const en = {
   educationRequired: 'Education is required',
 
   // Height
-  heightFeet: 'Height (Feet)',
-  heightInches: 'Height (Inches)',
-  heightCm: 'Height (cm)',
+  height: 'Height',
+  heightFeet: 'Feet',
+  heightInches: 'Inches',
+  heightCm: 'cm',
   heightUnitFtIn: 'ft / in',
   heightUnitCm: 'cm',
+  heightHint: 'Enter height in any unit — the other updates automatically.',
+  minHeight: 'Min',
+  maxHeight: 'Max',
 
   // Lifestyle
   dietaryPreference: 'Dietary Preference',
@@ -305,6 +311,21 @@ const en = {
   errCityRequired: 'Enter city or state',
   errAboutMeMin: 'Minimum 50 characters',
   errHeightRange: 'Expected a value between 3 and 7',
+
+  // Verification Video
+  verificationVideo: 'Profile Verification Video',
+  verificationVideoDesc: 'Please upload a short video (1-3 minutes) to help our admin team verify your profile. This video will only be visible to administrators.',
+  selectVideo: 'Select Video from Gallery',
+  recordVideo: 'Record Video with Camera',
+  replaceVideo: 'Replace Video',
+  videoMinDuration: 'Video must be at least 1 minute long.',
+  videoMaxDuration: 'Video must not exceed 3 minutes.',
+  videoApproved: 'Your verification video has been approved.',
+  videoPending: 'Your verification video is pending admin review.',
+  videoRejected: 'Your verification video was rejected. Please upload a new video.',
+  duration: 'Duration',
+  uploading: 'Uploading...',
+  cameraPermissionRequired: 'Camera permission is required to record video.',
 
   // Common
   required: 'Required',

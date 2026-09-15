@@ -16,6 +16,7 @@ const interestRoutes = require('./routes/interests');
 const chatRoutes = require('./routes/chat');
 const brokerRoutes = require('./routes/brokers');
 const notificationRoutes = require('./routes/notifications');
+const verificationRoutes = require('./routes/verification');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -62,6 +63,7 @@ app.use('/api/interests', interestRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/brokers', brokerRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/verification-video', verificationRoutes);
 
 app.get('/api/health', (req, res) => res.json({ ok: true, timestamp: new Date().toISOString() }));
 

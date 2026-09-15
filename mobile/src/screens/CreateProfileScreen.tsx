@@ -14,6 +14,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { Button } from '@/components/Button';
 import { FormField } from '@/components/FormField';
 import { Screen } from '@/components/Screen';
+import { feetInchesToCm, cmToFeetInches } from '@/components/HeightPicker';
 import { profileApi } from '@/api/profiles';
 import { extractError } from '@/api/client';
 import {
@@ -210,6 +211,23 @@ export function CreateProfileScreen() {
 
           <View style={styles.heightRow}>
             <FormField
+              label="cm"
+              value={String(feetInchesToCm(parseInt(heightFeet) || 0, parseInt(heightInches) || 0) || '')}
+              onChangeText={(val) => {
+                const cm = parseInt(val, 10);
+                if (!isNaN(cm) && cm >= 100 && cm <= 250) {
+                  const { feet, inches } = cmToFeetInches(cm);
+                  setHeightFeet(String(feet));
+                  setHeightInches(String(inches));
+                }
+              }}
+              onBlur={() => touch('heightFeet')}
+              keyboardType="number-pad"
+              containerStyle={styles.heightInput}
+              placeholder="170"
+            />
+            <Text style={{ color: colors.inkFaint, marginTop: 28, fontSize: 18 }}>—</Text>
+            <FormField
               label="Feet"
               value={heightFeet}
               onChangeText={setHeightFeet}
@@ -232,6 +250,11 @@ export function CreateProfileScreen() {
               hint={HINTS.heightInches}
             />
           </View>
+          {heightFeet && heightInches && (
+            <Text style={[styles.heightPreview, { color: colors.primary }]}>
+              {feetInchesToCm(parseInt(heightFeet) || 0, parseInt(heightInches) || 0)} cm — {heightFeet}'{heightInches}"
+            </Text>
+          )}
 
           <Text style={[styles.sectionLabel, { color: colors.inkFaint }]}>
             Education & career
@@ -351,6 +374,12 @@ const styles = StyleSheet.create({
   },
   heightInput: {
     flex: 1,
+  },
+  heightPreview: {
+    ...typography.body,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginTop: spacing.sm,
   },
   errorBox: {
     borderRadius: 10,

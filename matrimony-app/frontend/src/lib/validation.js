@@ -241,6 +241,14 @@ export const profileSteps = [
       about_me: aboutMe,
     }),
   },
+  {
+    key: 'verification_video',
+    title: 'Profile Verification Video',
+    hint: 'Upload a 1–3 min video for admin review',
+    icon: 'Video',
+    fields: [],
+    schema: z.object({}),
+  },
 ];
 
 /* ─────────────────────────────────────────────────────────────

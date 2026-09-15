@@ -263,6 +263,25 @@ async function initDB() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         UNIQUE KEY uq_phone_otp (phone_number)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+      CREATE TABLE IF NOT EXISTS verification_videos (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        profile_id INT DEFAULT NULL,
+        storage_key VARCHAR(500) NOT NULL,
+        original_filename VARCHAR(255) DEFAULT NULL,
+        mime_type VARCHAR(100) DEFAULT NULL,
+        file_size BIGINT DEFAULT NULL,
+        duration_seconds INT DEFAULT NULL,
+        status ENUM('PENDING','APPROVED','REJECTED') NOT NULL DEFAULT 'PENDING',
+        rejection_reason TEXT DEFAULT NULL,
+        reviewed_by INT DEFAULT NULL,
+        reviewed_at TIMESTAMP NULL,
+        uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        INDEX idx_vv_user (user_id),
+        INDEX idx_vv_status (status)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
 
     // Index for chat thread lookups
@@ -315,7 +334,7 @@ async function initDB() {
       'users','profiles','religions','castes','raasis','stars','countries',
       'settings','footer_settings','menu_items','shortlists','interests',
       'broker_requests','chat_messages','notifications','horoscope_match',
-      'refresh_tokens','phone_otps',
+      'refresh_tokens','phone_otps','verification_videos',
     ];
     for (const t of allTables) {
       await conn.query(

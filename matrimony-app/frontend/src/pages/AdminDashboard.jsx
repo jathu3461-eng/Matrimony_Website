@@ -27,6 +27,9 @@ import {
   Ban,
   ShieldOff,
   Search,
+  Video,
+  CheckCircle,
+  XCircle,
 } from 'lucide-react';
 import api, { uploadsUrl } from '../api';
 import { useAuth } from '../context/AuthContext';
@@ -36,6 +39,7 @@ const NAV_ITEMS = [
   { key: 'users', path: '/admin/users', label: 'User Management', icon: Users, desc: 'Ban or reinstate accounts' },
   { key: 'brokers', path: '/admin/brokers', label: 'Broker Approvals', icon: Building2, desc: 'Approve broker accounts' },
   { key: 'profiles', path: '/admin/profiles', label: 'Profile Verification', icon: BadgeCheck, desc: 'Verify member profiles' },
+  { key: 'videos', path: '/admin/videos', label: 'Verification Videos', icon: Video, desc: 'Review uploaded videos' },
   { key: 'settings', path: '/admin/settings', label: 'Site Settings', icon: Settings, desc: 'Brand & contact details' },
   { key: 'menu', path: '/admin/menu', label: 'Menu Editor', icon: ListOrdered, desc: 'Navigation menu items' },
 ];
@@ -159,6 +163,7 @@ export default function AdminDashboard() {
               {section === 'users' && <UsersManagement />}
               {section === 'brokers' && <BrokerApprovals />}
               {section === 'profiles' && <ProfilesVerification />}
+              {section === 'videos' && <VideoReview />}
               {section === 'settings' && <SiteSettings />}
               {section === 'menu' && <MenuEditor />}
             </motion.div>
@@ -960,6 +965,144 @@ function MenuEditor() {
           <Star className="w-4 h-4" /> Add Item
         </button>
       </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   Verification Video Review
+   ══════════════════════════════════════════════════════════════════════════════ */
+function VideoReview() {
+  const [videos, setVideos] = useState([]);
+  const [filter, setFilter] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [playing, setPlaying] = useState(null);
+  const [rejectReason, setRejectReason] = useState('');
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const params = filter ? { status: filter } : {};
+      const res = await api.get('/verification-video/admin/all', { params });
+      setVideos(res.data.videos || []);
+    } catch (err) { console.error(err); }
+    setLoading(false);
+  };
+
+  useEffect(() => { load(); }, [filter]);
+
+  const approve = async (id) => {
+    if (!confirm('Approve this verification video?')) return;
+    try {
+      await api.post(`/verification-video/admin/${id}/approve`);
+      load();
+    } catch (err) { alert('Failed: ' + (err.response?.data?.error || err.message)); }
+  };
+
+  const reject = async (id) => {
+    const reason = prompt('Rejection reason (optional):');
+    try {
+      await api.post(`/verification-video/admin/${id}/reject`, { reason: reason || null });
+      load();
+    } catch (err) { alert('Failed: ' + (err.response?.data?.error || err.message)); }
+  };
+
+  const statusColor = (s) => ({
+    PENDING: 'bg-yellow-100 text-yellow-800',
+    APPROVED: 'bg-green-100 text-green-800',
+    REJECTED: 'bg-red-100 text-red-800',
+  }[s] || 'bg-slate-100 text-slate-800');
+
+  const inputCls = 'w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-rose-400 outline-none';
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+          <Video className="w-5 h-5 text-rose-500" /> Verification Videos
+        </h2>
+        <div className="flex gap-2">
+          {['', 'PENDING', 'APPROVED', 'REJECTED'].map((s) => (
+            <button
+              key={s}
+              onClick={() => setFilter(s)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                filter === s ? 'bg-rose-500 text-white shadow-md' : 'bg-white border border-slate-200 text-slate-600 hover:border-rose-300'
+              }`}
+            >
+              {s || 'All'}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center py-12 text-slate-400">Loading…</div>
+      ) : videos.length === 0 ? (
+        <div className="text-center py-12 text-slate-400 text-sm">No videos found.</div>
+      ) : (
+        <div className="space-y-4">
+          {videos.map((v) => (
+            <div key={v.id} className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+                <div>
+                  <p className="font-bold text-slate-800">{v.profile_name || v.username}</p>
+                  <p className="text-xs text-slate-500">{v.email} · {v.username}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${statusColor(v.status)}`}>
+                    {v.status}
+                  </span>
+                  {v.duration_seconds && (
+                    <span className="text-xs text-slate-500">
+                      {Math.floor(v.duration_seconds / 60)}:{String(v.duration_seconds % 60).padStart(2, '0')}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 text-xs text-slate-500 mb-3">
+                <span>Uploaded: {new Date(v.uploaded_at).toLocaleDateString()}</span>
+                {v.file_size && <span>· {(v.file_size / (1024 * 1024)).toFixed(1)} MB</span>}
+                {v.rejection_reason && <span className="text-red-500">· Rejected: {v.rejection_reason}</span>}
+              </div>
+
+              {playing === v.id ? (
+                <video
+                  controls
+                  autoPlay
+                  src={`/api/verification-video/admin/${v.id}/stream`}
+                  className="w-full max-h-64 rounded-lg mb-3"
+                />
+              ) : (
+                <button
+                  onClick={() => setPlaying(v.id)}
+                  className="flex items-center gap-2 text-sm font-bold text-rose-500 hover:text-rose-600 mb-3"
+                >
+                  <Video className="w-4 h-4" /> Load Video
+                </button>
+              )}
+
+              {v.status === 'PENDING' && (
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => approve(v.id)}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-green-500 text-white text-sm font-bold hover:bg-green-600 transition-colors"
+                  >
+                    <CheckCircle className="w-4 h-4" /> Approve
+                  </button>
+                  <button
+                    onClick={() => reject(v.id)}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-red-500 text-white text-sm font-bold hover:bg-red-600 transition-colors"
+                  >
+                    <XCircle className="w-4 h-4" /> Reject
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

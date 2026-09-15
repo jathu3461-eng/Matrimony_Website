@@ -4,6 +4,7 @@ import { uploadsUrl } from '@/api/client';
 import { useTheme } from '@/theme';
 import { radius, spacing, typography } from '@/theme';
 import { useI18n } from '@/i18n';
+import { feetInchesToCm } from '@/components/HeightPicker';
 import type { Profile } from '@/types';
 
 interface ProfileCardProps {
@@ -54,7 +55,10 @@ export function ProfileCard({ profile, onPress }: ProfileCardProps) {
         <View style={styles.metaRow}>
           <Ionicons name="resize-outline" size={13} color={colors.inkFaint} />
           <Text style={[styles.meta, { color: colors.inkSoft }]}>
-            {profile.height_feet}'{profile.height_inches ?? 0}"
+            {(() => {
+              const cm = feetInchesToCm(profile.height_feet || 0, profile.height_inches ?? 0);
+              return cm ? `${cm} cm — ${profile.height_feet}'${profile.height_inches ?? 0}"` : '';
+            })()}
           </Text>
         </View>
 

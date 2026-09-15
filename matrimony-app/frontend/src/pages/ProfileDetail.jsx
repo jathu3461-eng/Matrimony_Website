@@ -31,6 +31,11 @@ export default function ProfileDetail() {
   const [matchProfileId, setMatchProfileId] = useState('');
   const [selectedSenderProfileId, setSelectedSenderProfileId] = useState(null);
 
+  const heightCm = profile ? Math.round(((Number(profile.height_feet || 0) * 12 + Number(profile.height_inches || 0)) * 2.54)) : 0;
+  const heightFeet = profile?.height_feet || 0;
+  const heightInches = profile?.height_inches ?? 0;
+  const heightDisplay = heightCm ? `${heightCm} cm — ${heightFeet}'${heightInches}"` : '';
+
   const load = useCallback(async () => {
     setLoadError('');
     try {
@@ -209,7 +214,7 @@ export default function ProfileDetail() {
               <div>
                 <h1 className="font-display text-3xl text-[var(--ink)] font-extrabold mb-1">{profile.name}</h1>
                 <p className="text-[var(--ink-soft)]">
-                  {profile.age} yrs · {profile.height_feet}'{profile.height_inches}" · {profile.gender === 'M' ? 'Groom' : 'Bride'}
+                  {profile.age} yrs · <span>{heightDisplay}</span> · {profile.gender === 'M' ? 'Groom' : 'Bride'}
                   {profile.looking_for && <span> · Looking for {profile.looking_for === 'M' ? 'Groom' : 'Bride'}</span>}
                 </p>
               </div>
@@ -242,6 +247,7 @@ export default function ProfileDetail() {
             </div>
 
             <div className="grid sm:grid-cols-2 gap-x-8 gap-y-3 text-sm mb-6">
+              <InfoRow label="Height" value={heightDisplay} />
               <InfoRow label="Education" value={profile.education} />
               <InfoRow label="Occupation" value={profile.occupation} />
               <InfoRow label="Religion" value={religion} />

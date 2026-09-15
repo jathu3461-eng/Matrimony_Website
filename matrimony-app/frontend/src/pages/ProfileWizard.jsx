@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft, ArrowRight, Camera, Check, FileText, GraduationCap, Heart, Landmark,
-  MapPin, Ruler, Star, User, Users, Wallet, X, Save, ImagePlus,
+  MapPin, Ruler, Star, User, Users, Wallet, X, Save, ImagePlus, Video, Upload,
 } from 'lucide-react';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
@@ -11,7 +11,7 @@ import { useI18n } from '../context/I18nContext';
 import { Button, Stepper, ProgressBar, Badge, ErrorCard, TextField, SelectField, TextareaField, SearchableSelect, useToast } from '../components/ui';
 import { profileSteps, validateStep, POSTED_BY } from '../lib/validation';
 
-const STEP_ICONS = { User, GraduationCap, Ruler, Heart, Wallet, Landmark, Star, MapPin, Camera, FileText };
+const STEP_ICONS = { User, GraduationCap, Ruler, Heart, Wallet, Landmark, Star, MapPin, Camera, FileText, Video };
 
 const DIET_OPTIONS = [
   { value: 'any', label: 'Any / Flexible' },
@@ -135,7 +135,13 @@ export default function ProfileWizard() {
   const [draftStatus, setDraftStatus] = useState('');
   const contentRef = useRef(null);
   const [userId, setUserId] = useState('anon');
-  const [heightUnit, setHeightUnit] = useState('ft');
+  const [videoFile, setVideoFile] = useState(null);
+  const [videoDuration, setVideoDuration] = useState(null);
+  const [videoDurationValid, setVideoDurationValid] = useState(false);
+  const [videoUploading, setVideoUploading] = useState(false);
+  const [videoStatus, setVideoStatus] = useState(null);
+  const [videoError, setVideoError] = useState('');
+  const videoRef = useRef(null);
 
   const draftKey = `${DRAFT_KEY_PREFIX}${userId}`;
 
@@ -202,6 +208,26 @@ export default function ProfileWizard() {
     }).catch(() => { setLoadingProfile(false); toast.error('Could not load profile'); });
   }, [id, isEdit, toast]);
 
+  // Check existing video status for edit mode
+  useEffect(() => {
+    if (!isEdit) return;
+    api.get('/verification-video/status')
+      .then((res) => {
+        if (res.data.status) setVideoStatus(res.data.status);
+      })
+      .catch(() => {});
+  }, [isEdit]);
+
+  // Check existing video status for edit mode
+  useEffect(() => {
+    if (!isEdit) return;
+    api.get('/verification-video/status')
+      .then((res) => {
+        if (res.data.status) setVideoStatus(res.data.status);
+      })
+      .catch(() => {});
+  }, [isEdit]);
+
   // Restore draft (create mode only)
   useEffect(() => {
     if (isEdit) return;
@@ -245,7 +271,8 @@ export default function ProfileWizard() {
   const ftInFromCm = (cm) => {
     const totalInches = Number(cm) / 2.54;
     const ft = Math.floor(totalInches / 12);
-    const inches = Math.round(totalInches - ft * 12);
+    let inches = Math.round(totalInches % 12);
+    if (inches === 12) { return { feet: String(ft + 1), inches: '0' }; }
     return { feet: String(ft), inches: String(inches) };
   };
 
@@ -300,6 +327,12 @@ export default function ProfileWizard() {
       return;
     }
 
+    // Video validation for final step
+    if (step === profileSteps.length - 1 && videoFile && !videoDurationValid && videoDuration !== null) {
+      toast.error('Please fix the video duration issue before submitting.');
+      return;
+    }
+
     setSubmitting(true);
     setServerError('');
     try {
@@ -307,14 +340,36 @@ export default function ProfileWizard() {
       Object.entries(form).forEach(([k, v]) => fd.append(k, v));
       if (photoFile) fd.append('main_profile_picture', photoFile);
       if (horoscopeFile) fd.append('horoscope_chart', horoscopeFile);
+      let profileId;
       if (isEdit) {
-        await api.put(`/profiles/${id}`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+        const res = await api.put(`/profiles/${id}`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+        profileId = id;
         toast.success('Profile updated successfully');
       } else {
-        await api.post('/profiles', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+        const res = await api.post('/profiles', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+        profileId = res.data.profile?.id;
         clearDraft();
         toast.success('Profile created — welcome to Mukurtham!');
       }
+
+      // Upload verification video if selected
+      if (videoFile && videoDurationValid) {
+        setVideoUploading(true);
+        try {
+          const vfd = new FormData();
+          vfd.append('verification_video', videoFile);
+          await api.post('/verification-video/upload', vfd, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+          });
+          toast.success('Verification video uploaded successfully.');
+        } catch (vErr) {
+          const vMsg = vErr.response?.data?.message || vErr.response?.data?.error || 'Video upload failed.';
+          toast.error(vMsg);
+        } finally {
+          setVideoUploading(false);
+        }
+      }
+
       navigate('/dashboard');
     } catch (err) {
       const msg = err.response?.data?.error || Object.values(err.response?.data?.errors || {})[0] || `Could not ${isEdit ? 'update' : 'create'} profile`;
@@ -578,77 +633,13 @@ export default function ProfileWizard() {
 
                   {step === 2 && (
                     <div className="space-y-4">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-[var(--ink-soft)]">Unit:</span>
-                        <div className="flex rounded-full border border-[var(--border)] overflow-hidden">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (heightUnit === 'cm') {
-                                const { feet, inches } = ftInFromCm(form.height_cm || '168');
-                                setForm((f) => ({ ...f, height_feet: feet, height_inches: inches }));
-                                setHeightUnit('ft');
-                              }
-                            }}
-                            className={`px-3 py-1 text-xs font-bold transition-colors ${
-                              heightUnit === 'ft' ? 'bg-[var(--primary)] text-white' : 'text-[var(--ink-soft)]'
-                            }`}
-                          >
-                            ft/in
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (heightUnit === 'ft') {
-                                const cm = cmFromFtIn(form.height_feet, form.height_inches);
-                                setForm((f) => ({ ...f, height_cm: String(cm) }));
-                                setHeightUnit('cm');
-                              }
-                            }}
-                            className={`px-3 py-1 text-xs font-bold transition-colors ${
-                              heightUnit === 'cm' ? 'bg-[var(--primary)] text-white' : 'text-[var(--ink-soft)]'
-                            }`}
-                          >
-                            cm
-                          </button>
-                        </div>
-                      </div>
-                      {heightUnit === 'ft' ? (
-                        <div className="space-y-3">
-                          <div className="grid grid-cols-2 gap-4">
-                            <SelectField
-                              label="Height (Feet)"
-                              options={[3, 4, 5, 6, 7].map((n) => ({ value: String(n), label: `${n} ft` }))}
-                              value={form.height_feet}
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                setForm((f) => ({ ...f, height_feet: val, height_cm: String(cmFromFtIn(val, f.height_inches)) }));
-                              }}
-                              name="height_feet"
-                              error={touched.height_feet && stepErrors.height_feet}
-                            />
-                            <SelectField
-                              label="Height (Inches)"
-                              options={Array.from({ length: 12 }, (_, i) => ({ value: String(i), label: `${i} in` }))}
-                              value={form.height_inches}
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                setForm((f) => ({ ...f, height_inches: val, height_cm: String(cmFromFtIn(f.height_feet, val)) }));
-                              }}
-                              name="height_inches"
-                              error={touched.height_inches && stepErrors.height_inches}
-                            />
-                          </div>
-                          {form.height_cm && (
-                            <p className="text-xs text-[var(--ink-faint)] text-center">≈ {form.height_cm} cm</p>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="space-y-3">
+                      <p className="text-xs text-[var(--ink-soft)]">Enter height in any unit — the other updates automatically.</p>
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-3 gap-3">
                           <TextField
-                            label="Height (cm)"
+                            label="cm"
                             type="number"
-                            placeholder="168"
+                            placeholder="170"
                             value={form.height_cm}
                             onChange={(e) => {
                               const val = e.target.value;
@@ -660,12 +651,37 @@ export default function ProfileWizard() {
                               }
                             }}
                             name="height_cm"
+                            error={touched.height_cm && stepErrors.height_cm}
                           />
-                          {form.height_feet && form.height_inches && (
-                            <p className="text-xs text-[var(--ink-faint)] text-center">≈ {form.height_feet}'{form.height_inches}"</p>
-                          )}
+                          <SelectField
+                            label="Feet"
+                            options={[3, 4, 5, 6, 7].map((n) => ({ value: String(n), label: `${n} ft` }))}
+                            value={form.height_feet}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setForm((f) => ({ ...f, height_feet: val, height_cm: String(cmFromFtIn(val, f.height_inches)) }));
+                            }}
+                            name="height_feet"
+                            error={touched.height_feet && stepErrors.height_feet}
+                          />
+                          <SelectField
+                            label="Inches"
+                            options={Array.from({ length: 12 }, (_, i) => ({ value: String(i), label: `${i} in` }))}
+                            value={form.height_inches}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setForm((f) => ({ ...f, height_inches: val, height_cm: String(cmFromFtIn(f.height_feet, val)) }));
+                            }}
+                            name="height_inches"
+                            error={touched.height_inches && stepErrors.height_inches}
+                          />
                         </div>
-                      )}
+                        {form.height_cm && form.height_feet && form.height_inches && (
+                          <p className="text-sm font-bold text-[var(--primary)] text-center">
+                            {form.height_cm} cm = {form.height_feet}'{form.height_inches}"
+                          </p>
+                        )}
+                      </div>
                     </div>
                   )}
 
@@ -831,6 +847,119 @@ export default function ProfileWizard() {
                       </div>
                     </>
                   )}
+
+                  {step === 10 && (
+                    <div className="space-y-5">
+                      <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] p-5">
+                        <div className="flex items-center gap-3 mb-3">
+                          <Video className="w-5 h-5 text-[var(--primary)]" />
+                          <p className="text-sm font-bold text-[var(--ink)]">Profile Verification Video</p>
+                        </div>
+                        <p className="text-[13px] text-[var(--ink-soft)] leading-relaxed mb-4">
+                          Please upload a short video (1–3 minutes) to help our admin team verify your profile.
+                          This video will only be visible to administrators.
+                        </p>
+
+                        {/* Video status for existing uploads */}
+                        {videoStatus === 'APPROVED' && (
+                          <div className="rounded-lg bg-green-50 border border-green-200 p-3 mb-4">
+                            <p className="text-xs font-bold text-green-700">✅ Your verification video has been approved.</p>
+                          </div>
+                        )}
+                        {videoStatus === 'PENDING' && (
+                          <div className="rounded-lg bg-yellow-50 border border-yellow-200 p-3 mb-4">
+                            <p className="text-xs font-bold text-yellow-700">⏳ Your verification video is pending admin review.</p>
+                          </div>
+                        )}
+                        {videoStatus === 'REJECTED' && (
+                          <div className="rounded-lg bg-red-50 border border-red-200 p-3 mb-4">
+                            <p className="text-xs font-bold text-red-700">❌ Your verification video was rejected. Please upload a new video.</p>
+                          </div>
+                        )}
+
+                        <input
+                          ref={videoRef}
+                          type="file"
+                          accept="video/mp4,video/quicktime,video/webm"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            setVideoError('');
+                            setVideoFile(file);
+                            setVideoDuration(null);
+                            setVideoDurationValid(false);
+                            // Check duration via HTML5 Video API
+                            const url = URL.createObjectURL(file);
+                            const vid = document.createElement('video');
+                            vid.preload = 'metadata';
+                            vid.onloadedmetadata = () => {
+                              URL.revokeObjectURL(url);
+                              const dur = Math.round(vid.duration);
+                              setVideoDuration(dur);
+                              if (dur < 60) {
+                                setVideoDurationValid(false);
+                                setVideoError('Video must be at least 1 minute long.');
+                              } else if (dur > 180) {
+                                setVideoDurationValid(false);
+                                setVideoError('Video must not exceed 3 minutes.');
+                              } else {
+                                setVideoDurationValid(true);
+                                setVideoError('');
+                              }
+                            };
+                            vid.onerror = () => {
+                              URL.revokeObjectURL(url);
+                              setVideoError('Could not read video. Please select a valid video file.');
+                            };
+                            vid.src = url;
+                          }}
+                        />
+
+                        <button
+                          type="button"
+                          onClick={() => videoRef.current?.click()}
+                          className="w-full flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-[var(--primary)] bg-[var(--primary-soft)] py-4 text-sm font-bold text-[var(--primary)] hover:bg-[var(--primary)] hover:text-white transition-all"
+                        >
+                          <Upload className="w-4 h-4" />
+                          {videoFile ? 'Replace Video' : 'Select Video (MP4, MOV, WebM)'}
+                        </button>
+
+                        {videoFile && (
+                          <div className="mt-3 space-y-2">
+                            <p className="text-xs text-[var(--ink-soft)]">
+                              <strong>File:</strong> {videoFile.name}
+                            </p>
+                            <p className="text-xs text-[var(--ink-soft)]">
+                              <strong>Size:</strong> {(videoFile.size / (1024 * 1024)).toFixed(1)} MB
+                            </p>
+                            {videoDuration !== null && (
+                              <p className="text-xs">
+                                <strong>Duration:</strong>{' '}
+                                {Math.floor(videoDuration / 60)}:{String(videoDuration % 60).padStart(2, '0')}
+                                {videoDurationValid ? (
+                                  <span className="text-green-600 ml-2">✅ Valid</span>
+                                ) : (
+                                  <span className="text-red-500 ml-2">❌ Invalid</span>
+                                )}
+                              </p>
+                            )}
+                            {videoFile.type.startsWith('video/') && (
+                              <video
+                                src={URL.createObjectURL(videoFile)}
+                                controls
+                                className="w-full max-h-48 rounded-lg mt-2"
+                              />
+                            )}
+                          </div>
+                        )}
+
+                        {videoError && (
+                          <p className="text-xs text-red-500 mt-2 font-semibold">{videoError}</p>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </motion.div>
             </AnimatePresence>
@@ -847,8 +976,9 @@ export default function ProfileWizard() {
                   <ArrowRight className="w-4 h-4" aria-hidden="true" />
                 </Button>
               ) : (
-                <Button onClick={handleSubmit} loading={submitting} success={completion === 100 && !submitting}>
+                <Button onClick={handleSubmit} loading={submitting || videoUploading} success={completion === 100 && !submitting && !videoUploading}>
                   {isEdit ? 'Update Profile' : 'Publish Profile'}
+                  {videoUploading ? ' (Uploading video…)' : ''}
                 </Button>
               )}
             </div>

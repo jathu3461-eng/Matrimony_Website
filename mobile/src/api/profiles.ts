@@ -13,6 +13,8 @@ export interface SearchParams {
   born_country_id?: string;
   current_country_id?: string;
   city_or_state?: string;
+  min_height_cm?: number;
+  max_height_cm?: number;
   page?: number;
   limit?: number;
 }

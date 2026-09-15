@@ -184,7 +184,10 @@ export default function ProfileCard({ profile, actions, onShortlistChange }) {
           </div>
 
           <p className="text-xs font-semibold text-[var(--ink-soft)] mb-1">
-            {profile.age ? `${profile.age} yrs` : 'Age N/A'} · {profile.height_feet}'{profile.height_inches}" · {profile.city_or_state || 'Diaspora'}
+            {profile.age ? `${profile.age} yrs` : 'Age N/A'} · {(() => {
+              const cm = Math.round(((Number(profile.height_feet || 0) * 12 + Number(profile.height_inches || 0)) * 2.54));
+              return cm ? `${cm} cm — ${profile.height_feet}'${profile.height_inches ?? 0}"` : 'Height N/A';
+            })()} · {profile.city_or_state || 'Diaspora'}
           </p>
 
           <p className="text-xs text-[var(--primary)] font-bold truncate">{profile.occupation}</p>

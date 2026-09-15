@@ -52,6 +52,7 @@ const STEPS = [
   { key: 'location', icon: 'location-outline', titleKey: 'stepLocation' as const, hintKey: 'stepLocationHint' as const },
   { key: 'media', icon: 'camera-outline', titleKey: 'stepMedia' as const, hintKey: 'stepMediaHint' as const },
   { key: 'bio', icon: 'document-text-outline', titleKey: 'stepBio' as const, hintKey: 'stepBioHint' as const },
+  { key: 'verification_video', icon: 'videocam-outline', titleKey: 'stepVerificationVideo' as const, hintKey: 'stepVerificationVideoHint' as const },
 ];
 
 const POSTED_BY_OPTIONS = [
@@ -112,6 +113,12 @@ export function ProfileWizardScreen() {
   const [loading, setLoading] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [videoUri, setVideoUri] = useState<string | null>(null);
+  const [videoDuration, setVideoDuration] = useState<number | null>(null);
+  const [videoDurationValid, setVideoDurationValid] = useState(false);
+  const [videoUploading, setVideoUploading] = useState(false);
+  const [videoStatus, setVideoStatus] = useState<string | null>(null);
+  const [videoError, setVideoError] = useState('');
   const touch = (f: string) => setTouched((p) => ({ ...p, [f]: true }));
 
   const editId = route.params?.editId;
@@ -213,6 +220,69 @@ export function ProfileWizardScreen() {
     if (!res.canceled && res.assets[0]) setHoroscopeUri(res.assets[0].uri);
   };
 
+  const pickVideo = async () => {
+    setVideoError('');
+    const res = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['videos'],
+      allowsEditing: false,
+      quality: 1,
+    });
+    if (res.canceled || !res.assets[0]) return;
+    const asset = res.assets[0];
+    setVideoUri(asset.uri);
+    setVideoDuration(null);
+    setVideoDurationValid(false);
+
+    // Validate duration (expo provides duration in ms)
+    const durSec = asset.duration ? Math.round(asset.duration / 1000) : null;
+    if (durSec !== null) {
+      setVideoDuration(durSec);
+      if (durSec < 60) {
+        setVideoDurationValid(false);
+        setVideoError(t('videoMinDuration'));
+      } else if (durSec > 180) {
+        setVideoDurationValid(false);
+        setVideoError(t('videoMaxDuration'));
+      } else {
+        setVideoDurationValid(true);
+      }
+    }
+  };
+
+  const recordVideo = async () => {
+    setVideoError('');
+    const perm = await ImagePicker.requestCameraPermissionsAsync();
+    if (!perm.granted) {
+      setVideoError(t('cameraPermissionRequired'));
+      return;
+    }
+    const res = await ImagePicker.launchCameraAsync({
+      mediaTypes: ['videos'],
+      allowsEditing: false,
+      quality: 1,
+      videoMaxDuration: 180,
+    });
+    if (res.canceled || !res.assets[0]) return;
+    const asset = res.assets[0];
+    setVideoUri(asset.uri);
+    setVideoDuration(null);
+    setVideoDurationValid(false);
+
+    const durSec = asset.duration ? Math.round(asset.duration / 1000) : null;
+    if (durSec !== null) {
+      setVideoDuration(durSec);
+      if (durSec < 60) {
+        setVideoDurationValid(false);
+        setVideoError(t('videoMinDuration'));
+      } else if (durSec > 180) {
+        setVideoDurationValid(false);
+        setVideoError(t('videoMaxDuration'));
+      } else {
+        setVideoDurationValid(true);
+      }
+    }
+  };
+
   const handleSubmit = async () => {
     setServerError(null);
     setLoading(true);
@@ -251,6 +321,29 @@ export function ProfileWizardScreen() {
             },
           },
         ]);
+      }
+
+      // Upload verification video if selected and valid
+      if (videoUri && videoDurationValid) {
+        setVideoUploading(true);
+        try {
+          const ext = videoUri.split('.').pop() || 'mp4';
+          const vfd = new FormData();
+          vfd.append('verification_video', {
+            uri: videoUri,
+            name: `verification.${ext}`,
+            type: `video/${ext}`,
+          } as unknown as Blob);
+          const { default: apiClient } = await import('@/api/client');
+          await apiClient.post('/verification-video/upload', vfd, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+          });
+        } catch (vErr: any) {
+          const vMsg = vErr?.response?.data?.message || vErr?.message || 'Video upload failed.';
+          Alert.alert(t('error'), vMsg);
+        } finally {
+          setVideoUploading(false);
+        }
       }
     } catch (err) {
       setServerError(extractError(err, 'Failed to save profile.'));
@@ -666,6 +759,75 @@ export function ProfileWizardScreen() {
               </View>
             </>
           )}
+
+          {/* Step 10: Verification Video */}
+          {currentStep === 10 && (
+            <View style={styles.videoSection}>
+              <View style={[styles.videoCard, { backgroundColor: colors.surfaceSoft, borderColor: colors.border }]}>
+                <Ionicons name="videocam" size={22} color={colors.primary} />
+                <Text style={[styles.videoTitle, { color: colors.ink }]}>{t('verificationVideo')}</Text>
+                <Text style={[styles.videoDesc, { color: colors.inkSoft }]}>
+                  {t('verificationVideoDesc')}
+                </Text>
+              </View>
+
+              {videoStatus === 'APPROVED' && (
+                <View style={[styles.statusBadge, { backgroundColor: '#dcfce7', borderColor: '#bbf7d0' }]}>
+                  <Text style={{ color: '#166534', fontSize: 12, fontWeight: '600' }}>✅ {t('videoApproved')}</Text>
+                </View>
+              )}
+              {videoStatus === 'PENDING' && (
+                <View style={[styles.statusBadge, { backgroundColor: '#fef9c3', borderColor: '#fef08a' }]}>
+                  <Text style={{ color: '#854d0e', fontSize: 12, fontWeight: '600' }}>⏳ {t('videoPending')}</Text>
+                </View>
+              )}
+              {videoStatus === 'REJECTED' && (
+                <View style={[styles.statusBadge, { backgroundColor: '#fecaca', borderColor: '#fca5a5' }]}>
+                  <Text style={{ color: '#991b1b', fontSize: 12, fontWeight: '600' }}>❌ {t('videoRejected')}</Text>
+                </View>
+              )}
+
+              <Pressable
+                style={[styles.uploadBtn, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                onPress={pickVideo}
+              >
+                <Ionicons name="cloud-upload" size={24} color={colors.primary} />
+                <Text style={[styles.uploadText, { color: colors.ink }]}>
+                  {videoUri ? t('replaceVideo') : t('selectVideo')}
+                </Text>
+              </Pressable>
+
+              <Pressable
+                style={[styles.uploadBtn, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                onPress={recordVideo}
+              >
+                <Ionicons name="videocam" size={24} color={colors.primary} />
+                <Text style={[styles.uploadText, { color: colors.ink }]}>
+                  {t('recordVideo')}
+                </Text>
+              </Pressable>
+
+              {videoUri && (
+                <View style={{ marginTop: 12 }}>
+                  {videoDuration !== null && (
+                    <Text style={[styles.videoDuration, { color: videoDurationValid ? colors.success : colors.error }]}>
+                      {t('duration')}: {Math.floor(videoDuration / 60)}:{String(videoDuration % 60).padStart(2, '0')}
+                      {'  '}{videoDurationValid ? '✅' : '❌'}
+                    </Text>
+                  )}
+                  {videoError ? (
+                    <Text style={[styles.videoError, { color: colors.error }]}>{videoError}</Text>
+                  ) : null}
+                </View>
+              )}
+
+              {videoUploading && (
+                <View style={{ marginTop: 12 }}>
+                  <Text style={{ color: colors.primary, fontWeight: '600', fontSize: 13 }}>{t('uploading')}</Text>
+                </View>
+              )}
+            </View>
+          )}
         </ScrollView>
 
         {/* Bottom nav */}
@@ -835,4 +997,26 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
   },
   navBtn: { flex: 1 },
+  videoSection: {
+    gap: spacing.md,
+  },
+  videoCard: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: spacing.md,
+  },
+  videoTitle: { ...typography.body, fontWeight: '700', flex: 1 },
+  videoDesc: { ...typography.label, flexBasis: '100%', lineHeight: 20 },
+  statusBadge: {
+    borderRadius: 8,
+    borderWidth: 1,
+    padding: spacing.sm,
+    alignItems: 'center',
+  },
+  videoDuration: { ...typography.caption, fontWeight: '600', marginBottom: 4 },
+  videoError: { ...typography.label, fontWeight: '600' },
 });

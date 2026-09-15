@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { StyleSheet, Text, TextInput, View } from 'react-native';
 import { useTheme } from '@/theme';
 import { spacing, typography } from '@/theme';
 import { useI18n } from '@/i18n';
@@ -15,11 +14,12 @@ interface HeightPickerProps {
 
 export type HeightUnit = 'ft_in' | 'cm';
 
-/** Convert cm to feet + inches */
+/** Convert cm to feet + inches (handles 12-inch carry) */
 export function cmToFeetInches(cm: number): { feet: number; inches: number } {
   const totalInches = cm / 2.54;
   const feet = Math.floor(totalInches / 12);
-  const inches = Math.round(totalInches % 12);
+  let inches = Math.round(totalInches % 12);
+  if (inches === 12) return { feet: feet + 1, inches: 0 };
   return { feet, inches };
 }
 
@@ -38,8 +38,6 @@ export function HeightPicker({
 }: HeightPickerProps) {
   const { colors } = useTheme();
   const { t } = useI18n();
-  const [unit, setUnit] = useState<HeightUnit>('ft_in');
-  const { isTamil } = useI18n();
 
   const feetNum = parseInt(feet, 10) || 0;
   const inchesNum = parseInt(inches, 10) || 0;
@@ -64,85 +62,14 @@ export function HeightPicker({
       <Text style={[styles.label, { color: colors.inkSoft }]}>
         {t('stepHeight')}
       </Text>
+      <Text style={[styles.hint, { color: colors.inkFaint, marginBottom: spacing.md }]}>
+        {t('heightHint') || 'Enter height in any unit — the other updates automatically.'}
+      </Text>
 
-      {/* Unit toggle */}
-      <View style={styles.toggleRow}>
-        <Pressable
-          style={[
-            styles.toggleBtn,
-            unit === 'ft_in'
-              ? { backgroundColor: colors.primary }
-              : { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1 },
-          ]}
-          onPress={() => setUnit('ft_in')}
-        >
-          <Text
-            style={[
-              styles.toggleText,
-              { color: unit === 'ft_in' ? '#fff' : colors.ink },
-            ]}
-          >
-            {t('heightUnitFtIn')}
-          </Text>
-        </Pressable>
-        <Pressable
-          style={[
-            styles.toggleBtn,
-            unit === 'cm'
-              ? { backgroundColor: colors.primary }
-              : { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1 },
-          ]}
-          onPress={() => setUnit('cm')}
-        >
-          <Text
-            style={[
-              styles.toggleText,
-              { color: unit === 'cm' ? '#fff' : colors.ink },
-            ]}
-          >
-            {t('heightUnitCm')}
-          </Text>
-        </Pressable>
-      </View>
-
-      {unit === 'ft_in' ? (
-        <View style={styles.inputRow}>
-          <View style={styles.inputWrap}>
-            <Text style={[styles.unitLabel, { color: colors.inkFaint }]}>{t('heightFeet')}</Text>
-            <TextInput
-              style={[
-                styles.input,
-                { color: colors.ink, borderColor: errorFeet ? colors.error : colors.border, backgroundColor: colors.surface },
-              ]}
-              value={feet}
-              onChangeText={onFeetChange}
-              keyboardType="number-pad"
-              maxLength={1}
-              placeholder="5"
-              placeholderTextColor={colors.inkFaint}
-            />
-            {errorFeet && <Text style={[styles.error, { color: colors.error }]}>{errorFeet}</Text>}
-          </View>
-          <View style={styles.inputWrap}>
-            <Text style={[styles.unitLabel, { color: colors.inkFaint }]}>{t('heightInches')}</Text>
-            <TextInput
-              style={[
-                styles.input,
-                { color: colors.ink, borderColor: errorInches ? colors.error : colors.border, backgroundColor: colors.surface },
-              ]}
-              value={inches}
-              onChangeText={onInchesChange}
-              keyboardType="number-pad"
-              maxLength={2}
-              placeholder="6"
-              placeholderTextColor={colors.inkFaint}
-            />
-            {errorInches && <Text style={[styles.error, { color: colors.error }]}>{errorInches}</Text>}
-          </View>
-        </View>
-      ) : (
+      {/* Three-column: cm | feet | inches */}
+      <View style={styles.inputRow}>
         <View style={styles.inputWrap}>
-          <Text style={[styles.unitLabel, { color: colors.inkFaint }]}>{t('heightCm')}</Text>
+          <Text style={[styles.unitLabel, { color: colors.inkFaint }]}>cm</Text>
           <TextInput
             style={[
               styles.input,
@@ -152,13 +79,50 @@ export function HeightPicker({
             onChangeText={handleCmChange}
             keyboardType="number-pad"
             maxLength={3}
-            placeholder="165"
+            placeholder="170"
             placeholderTextColor={colors.inkFaint}
           />
-          <Text style={[styles.hint, { color: colors.inkFaint }]}>
-            {feetNum > 0 ? `${feetNum}'${inchesNum}"` : ''}
-          </Text>
         </View>
+        <Text style={[styles.dash, { color: colors.inkFaint }]}>—</Text>
+        <View style={styles.inputWrap}>
+          <Text style={[styles.unitLabel, { color: colors.inkFaint }]}>{t('heightFeet') || 'Feet'}</Text>
+          <TextInput
+            style={[
+              styles.input,
+              { color: colors.ink, borderColor: errorFeet ? colors.error : colors.border, backgroundColor: colors.surface },
+            ]}
+            value={feet}
+            onChangeText={onFeetChange}
+            keyboardType="number-pad"
+            maxLength={1}
+            placeholder="5"
+            placeholderTextColor={colors.inkFaint}
+          />
+          {errorFeet && <Text style={[styles.error, { color: colors.error }]}>{errorFeet}</Text>}
+        </View>
+        <View style={styles.inputWrap}>
+          <Text style={[styles.unitLabel, { color: colors.inkFaint }]}>{t('heightInches') || 'Inches'}</Text>
+          <TextInput
+            style={[
+              styles.input,
+              { color: colors.ink, borderColor: errorInches ? colors.error : colors.border, backgroundColor: colors.surface },
+            ]}
+            value={inches}
+            onChangeText={onInchesChange}
+            keyboardType="number-pad"
+            maxLength={2}
+            placeholder="7"
+            placeholderTextColor={colors.inkFaint}
+          />
+          {errorInches && <Text style={[styles.error, { color: colors.error }]}>{errorInches}</Text>}
+        </View>
+      </View>
+
+      {/* Combined display */}
+      {cmValue > 0 && (
+        <Text style={[styles.combinedDisplay, { color: colors.primary }]}>
+          {cmValue} cm — {feetNum}'{inchesNum}"
+        </Text>
       )}
     </View>
   );
@@ -169,31 +133,26 @@ function makeStyles(colors: any) {
     label: {
       ...typography.caption,
       fontWeight: '700',
-      marginBottom: 6,
+      marginBottom: 4,
       textTransform: 'uppercase',
       letterSpacing: 0.3,
     },
-    toggleRow: {
-      flexDirection: 'row',
-      gap: spacing.sm,
-      marginBottom: spacing.md,
-    },
-    toggleBtn: {
-      flex: 1,
-      alignItems: 'center',
-      paddingVertical: 8,
-      borderRadius: 8,
-    },
-    toggleText: {
+    hint: {
       ...typography.label,
-      fontWeight: '700',
+      marginBottom: 4,
     },
     inputRow: {
       flexDirection: 'row',
-      gap: spacing.sm,
+      alignItems: 'center',
+      gap: spacing.xs,
     },
     inputWrap: {
       flex: 1,
+    },
+    dash: {
+      fontSize: 20,
+      fontWeight: '600',
+      marginTop: 18,
     },
     unitLabel: {
       ...typography.label,
@@ -208,10 +167,11 @@ function makeStyles(colors: any) {
       fontSize: typography.body.fontSize,
       textAlign: 'center',
     },
-    hint: {
-      ...typography.label,
-      marginTop: 4,
+    combinedDisplay: {
+      ...typography.body,
+      fontWeight: '700',
       textAlign: 'center',
+      marginTop: spacing.md,
     },
     error: {
       ...typography.label,

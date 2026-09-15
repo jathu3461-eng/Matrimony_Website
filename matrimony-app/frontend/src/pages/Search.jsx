@@ -1,16 +1,34 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useSearchParams } from 'react-router-dom';
-import { Search as SearchIcon, SlidersHorizontal, RotateCcw, Users, Sparkles } from 'lucide-react';
+import { Search as SearchIcon, SlidersHorizontal, RotateCcw, Users, Sparkles, Ruler } from 'lucide-react';
 import api from '../api';
 import { useI18n } from '../context/I18nContext';
 import ProfileCard from '../components/ProfileCard';
 import { Button, Badge, Skeleton, ErrorCard, SelectField, TextField } from '../components/ui';
 
+const HEIGHT_CM_OPTIONS = [];
+for (let cm = 140; cm <= 200; cm += 1) {
+  const totalInches = cm / 2.54;
+  const ft = Math.floor(totalInches / 12);
+  let inches = Math.round(totalInches % 12);
+  if (inches === 12) { inches = 0; }
+  HEIGHT_CM_OPTIONS.push({ value: String(cm), label: `${cm} cm — ${ft}'${inches}"` });
+}
+
+const FT_IN_OPTIONS = [];
+for (let ft = 4; ft <= 7; ft++) {
+  for (let inch = 0; inch <= 11; inch++) {
+    const cmVal = Math.round(((ft * 12 + inch) * 2.54));
+    FT_IN_OPTIONS.push({ value: String(cmVal), label: `${cmVal} cm — ${ft}'${inch}"` });
+  }
+}
+
 const DEFAULT_FILTERS = {
   gender: 'F', looking_for: '', religion_id: '', caste_id: '', current_country_id: '',
   min_age: '', max_age: '', raasi_id: '', star_id: '',
   income_range: '', manglik_status: '', q: '',
+  min_height_cm: '', max_height_cm: '',
 };
 
 function ResultsSkeleton() {
@@ -50,7 +68,12 @@ export default function Search() {
   }, []);
 
   const runSearch = async (f = filters) => {
-    const params = Object.fromEntries(Object.entries(f).filter(([, v]) => v !== ''));
+    const params = {};
+    for (const [k, v] of Object.entries(f)) {
+      if (v !== '') {
+        params[k] = v;
+      }
+    }
     const count = Object.entries(params).filter(([k, v]) => k !== 'gender' && k !== 'looking_for' && v !== '').length;
     setActiveFiltersCount(count);
     setLoading(true);
@@ -173,6 +196,28 @@ export default function Search() {
                       placeholder="50"
                       value={filters.max_age}
                       onChange={set('max_age')}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                {sectionLabel('📏', 'Height')}
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-2">
+                    <SelectField
+                      label={t('heightMin')}
+                      value={filters.min_height_cm}
+                      onChange={set('min_height_cm')}
+                      placeholder="Any"
+                      options={HEIGHT_CM_OPTIONS}
+                    />
+                    <SelectField
+                      label={t('heightMax')}
+                      value={filters.max_height_cm}
+                      onChange={set('max_height_cm')}
+                      placeholder="Any"
+                      options={HEIGHT_CM_OPTIONS}
                     />
                   </div>
                 </div>

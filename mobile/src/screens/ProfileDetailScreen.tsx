@@ -51,7 +51,6 @@ export function ProfileDetailScreen() {
   const [sending, setSending] = useState(false);
   const [shortlisting, setShortlisting] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [heightUnit, setHeightUnit] = useState<'ft' | 'cm'>('ft');
 
   // 10-Porutham panel state
   const [matchProfileId, setMatchProfileId] = useState<string>('');
@@ -169,10 +168,8 @@ export function ProfileDetailScreen() {
   const isShortlisted = p.is_shortlisted === 1;
   const interestStatus = p.interest_status;
   const lookingFor = p.gender === 'M' ? t('lookingForGroom') : t('lookingForBride');
-  const heightLabel =
-    heightUnit === 'cm'
-      ? `${heightToCm(p.height_feet, p.height_inches)} cm`
-      : `${p.height_feet}'${p.height_inches ?? 0}"`;
+  const heightCm = heightToCm(p.height_feet, p.height_inches);
+  const heightLabel = heightCm ? `${heightCm} cm — ${p.height_feet}'${p.height_inches ?? 0}"` : '';
 
   return (
     <Screen>
@@ -214,27 +211,6 @@ export function ProfileDetailScreen() {
           <View style={[styles.heightChip, { backgroundColor: colors.primarySoft }]}>
             <Ionicons name="resize" size={14} color={colors.primary} />
             <Text style={[styles.heightChipText, { color: colors.primary }]}>{heightLabel}</Text>
-          </View>
-          <View style={styles.heightToggle}>
-            {(['ft', 'cm'] as const).map((unit) => (
-              <Pressable
-                key={unit}
-                onPress={() => setHeightUnit(unit)}
-                style={[
-                  styles.heightToggleBtn,
-                  { backgroundColor: heightUnit === unit ? colors.primary : colors.surface },
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.heightToggleText,
-                    { color: heightUnit === unit ? colors.white : colors.inkSoft },
-                  ]}
-                >
-                  {unit === 'ft' ? t('heightUnitFtIn') : t('heightUnitCm')}
-                </Text>
-              </Pressable>
-            ))}
           </View>
         </View>
 
