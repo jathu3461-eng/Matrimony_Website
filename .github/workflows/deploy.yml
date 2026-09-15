@@ -1,0 +1,108 @@
+name: 🚀 Deploy Mukurtham to cPanel
+
+on:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  # ─────────────────────────────────────────────────
+  # JOB 1: Build & FTP Deploy FRONTEND → public_html
+  # ─────────────────────────────────────────────────
+  deploy-frontend:
+    name: 🌐 Build + FTP Deploy Frontend
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: ⬇️ Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: matrimony-app/frontend/package-lock.json
+
+      - name: 📦 Install frontend dependencies
+        working-directory: matrimony-app/frontend
+        run: npm ci
+
+      - name: 🏗️ Build Vite production bundle
+        working-directory: matrimony-app/frontend
+        env:
+          VITE_API_URL: https://api.mukurtham.ca/api
+        run: npm run build
+
+      - name: 📁 Add .htaccess for React Router
+        run: |
+          cat > matrimony-app/frontend/dist/.htaccess << 'EOF'
+          Options -MultiViews
+          RewriteEngine On
+          RewriteCond %{REQUEST_FILENAME} !-f
+          RewriteRule ^ index.html [QSA,L]
+          Header set Cache-Control "no-cache, no-store, must-revalidate" "expr:%{REQUEST_URI} =~ /index\.html$/"
+          EOF
+
+      - name: 🚀 FTP Deploy dist/ → public_html/
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps
+          port: 21
+          local-dir: ./matrimony-app/frontend/dist/
+          server-dir: /public_html/
+          dangerous-clean-slate: false
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+
+  # ─────────────────────────────────────────────────
+  # JOB 2: SSH Deploy BACKEND → /home/mukutmzw/mukurtham-backend
+  # ─────────────────────────────────────────────────
+  deploy-backend:
+    name: 🖥️ SSH Deploy Backend
+    runs-on: ubuntu-latest
+    needs: deploy-frontend
+
+    steps:
+      - name: 🔐 SSH into cPanel & Deploy Backend
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: 21098
+          script: |
+            echo "🚀 Starting Mukurtham backend deployment..."
+            
+            # Create folder if it doesn't exist
+            mkdir -p ~/mukurtham-backend
+            cd ~/mukurtham-backend
+            
+            # Pull latest code
+            if [ -d ".git" ]; then
+              echo "📦 Pulling latest code..."
+              git pull origin main
+            else
+              echo "📥 Cloning repository..."
+              git clone https://github.com/jathu3461-eng/Matrimony_Website.git temp_clone
+              cp -r temp_clone/matrimony-app/backend/. .
+              rm -rf temp_clone
+            fi
+            
+            # Install production dependencies
+            echo "📦 Installing dependencies..."
+            npm ci --omit=dev
+            
+            # Create data directory for SQLite
+            mkdir -p data
+            
+            # Restart via cPanel Passenger (touch restart.txt)
+            mkdir -p tmp && touch tmp/restart.txt
+            
+            echo "✅ Backend deployed successfully at https://mukurtham.ca/api"
