@@ -102,14 +102,12 @@ export const searchProfiles = async (req: Request, res: Response): Promise<void>
 
     res.status(200).json({
       success: true,
-      data: {
-        profiles,
-        pagination: {
-          totalCount,
-          currentPage: Number(page),
-          totalPages: Math.ceil(totalCount / take),
-          hasNextPage: skip + take < totalCount,
-        },
+      results: profiles,
+      pagination: {
+        totalCount,
+        currentPage: Number(page),
+        totalPages: Math.ceil(totalCount / take),
+        hasNextPage: skip + take < totalCount,
       },
     });
   } catch (error) {
