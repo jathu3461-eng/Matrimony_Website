@@ -100,9 +100,32 @@ export const searchProfiles = async (req: Request, res: Response): Promise<void>
       prisma.profile.count({ where: whereClause }),
     ]);
 
+    // Fetch blur data (columns not in Prisma schema)
+    const profileIds = profiles.map(p => p.id);
+    let blurRows: any[] = [];
+    if (profileIds.length > 0) {
+      const ids = profileIds.join(',');
+      blurRows = await prisma.$queryRawUnsafe(
+        `SELECT id, blur_photo, blur_horoscope FROM profiles WHERE id IN (${ids})`
+      );
+    }
+    const blurMap: Record<number, any> = {};
+    for (const row of blurRows) { blurMap[Number(row.id)] = row; }
+
+    const sanitized = profiles.map(p => {
+      const { videoUrl: _omit, ...rest } = p as any;
+      const blur = blurMap[p.id] || {};
+      return {
+        ...rest,
+        main_profile_picture: rest.mainProfilePicture || null,
+        blur_photo: Number(blur.blur_photo) || 0,
+        blur_horoscope: Number(blur.blur_horoscope) || 0,
+      };
+    });
+
     res.status(200).json({
       success: true,
-      results: profiles,
+      results: sanitized,
       pagination: {
         totalCount,
         currentPage: Number(page),
