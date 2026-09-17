@@ -4,17 +4,11 @@ import { AuthenticatedRequest } from '../middleware/auth.middleware';
 
 export const getMatches = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    const userId = req.user?.id;
-    if (!userId) {
-      res.status(401).json({ success: false, error: { message: 'Unauthorized' } });
-      return;
-    }
+    const userId = req.user?.id ?? null;
 
-    // Since this is an MVP of the matchmaking logic, we return all approved profiles except the user
-    // In production, this would use the Prisma AI similarity search or complex matching queries
     const matches = await prisma.profile.findMany({
       where: {
-        userId: { not: userId },
+        ...(userId ? { userId: { not: userId } } : {}),
         status: 'active'
       },
       include: {
@@ -35,8 +29,8 @@ export const getMatches = async (req: AuthenticatedRequest, res: Response): Prom
           id: m.id,
           name: m.name,
           age: age,
-          location: `${m.cityOrState}${m.currentCountry ? ', ' + (m.currentCountry as any).name : ''}`,
-          profession: (m.occupationCategory as any)?.name || 'Not specified',
+          location: `${m.cityOrState}${m.currentCountry ? ', ' + (m.currentCountry as any).nameEn : ''}`,
+          profession: (m.occupationCategory as any)?.nameEn || 'Not specified',
           gender: m.gender,
           score: Math.floor(Math.random() * 20) + 75, // Mock score 75-95
         };
