@@ -73,6 +73,24 @@ app.use('/api/v1/conversations', conversationRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
 
 // ============================================================
+// Aliases without /v1/ prefix (frontend uses /api/ base)
+// ============================================================
+app.use('/api/auth', authRoutes);
+app.use('/api/reference', referenceRoutes);
+app.use('/api/profiles/search', searchRoutes);
+app.use('/api/profiles', profileRoutes);
+app.use('/api/search', searchRoutes);
+app.use('/api/lists', listRoutes);
+app.use('/api/ai', aiRoutes);
+app.use('/api/payments', paymentRoutes);
+app.use('/api/matches', matchRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/broker', brokerRoutes);
+app.use('/api/interests', interestRoutes);
+app.use('/api/conversations', conversationRoutes);
+app.use('/api/notifications', notificationRoutes);
+
+// ============================================================
 // ONE-TIME Admin Setup Endpoint (secret-key protected)
 // ============================================================
 app.post('/api/v1/setup/make-admin', express.json(), async (req: Request, res: Response) => {
