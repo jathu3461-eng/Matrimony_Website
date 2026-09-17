@@ -172,6 +172,11 @@ app.get('/api/health', async (req: Request, res: Response) => {
 });
 
 // ============================================================
+// Static uploads (legacy media served from the old backend folder)
+// ============================================================
+app.use('/uploads', express.static('/home/mukutmzw/mukurtham-backend/uploads'));
+
+// ============================================================
 // 404 Handler — catch unregistered routes
 // ============================================================
 app.use((req: Request, res: Response) => {
